@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Lance
+  - BreakableWall
+  - Wall
   layers:
   - Default
   - TransparentFX
@@ -14,10 +16,10 @@ TagManager:
   - UI
   - Wall
   - 
-  - 
-  - 
-  - 
-  - 
+  - Player_Don
+  - Player_Sancho
+  - World_Don
+  - World_Sancho
   - 
   - 
   - 
