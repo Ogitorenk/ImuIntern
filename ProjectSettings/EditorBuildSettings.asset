@@ -4,5 +4,11 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/CEM/Scenes/Castle_Entry.unity
+    guid: 487417dcef52f9f4f856610c27cf94cc
+  - enabled: 1
+    path: Assets/CEM/Scenes/Left_Section.unity
+    guid: d2ab4dbb311fc72408a6883573b4214d
   m_configObjects: {}
