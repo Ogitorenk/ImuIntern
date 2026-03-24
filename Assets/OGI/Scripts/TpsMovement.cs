@@ -12,6 +12,7 @@ public class TpsMovement : MonoBehaviour
 
     [Header("Zýplama & Fizik")]
     public float jumpHeight = 2f;
+    [Range(0.1f, 0.9f)] public float jumpCutMultiplier = 0.5f;
     public float gravity = -19.62f;
     public int maxJumps = 2;
     private int jumpCount;
@@ -32,12 +33,19 @@ public class TpsMovement : MonoBehaviour
     [Header("Niþan Alma (Hybrid Style)")]
     public GameObject crosshairUI;
     [Range(0.1f, 1f)] public float slowMotionAmount = 0.3f;
-
-    [Tooltip("Normal Gezinme Kamerasý (FreeLook)")]
     public CinemachineFreeLook normalCamera;
-
-    [Tooltip("Niþan Alma Kamerasý (Omuz/FPS)")]
     public CinemachineFreeLook aimCamera;
+
+    [Header("Duvar Kýrma (Dash / Omuz Atma)")]
+    public float dashSpeed = 20f;
+    public float dashDuration = 0.3f;
+    [Tooltip("Yeteneðin tekrar kullanýlabilmesi için geçmesi gereken süre (Saniye)")]
+    public float dashCooldown = 10f; // <--- YENÝ: Bekleme Süresi
+    public GameObject wallBreakEffect;
+
+    private bool isDashing = false;
+    private float dashTimer = 0f;
+    private float dashCooldownTimer = 0f; // <--- YENÝ: Arka planda sayan sayaç
 
     private CharacterController controller;
     private Transform cam;
@@ -56,6 +64,13 @@ public class TpsMovement : MonoBehaviour
 
     void Update()
     {
+        // --- YENÝ: COOLDOWN SAYACI ---
+        // Eðer bekleme süremiz 0'dan büyükse, zamanla geriye doðru azalt
+        if (dashCooldownTimer > 0)
+        {
+            dashCooldownTimer -= Time.deltaTime;
+        }
+
         // --- 1. TUTUNMA DURUMU ---
         if (isLatched)
         {
@@ -65,16 +80,24 @@ public class TpsMovement : MonoBehaviour
         }
 
         // --- 2. KESÝN "C" TUÞU ÝLE TUTUNMA ---
-        // Sadece C'ye basýldýðý KAREDE bu kontrolü yapar. Otomatik tutunma imkansýz hale gelir.
         if (Input.GetKeyDown(KeyCode.C))
         {
             CheckForLanceLatch();
         }
 
-        // --- 3. HYBRID NÝÞAN ALMA (SAÐ TIK) ---
+        // --- 3. DUVAR KIRMA (HÜCUM) BAÞLATMA ---
+        // YENÝ ÞART: dashCooldownTimer sýfýrlanmýþ olmalý!
+        if (Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
+        {
+            isDashing = true;
+            dashTimer = dashDuration;
+            dashCooldownTimer = dashCooldown; // Yeteneði kullandýk, 10 saniyelik sayacý baþlat!
+        }
+
+        // --- 4. HYBRID NÝÞAN ALMA (SAÐ TIK) ---
         bool isAiming = Input.GetMouseButton(1);
 
-        if (isLanceEquipped)
+        if (isLanceEquipped && !isDashing)
         {
             if (isAiming)
             {
@@ -86,8 +109,12 @@ public class TpsMovement : MonoBehaviour
                 SetAimMode(false);
             }
         }
+        else if (isDashing)
+        {
+            SetAimMode(false);
+        }
 
-        // --- 4. HAREKET SÝSTEMÝ (DOKUNULMADI) ---
+        // --- 5. HAREKET VE ZEMÝN KONTROLÜ ---
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
         if (isGrounded && velocity.y < 0)
@@ -97,48 +124,87 @@ public class TpsMovement : MonoBehaviour
             velocity.z = 0f;
             jumpCount = 0;
         }
-
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-        Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
-
-        if (!isAiming) // NORMAL HAREKET
+        else if (!isGrounded && jumpCount == 0)
         {
-            if (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || inputDir.magnitude < 0.1f)
-            {
-                referenceYaw = cam.eulerAngles.y;
-            }
-
-            if (inputDir.magnitude >= 0.1f)
-            {
-                float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
-                float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-                transform.rotation = Quaternion.Euler(0f, angle, 0f);
-
-                Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-                controller.Move(moveDir.normalized * speed * Time.deltaTime);
-            }
-        }
-        else // NÝÞAN ALMA HAREKETÝ (STRAFE)
-        {
-            float yawCamera = cam.eulerAngles.y;
-            transform.rotation = Quaternion.Euler(0, yawCamera, 0);
-
-            Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-            controller.Move(moveDir * (speed * 0.6f) * Time.deltaTime);
+            jumpCount = maxJumps;
         }
 
-        if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
+        // --- 6. HÜCUM VEYA NORMAL HAREKET UYGULAMASI ---
+        if (isDashing)
+        {
+            dashTimer -= Time.deltaTime;
+            if (dashTimer <= 0)
+            {
+                isDashing = false;
+            }
+            else
+            {
+                controller.Move(transform.forward * dashSpeed * Time.deltaTime);
+            }
+        }
+        else
+        {
+            float horizontal = Input.GetAxisRaw("Horizontal");
+            float vertical = Input.GetAxisRaw("Vertical");
+            Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
+
+            if (!isAiming)
+            {
+                if (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || inputDir.magnitude < 0.1f)
+                {
+                    referenceYaw = cam.eulerAngles.y;
+                }
+
+                if (inputDir.magnitude >= 0.1f)
+                {
+                    float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
+                    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+                    transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                    controller.Move(moveDir.normalized * speed * Time.deltaTime);
+                }
+            }
+            else
+            {
+                float yawCamera = cam.eulerAngles.y;
+                transform.rotation = Quaternion.Euler(0, yawCamera, 0);
+
+                Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
+                controller.Move(moveDir * (speed * 0.6f) * Time.deltaTime);
+            }
+        }
+
+        // --- 7. DÝNAMÝK ZIPLAMA SÝSTEMÝ ---
+        if (Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+        }
+
+        if (Input.GetButtonUp("Jump") && velocity.y > 0f)
+        {
+            velocity.y *= jumpCutMultiplier;
         }
 
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
 
-    // TUTUNMA KONTROLÜNÜ AYRI BÝR METODA ALDIM KÝ SADECE C ÝLE ÇALIÞSIN
+    // --- 8. ÇARPIÞMA (DUVAR KIRMA) KONTROLÜ ---
+    void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (isDashing && hit.gameObject.CompareTag("BreakableWall"))
+        {
+            if (wallBreakEffect != null)
+            {
+                Instantiate(wallBreakEffect, hit.point, Quaternion.LookRotation(hit.normal));
+            }
+
+            Destroy(hit.gameObject);
+        }
+    }
+
     void CheckForLanceLatch()
     {
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, 4f);
@@ -176,7 +242,6 @@ public class TpsMovement : MonoBehaviour
 
     void ThrowLance()
     {
-        // ViewportPointToRay tam orta noktadan ýþýn fýrlatýr
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         RaycastHit hit;
         Vector3 targetPoint = Physics.Raycast(ray, out hit, 300f, groundMask) ? hit.point : ray.GetPoint(300f);
@@ -215,4 +280,27 @@ public class TpsMovement : MonoBehaviour
         velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * 1.5f;
         jumpCount = 1;
     }
+
+    void OnEnable()
+    {
+        if (normalCamera != null)
+        {
+            normalCamera.gameObject.SetActive(true);
+            // SÝHÝRLÝ SATIR: Kameraya geçiþi yumuþatma, anýnda ýþýnlan (CUT) diyoruz.
+            normalCamera.PreviousStateIsValid = false;
+        }
+        if (aimCamera != null)
+        {
+            aimCamera.gameObject.SetActive(true);
+            aimCamera.PreviousStateIsValid = false;
+        }
+    }
+
+    void OnDisable()
+    {
+        // Karakter kapandýðýnda (Tab'a basýlýnca) kameralarýný da kapatýr ki ekrana salça olmasýnlar
+        if (normalCamera != null) normalCamera.gameObject.SetActive(false);
+        if (aimCamera != null) aimCamera.gameObject.SetActive(false);
+    }
+
 }

@@ -12,25 +12,37 @@ public class LanceObj : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        // Oyuncuya çarparsa saplanmasýn
+        // Eðer zaten saplandýysa veya oyuncuya çarptýysa iþlem yapma
         if (isStuck || collision.gameObject.CompareTag("Player")) return;
+
+        // --- YENÝ EKLENEN KONTROL: SADECE DUVARLARA SAPLAN ---
+        // Eðer çarptýðý objenin Tag'i "Wall" DEÐÝLSE:
+        if (!collision.gameObject.CompareTag("Wall"))
+        {
+            // 1. Oyuncunun yerdeki baþarýsýz mýzraða tutunmasýný engellemek için tag'i sil
+            gameObject.tag = "Untagged";
+
+            // 2. Saplanmasýn, sekmeye devam etsin diye burada kodu kesiyoruz
+            // 3. Oyun kasmasýn diye yerdeki mýzraðý 3 saniye sonra yok et
+            Destroy(gameObject, 3f);
+            return;
+        }
+
+        // --- BURADAN AÞAÐISI SADECE "Wall" TAG'ÝNE ÇARPARSA ÇALIÞIR ---
 
         isStuck = true;
         rb.isKinematic = true;
 
         ContactPoint contact = collision.contacts[0];
 
-        // Duvara saplanma açýsý (Senin yazdýðýn kýsým, burasý okey)
+        // Duvara dik açýyla saplanma matematiði
         Quaternion lookRot = Quaternion.LookRotation(-contact.normal);
         transform.rotation = lookRot * Quaternion.Euler(90f, 0f, 0f);
 
+        // Mýzraðý çarptýðý duvarýn alt objesi yap ki duvar hareket ederse mýzrak da etsin
         transform.SetParent(collision.transform);
 
-        // --- BURADAKÝ TRIGGER OLUÞTURMA KISMINI SÝLEBÝLÝRÝZ ---
-        // Çünkü artýk karakter 'C'ye basýnca SphereCast ile etrafý tarýyor.
-        // Ama mýzraðýn fiziksel bir Collider'ý (Box veya Capsule) mutlaka kalmalý.
+        // Garanti olsun diye duvara saplanan mýzraðýn tag'ini tekrar Lance yapýyoruz
+        gameObject.tag = "Lance";
     }
-
-    // --- KRÝTÝK: OnTriggerEnter FONKSÝYONUNU TAMAMEN SÝLDÝK ---
-    // Otomatik tutunmaya sebep olan yer burasýydý.
 }
