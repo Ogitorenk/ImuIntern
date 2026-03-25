@@ -50,5 +50,18 @@ public class DualRealityManager : MonoBehaviour
         // Modelleri aç/kapat
         activeChar.SetActive(true);
         inactiveChar.SetActive(false);
+
+        // --- YENÝ EKLENDÝ: Zýplama tahtalarýnýn (Mantar/Trambolin) algýsýný güncelle ---
+        UpdateAllJumpPads();
+    }
+
+    // --- YENÝ EKLENDÝ: Sahnede ne kadar JumpPad varsa bulup aktif karaktere göre deðiþtirir ---
+    void UpdateAllJumpPads()
+    {
+        IllusionJumpPad[] jumpPads = FindObjectsOfType<IllusionJumpPad>();
+        foreach (IllusionJumpPad pad in jumpPads)
+        {
+            pad.UpdatePerception(isDonActive);
+        }
     }
 }

@@ -8,6 +8,7 @@ public class SanchoMovement : MonoBehaviour
     public float speed = 6f;
     public float turnSmoothTime = 0.1f;
     private float turnSmoothVelocity;
+    private float referenceYaw; // <--- Daire çizme fix: Don Kiþot'taki gibi referans açý eklendi
 
     [Header("Zýplama & Fizik")]
     public float jumpHeight = 2f;
@@ -64,10 +65,17 @@ public class SanchoMovement : MonoBehaviour
         float vertical = Input.GetAxisRaw("Vertical");
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
+        // --- BUG FIX: Daire Çizme Sorununu Çözen Kýsým ---
+        // Sadece fare hareket ediyorsa veya karakter duruyorsa kamera açýsýný referans al
+        if (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || inputDir.magnitude < 0.1f)
+        {
+            referenceYaw = cam.eulerAngles.y;
+        }
+
         if (inputDir.magnitude >= 0.1f)
         {
-            // Sancho kameranýn baktýðý açýya göre döner ve ilerler
-            float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+            // cam.eulerAngles.y yerine referenceYaw kullanýyoruz
+            float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
@@ -94,6 +102,13 @@ public class SanchoMovement : MonoBehaviour
 
     void OnEnable()
     {
+        // --- BUG FIX: Karakter geçiþinde yön sapýtmasýný önler ---
+        turnSmoothVelocity = 0f;
+        if (Camera.main != null)
+        {
+            referenceYaw = Camera.main.transform.eulerAngles.y;
+        }
+
         if (normalCamera != null)
         {
             normalCamera.gameObject.SetActive(true);
@@ -107,5 +122,10 @@ public class SanchoMovement : MonoBehaviour
         if (normalCamera != null) normalCamera.gameObject.SetActive(false);
     }
 
+    // --- YENÝ EKLENDÝ: Zýplama Tahtasý / Mantar için dýþarýdan fýrlatma ---
+    public void ExternalJump(float bounceHeight)
+    {
+        velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
+        jumpCount = 1;
+    }
 }
-
