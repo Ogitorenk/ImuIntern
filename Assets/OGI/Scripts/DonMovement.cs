@@ -2,7 +2,7 @@ using UnityEngine;
 using Cinemachine;
 
 [RequireComponent(typeof(CharacterController))]
-public class TpsMovement : MonoBehaviour
+public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -> DonMovement)
 {
     [Header("Hareket Ayarlarý")]
     public float speed = 6f;
@@ -28,6 +28,8 @@ public class TpsMovement : MonoBehaviour
     public bool isLanceEquipped = true;
     public GameObject lancePrefab;
     public float throwForce = 100f;
+    [Tooltip("Mýzraktan atlarken ne kadar uzaða fýrlasýn? (1 normal, 1.5 çok uzak)")]
+    public float lanceJumpMultiplier = 1f;
     [HideInInspector] public bool isLatched = false;
 
     [Header("Niþan Alma (Hybrid Style)")]
@@ -40,12 +42,12 @@ public class TpsMovement : MonoBehaviour
     public float dashSpeed = 20f;
     public float dashDuration = 0.3f;
     [Tooltip("Yeteneðin tekrar kullanýlabilmesi için geçmesi gereken süre (Saniye)")]
-    public float dashCooldown = 10f; // <--- YENÝ: Bekleme Süresi
+    public float dashCooldown = 10f;
     public GameObject wallBreakEffect;
 
     private bool isDashing = false;
     private float dashTimer = 0f;
-    private float dashCooldownTimer = 0f; // <--- YENÝ: Arka planda sayan sayaç
+    private float dashCooldownTimer = 0f;
 
     private CharacterController controller;
     private Transform cam;
@@ -65,7 +67,6 @@ public class TpsMovement : MonoBehaviour
     void Update()
     {
         // --- YENÝ: COOLDOWN SAYACI ---
-        // Eðer bekleme süremiz 0'dan büyükse, zamanla geriye doðru azalt
         if (dashCooldownTimer > 0)
         {
             dashCooldownTimer -= Time.deltaTime;
@@ -86,12 +87,11 @@ public class TpsMovement : MonoBehaviour
         }
 
         // --- 3. DUVAR KIRMA (HÜCUM) BAÞLATMA ---
-        // YENÝ ÞART: dashCooldownTimer sýfýrlanmýþ olmalý!
         if (Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
         {
             isDashing = true;
             dashTimer = dashDuration;
-            dashCooldownTimer = dashCooldown; // Yeteneði kullandýk, 10 saniyelik sayacý baþlat!
+            dashCooldownTimer = dashCooldown;
         }
 
         // --- 4. HYBRID NÝÞAN ALMA (SAÐ TIK) ---
@@ -99,6 +99,20 @@ public class TpsMovement : MonoBehaviour
 
         if (isLanceEquipped && !isDashing)
         {
+            // --- SÝHÝRLÝ EÞÝTLEME (DOÐRU YER) ---
+            // Sadece sað týka ÝLK basýldýðý o milisaniye kopyala
+            if (Input.GetMouseButtonDown(1) && normalCamera != null && aimCamera != null)
+            {
+                aimCamera.m_XAxis.Value = normalCamera.m_XAxis.Value;
+                aimCamera.m_YAxis.Value = normalCamera.m_YAxis.Value;
+            }
+            // Sadece sað týk BIRAKILDIÐI o milisaniye kopyala
+            else if (Input.GetMouseButtonUp(1) && normalCamera != null && aimCamera != null)
+            {
+                normalCamera.m_XAxis.Value = aimCamera.m_XAxis.Value;
+                normalCamera.m_YAxis.Value = aimCamera.m_YAxis.Value;
+            }
+
             if (isAiming)
             {
                 SetAimMode(true);
@@ -202,6 +216,10 @@ public class TpsMovement : MonoBehaviour
             }
 
             Destroy(hit.gameObject);
+
+            // --- BUG FIX: Duvar kýrýldýðý an hücumu iptal et ---
+            isDashing = false;
+            dashTimer = 0f;
         }
     }
 
@@ -222,10 +240,14 @@ public class TpsMovement : MonoBehaviour
     {
         if (aiming)
         {
+            // Crosshair'i anýnda aç
             if (crosshairUI != null) crosshairUI.SetActive(true);
+
+            // Zamaný yavaþlat (Hissiyatý artýrmak için 0.2f veya 0.3f idealdir)
             Time.timeScale = slowMotionAmount;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
 
+            // Kamerayý anýnda deðiþtir
             if (normalCamera != null) normalCamera.Priority = 5;
             if (aimCamera != null) aimCamera.Priority = 15;
         }
@@ -277,16 +299,25 @@ public class TpsMovement : MonoBehaviour
             Quaternion.Euler(0f, Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + cam.eulerAngles.y, 0f) * Vector3.forward :
             cam.forward;
         jumpDir.y = 0.5f;
-        velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * 1.5f;
+
+        // --- BUG FIX: Sabit 1.5f yerine lanceJumpMultiplier eklendi ---
+        velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * lanceJumpMultiplier;
         jumpCount = 1;
     }
 
     void OnEnable()
     {
+        // --- YENÝ EKLENEN BUG FIX: Karakter geçiþinde yön sapýtmasýný önler ---
+        turnSmoothVelocity = 0f;
+        if (Camera.main != null)
+        {
+            referenceYaw = Camera.main.transform.eulerAngles.y;
+        }
+        // ----------------------------------------------------------------------
+
         if (normalCamera != null)
         {
             normalCamera.gameObject.SetActive(true);
-            // SÝHÝRLÝ SATIR: Kameraya geçiþi yumuþatma, anýnda ýþýnlan (CUT) diyoruz.
             normalCamera.PreviousStateIsValid = false;
         }
         if (aimCamera != null)
@@ -298,9 +329,14 @@ public class TpsMovement : MonoBehaviour
 
     void OnDisable()
     {
-        // Karakter kapandýðýnda (Tab'a basýlýnca) kameralarýný da kapatýr ki ekrana salça olmasýnlar
         if (normalCamera != null) normalCamera.gameObject.SetActive(false);
         if (aimCamera != null) aimCamera.gameObject.SetActive(false);
     }
 
+    // --- YENÝ EKLENDÝ: Zýplama Tahtasý / Mantar için dýþarýdan fýrlatma ---
+    public void ExternalJump(float bounceHeight)
+    {
+        velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
+        jumpCount = 1;
+    }
 }
