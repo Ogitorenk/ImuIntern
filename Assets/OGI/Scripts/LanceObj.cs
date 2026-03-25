@@ -24,7 +24,7 @@ public class LanceObj : MonoBehaviour
 
             // 2. Saplanmasýn, sekmeye devam etsin diye burada kodu kesiyoruz
             // 3. Oyun kasmasýn diye yerdeki mýzraðý 3 saniye sonra yok et
-            Destroy(gameObject, 3f);
+            Destroy(gameObject, 2f);
             return;
         }
 
