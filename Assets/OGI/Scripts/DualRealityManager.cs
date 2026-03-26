@@ -37,7 +37,7 @@ public class DualRealityManager : MonoBehaviour
         GameObject activeChar = isDonActive ? donQuixote : sancho;
         GameObject inactiveChar = isDonActive ? sancho : donQuixote;
 
-        // Ýnaktif karakterin pozisyonunu, aktif karaktere kopyala (Ayný yerde doðmalarý için)
+        // Ýnaktif karakterin pozisyonunu, aktif karaktere kopyala
         CharacterController ccActive = activeChar.GetComponent<CharacterController>();
 
         if (ccActive != null) ccActive.enabled = false;
@@ -51,17 +51,39 @@ public class DualRealityManager : MonoBehaviour
         activeChar.SetActive(true);
         inactiveChar.SetActive(false);
 
-        // --- YENÝ EKLENDÝ: Zýplama tahtalarýnýn (Mantar/Trambolin) algýsýný güncelle ---
+        // --- GÜNCELLEMELER ÇAÐRILIYOR ---
         UpdateAllJumpPads();
+        UpdateAllBreakablePlatforms();
+        UpdateAllMovingIllusionPlatforms();
     }
 
-    // --- YENÝ EKLENDÝ: Sahnede ne kadar JumpPad varsa bulup aktif karaktere göre deðiþtirir ---
+    // --- YENÝ EKLENDÝ (true): Sahnede gizli/kapalý olsa bile tüm JumpPad'leri bulur ---
     void UpdateAllJumpPads()
     {
-        IllusionJumpPad[] jumpPads = FindObjectsOfType<IllusionJumpPad>();
+        IllusionJumpPad[] jumpPads = FindObjectsOfType<IllusionJumpPad>(true);
         foreach (IllusionJumpPad pad in jumpPads)
         {
             pad.UpdatePerception(isDonActive);
+        }
+    }
+
+    // --- YENÝ EKLENDÝ (true): Sahnede gizli/kapalý olsa bile tüm Kýrýlabilir Platformlarý bulur ---
+    void UpdateAllBreakablePlatforms()
+    {
+        BreakableIllusionPlatform[] platforms = FindObjectsOfType<BreakableIllusionPlatform>(true);
+        foreach (BreakableIllusionPlatform platform in platforms)
+        {
+            platform.UpdatePerception(isDonActive);
+        }
+    }
+
+    // --- YENÝ EKLENDÝ (true): Sahnede gizli/kapalý olsa bile tüm Ýllüzyonlu Hareketli Platformlarý bulur ---
+    void UpdateAllMovingIllusionPlatforms()
+    {
+        MovingIllusionPlatform[] movingPlatforms = FindObjectsOfType<MovingIllusionPlatform>(true);
+        foreach (MovingIllusionPlatform platform in movingPlatforms)
+        {
+            platform.UpdatePerception(isDonActive);
         }
     }
 }
