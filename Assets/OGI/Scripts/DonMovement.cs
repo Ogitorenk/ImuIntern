@@ -2,7 +2,7 @@ using UnityEngine;
 using Cinemachine;
 
 [RequireComponent(typeof(CharacterController))]
-public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -> DonMovement)
+public class DonMovement : MonoBehaviour
 {
     [Header("Hareket Ayarlarý")]
     public float speed = 6f;
@@ -30,6 +30,11 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
     public float throwForce = 100f;
     [Tooltip("Mýzraktan atlarken ne kadar uzaða fýrlasýn? (1 normal, 1.5 çok uzak)")]
     public float lanceJumpMultiplier = 1f;
+
+    // --- YENÝ EKLENEN AYAR BURADA ---
+    [Tooltip("Mýzraða tutunmak için C'ye bastýðýnda ne kadar yakýnda olman gerektiðini belirler")]
+    public float latchRadius = 1.5f;
+
     [HideInInspector] public bool isLatched = false;
 
     [Header("Niþan Alma (Hybrid Style)")]
@@ -66,13 +71,11 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
 
     void Update()
     {
-        // --- YENÝ: COOLDOWN SAYACI ---
         if (dashCooldownTimer > 0)
         {
             dashCooldownTimer -= Time.deltaTime;
         }
 
-        // --- 1. TUTUNMA DURUMU ---
         if (isLatched)
         {
             SetAimMode(false);
@@ -80,13 +83,11 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
             return;
         }
 
-        // --- 2. KESÝN "C" TUÞU ÝLE TUTUNMA ---
         if (Input.GetKeyDown(KeyCode.C))
         {
             CheckForLanceLatch();
         }
 
-        // --- 3. DUVAR KIRMA (HÜCUM) BAÞLATMA ---
         if (Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
         {
             isDashing = true;
@@ -94,19 +95,15 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
             dashCooldownTimer = dashCooldown;
         }
 
-        // --- 4. HYBRID NÝÞAN ALMA (SAÐ TIK) ---
         bool isAiming = Input.GetMouseButton(1);
 
         if (isLanceEquipped && !isDashing)
         {
-            // --- SÝHÝRLÝ EÞÝTLEME (DOÐRU YER) ---
-            // Sadece sað týka ÝLK basýldýðý o milisaniye kopyala
             if (Input.GetMouseButtonDown(1) && normalCamera != null && aimCamera != null)
             {
                 aimCamera.m_XAxis.Value = normalCamera.m_XAxis.Value;
                 aimCamera.m_YAxis.Value = normalCamera.m_YAxis.Value;
             }
-            // Sadece sað týk BIRAKILDIÐI o milisaniye kopyala
             else if (Input.GetMouseButtonUp(1) && normalCamera != null && aimCamera != null)
             {
                 normalCamera.m_XAxis.Value = aimCamera.m_XAxis.Value;
@@ -128,7 +125,6 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
             SetAimMode(false);
         }
 
-        // --- 5. HAREKET VE ZEMÝN KONTROLÜ ---
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
         if (isGrounded && velocity.y < 0)
@@ -143,7 +139,6 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
             jumpCount = maxJumps;
         }
 
-        // --- 6. HÜCUM VEYA NORMAL HAREKET UYGULAMASI ---
         if (isDashing)
         {
             dashTimer -= Time.deltaTime;
@@ -189,7 +184,6 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
             }
         }
 
-        // --- 7. DÝNAMÝK ZIPLAMA SÝSTEMÝ ---
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -205,7 +199,6 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
         controller.Move(velocity * Time.deltaTime);
     }
 
-    // --- 8. ÇARPIÞMA (DUVAR KIRMA) KONTROLÜ ---
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (isDashing && hit.gameObject.CompareTag("BreakableWall"))
@@ -217,7 +210,6 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
 
             Destroy(hit.gameObject);
 
-            // --- BUG FIX: Duvar kýrýldýðý an hücumu iptal et ---
             isDashing = false;
             dashTimer = 0f;
         }
@@ -225,7 +217,8 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
 
     void CheckForLanceLatch()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 4f);
+        // --- 4F YERÝNE BURASI ARTIK LATCHRADIUS OLDU ---
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, latchRadius);
         foreach (var hitCollider in hitColliders)
         {
             if (hitCollider.CompareTag("Lance"))
@@ -240,14 +233,11 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
     {
         if (aiming)
         {
-            // Crosshair'i anýnda aç
             if (crosshairUI != null) crosshairUI.SetActive(true);
 
-            // Zamaný yavaþlat (Hissiyatý artýrmak için 0.2f veya 0.3f idealdir)
             Time.timeScale = slowMotionAmount;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
 
-            // Kamerayý anýnda deðiþtir
             if (normalCamera != null) normalCamera.Priority = 5;
             if (aimCamera != null) aimCamera.Priority = 15;
         }
@@ -300,20 +290,17 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
             cam.forward;
         jumpDir.y = 0.5f;
 
-        // --- BUG FIX: Sabit 1.5f yerine lanceJumpMultiplier eklendi ---
         velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * lanceJumpMultiplier;
         jumpCount = 1;
     }
 
     void OnEnable()
     {
-        // --- YENÝ EKLENEN BUG FIX: Karakter geçiþinde yön sapýtmasýný önler ---
         turnSmoothVelocity = 0f;
         if (Camera.main != null)
         {
             referenceYaw = Camera.main.transform.eulerAngles.y;
         }
-        // ----------------------------------------------------------------------
 
         if (normalCamera != null)
         {
@@ -333,7 +320,6 @@ public class DonMovement : MonoBehaviour // <--- ÝSÝM GÜNCELLENDÝ (TpsMovement -
         if (aimCamera != null) aimCamera.gameObject.SetActive(false);
     }
 
-    // --- YENÝ EKLENDÝ: Zýplama Tahtasý / Mantar için dýþarýdan fýrlatma ---
     public void ExternalJump(float bounceHeight)
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
