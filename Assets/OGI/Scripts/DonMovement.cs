@@ -1,16 +1,26 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using Cinemachine;
 
 [RequireComponent(typeof(CharacterController))]
 public class DonMovement : MonoBehaviour
 {
-    [Header("Hareket Ayarlarý")]
+    // --- YENÄ° EKLENEN SAÄžLIK SÄ°STEMÄ° ---
+    [Header("SaÄŸlÄ±k Sistemi")]
+    public float maxHealth = 100f;
+    public float currentHealth;
+    private float iFrames = 0f; // Hasar alÄ±nca 1 saniye Ã¶lÃ¼msÃ¼zlÃ¼k
+
+    // --- YENÄ°: PLATFORM FÄ°ZÄ°ÄžÄ° DEÄžÄ°ÅžKENLERÄ° ---
+    private GameObject currentPlatform;
+    private Quaternion previousPlatformRotation;
+
+    [Header("Hareket AyarlarÄ±")]
     public float speed = 6f;
     public float turnSmoothTime = 0.1f;
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    [Header("Zýplama & Fizik")]
+    [Header("ZÄ±plama & Fizik")]
     public float jumpHeight = 2f;
     [Range(0.1f, 0.9f)] public float jumpCutMultiplier = 0.5f;
     public float gravity = -19.62f;
@@ -18,13 +28,13 @@ public class DonMovement : MonoBehaviour
     private int jumpCount;
     private Vector3 velocity;
 
-    [Header("Zemin Kontrolü")]
+    [Header("Zemin KontrolÃ¼")]
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
     private bool isGrounded;
 
-    [Header("Mýzrak Ayarlarý")]
+    [Header("MÄ±zrak AyarlarÄ±")]
     public bool isLanceEquipped = true;
     public GameObject lancePrefab;
     public float throwForce = 100f;
@@ -35,7 +45,7 @@ public class DonMovement : MonoBehaviour
     [HideInInspector] public bool isLatched = false;
     private Transform latchedLance;
 
-    [Header("Niþan Alma (Tek Kamera Zoom)")]
+    [Header("NiÅŸan Alma (Tek Kamera Zoom)")]
     public GameObject crosshairUI;
     [Range(0.1f, 1f)] public float slowMotionAmount = 0.3f;
     public CinemachineFreeLook normalCamera;
@@ -43,22 +53,21 @@ public class DonMovement : MonoBehaviour
     public float normalFOV = 40f;
     public float aimFOV = 20f;
 
-    [Tooltip("Niþan alýrken karakteri saða almak için negatif (-1), sola almak için pozitif (1)")]
+    [Tooltip("NiÅŸan alÄ±rken karakteri saÄŸa almak iÃ§in negatif (-1), sola almak iÃ§in pozitif (1)")]
     public float aimOffsetX = -1f;
 
-    // --- YENÝ EKLENEN YUKARI BAKMA AYARI ---
-    [Tooltip("Niþan alýrken kamerayý ne kadar yukarý kaldýracaðýný belirler (Örn: 0.5 veya 1.2)")]
+    [Tooltip("NiÅŸan alÄ±rken kamerayÄ± ne kadar yukarÄ± kaldÄ±racaÄŸÄ±nÄ± belirler (Ã–rn: 0.5 veya 1.2)")]
     public float aimOffsetY = 0.8f;
 
     public float zoomSpeed = 10f;
     private float currentOffsetX = 0f;
     private float currentOffsetY = 0f;
 
-    // Senin orijinal kamera ayarlarýný ezmemek için hafýza
+    // Senin orijinal kamera ayarlarÄ±nÄ± ezmemek iÃ§in hafÄ±za
     private float[] baseOffsetX = new float[3];
     private float[] baseOffsetY = new float[3];
 
-    [Header("Duvar Kýrma (Dash / Omuz Atma)")]
+    [Header("Duvar KÄ±rma (Dash / Omuz Atma)")]
     public float dashSpeed = 20f;
     public float dashDuration = 0.3f;
     public float dashCooldown = 10f;
@@ -77,6 +86,9 @@ public class DonMovement : MonoBehaviour
         cam = Camera.main.transform;
         Cursor.lockState = CursorLockMode.Locked;
 
+        // --- YENÄ°: OYUN BAÅžINDA CANI FULLE ---
+        currentHealth = maxHealth;
+
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
         if (normalCamera != null)
@@ -90,7 +102,6 @@ public class DonMovement : MonoBehaviour
             currentOffsetX = 0f;
             currentOffsetY = 0f;
 
-            // Oyun baþlarken senin kendi kamera offset'lerini hafýzaya alýyor
             for (int i = 0; i < 3; i++)
             {
                 var composer = normalCamera.GetRig(i).GetCinemachineComponent<CinemachineComposer>();
@@ -105,6 +116,38 @@ public class DonMovement : MonoBehaviour
 
     void Update()
     {
+        // --- YENÄ°: PLATFORM FÄ°ZÄ°ÄžÄ° (DÃ–NEN ZEMÄ°N TAKÄ°BÄ°) ---
+        RaycastHit platformHit;
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1f, groundMask))
+        {
+            if (platformHit.collider.gameObject.GetComponent<MovingColliders>())
+            {
+                if (currentPlatform != platformHit.collider.gameObject)
+                {
+                    currentPlatform = platformHit.collider.gameObject;
+                    previousPlatformRotation = currentPlatform.transform.rotation;
+                }
+
+                Quaternion platformRotationDifference = currentPlatform.transform.rotation * Quaternion.Inverse(previousPlatformRotation);
+                platformRotationDifference.ToAngleAxis(out float angle, out Vector3 axis);
+
+                if (axis.y > 0.9f || axis.y < -0.9f)
+                {
+                    transform.RotateAround(currentPlatform.transform.position, Vector3.up, angle);
+                }
+
+                previousPlatformRotation = currentPlatform.transform.rotation;
+            }
+            else { currentPlatform = null; }
+        }
+        else { currentPlatform = null; }
+
+        // --- YENÄ°: Ã–LÃœMSÃœZLÃœK SÃœRESÄ°NÄ° DÃœÅžÃœR ---
+        if (iFrames > 0)
+        {
+            iFrames -= Time.deltaTime;
+        }
+
         if (dashCooldownTimer > 0)
         {
             dashCooldownTimer -= Time.deltaTime;
@@ -154,7 +197,7 @@ public class DonMovement : MonoBehaviour
 
                 targetFOV = aimFOV;
                 targetOffsetX = aimOffsetX;
-                targetOffsetY = aimOffsetY; // Yukarý çýkma miktarýný hedefle
+                targetOffsetY = aimOffsetY;
             }
             else
             {
@@ -166,7 +209,6 @@ public class DonMovement : MonoBehaviour
             SetAimMode(false);
         }
 
-        // --- YAÐ GÝBÝ ZOOM, SAÐA KAYMA VE YUKARI ÇIKMA ---
         if (normalCamera != null)
         {
             normalCamera.m_Lens.FieldOfView = Mathf.Lerp(normalCamera.m_Lens.FieldOfView, targetFOV, Time.deltaTime * zoomSpeed);
@@ -180,7 +222,6 @@ public class DonMovement : MonoBehaviour
                 if (composer != null)
                 {
                     Vector3 offset = composer.m_TrackedObjectOffset;
-                    // Senin orijinal deðerinin üstüne bizim verdiðimiz deðeri ekler
                     offset.x = baseOffsetX[i] + currentOffsetX;
                     offset.y = baseOffsetY[i] + currentOffsetY;
                     composer.m_TrackedObjectOffset = offset;
@@ -369,5 +410,27 @@ public class DonMovement : MonoBehaviour
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+    }
+
+    // --- YENÄ° EKLENEN HASAR VE Ã–LÃœM FONKSÄ°YONLARI ---
+    public void TakeDamage(float damageAmount)
+    {
+        if (iFrames > 0) return; // 1 saniyelik Ã¶lÃ¼msÃ¼zlÃ¼k devredeyse hasar alma!
+
+        currentHealth -= damageAmount;
+        iFrames = 1f; // Hasar yedi, 1 saniye dokunulmaz yap
+
+        Debug.Log("ðŸ©¸ Don Quixote HASAR ALDI! Kalan Can: " + currentHealth);
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log("ðŸ’€ Don Quixote Ã–LDÃœ! ðŸ’€");
+        // Ä°leride buraya baÅŸa dÃ¶nme veya Game Over ekranÄ± eklenebilir.
     }
 }
