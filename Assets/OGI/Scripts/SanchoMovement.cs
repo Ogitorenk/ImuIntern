@@ -1,16 +1,26 @@
-using UnityEngine;
-using Cinemachine; // <--- KAMERA ÝÇÝN EKLENDÝ
+ï»¿using UnityEngine;
+using Cinemachine;
 
 [RequireComponent(typeof(CharacterController))]
 public class SanchoMovement : MonoBehaviour
 {
-    [Header("Hareket Ayarlarý")]
+    // --- YENÄ° EKLENEN SAÄžLIK SÄ°STEMÄ° ---
+    [Header("SaÄŸlÄ±k Sistemi")]
+    public float maxHealth = 100f;
+    public float currentHealth;
+    private float iFrames = 0f; // Hasar alÄ±nca 1 saniye Ã¶lÃ¼msÃ¼zlÃ¼k
+
+    // --- YENÄ°: PLATFORM FÄ°ZÄ°ÄžÄ° DEÄžÄ°ÅžKENLERÄ° ---
+    private GameObject currentPlatform;
+    private Quaternion previousPlatformRotation;
+
+    [Header("Hareket AyarlarÄ±")]
     public float speed = 6f;
     public float turnSmoothTime = 0.1f;
     private float turnSmoothVelocity;
-    private float referenceYaw; // <--- Daire çizme fix: Don Kiþot'taki gibi referans açý eklendi
+    private float referenceYaw;
 
-    [Header("Zýplama & Fizik")]
+    [Header("ZÄ±plama & Fizik")]
     public float jumpHeight = 2f;
     [Range(0.1f, 0.9f)] public float jumpCutMultiplier = 0.5f;
     public float gravity = -19.62f;
@@ -18,18 +28,16 @@ public class SanchoMovement : MonoBehaviour
     private int jumpCount;
     private Vector3 velocity;
 
-    // --- Tab'a basýnca ivme kopyalamak için ---
     public Vector3 CurrentVelocity { get { return velocity; } set { velocity = value; } }
 
-    [Header("Zemin Kontrolü")]
+    [Header("Zemin KontrolÃ¼")]
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
     private bool isGrounded;
 
     [Header("Kamera Sistemi")]
-    [Tooltip("Sancho'nun takip kamerasý")]
-    public CinemachineFreeLook normalCamera; // <--- KAMERA DEÐÝÞKENÝ EKLENDÝ
+    public CinemachineFreeLook normalCamera;
 
     private CharacterController controller;
     private Transform cam;
@@ -39,13 +47,53 @@ public class SanchoMovement : MonoBehaviour
         controller = GetComponent<CharacterController>();
         cam = Camera.main.transform;
 
-        // Sancho aktif olduðunda kamerasýnýn önceliðini yükselt
-        if (normalCamera != null) normalCamera.Priority = 10;
+        // --- YENÄ°: OYUN BAÅžINDA CANI FULLE ---
+        currentHealth = maxHealth;
+
+        // --- Ä°LK AÃ‡ILIÅž: KAMERAYI ENSENE YAPIÅžTIR ---
+        if (normalCamera != null)
+        {
+            normalCamera.Priority = 10;
+            normalCamera.Follow = this.transform;
+            normalCamera.LookAt = this.transform;
+            normalCamera.PreviousStateIsValid = false; // AnÄ±nda Ä±ÅŸÄ±nlan
+        }
     }
 
     void Update()
     {
-        // --- 1. ZEMÝN KONTROLÜ (Havada doðma fix'li) ---
+        // --- YENÄ°: PLATFORM FÄ°ZÄ°ÄžÄ° (DÃ–NEN ZEMÄ°N TAKÄ°BÄ°) ---
+        RaycastHit platformHit;
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1f, groundMask))
+        {
+            if (platformHit.collider.gameObject.GetComponent<MovingColliders>())
+            {
+                if (currentPlatform != platformHit.collider.gameObject)
+                {
+                    currentPlatform = platformHit.collider.gameObject;
+                    previousPlatformRotation = currentPlatform.transform.rotation;
+                }
+
+                Quaternion platformRotationDifference = currentPlatform.transform.rotation * Quaternion.Inverse(previousPlatformRotation);
+                platformRotationDifference.ToAngleAxis(out float angle, out Vector3 axis);
+
+                if (axis.y > 0.9f || axis.y < -0.9f)
+                {
+                    transform.RotateAround(currentPlatform.transform.position, Vector3.up, angle);
+                }
+
+                previousPlatformRotation = currentPlatform.transform.rotation;
+            }
+            else { currentPlatform = null; }
+        }
+        else { currentPlatform = null; }
+
+        // --- YENÄ°: Ã–LÃœMSÃœZLÃœK SÃœRESÄ°NÄ° DÃœÅžÃœR ---
+        if (iFrames > 0)
+        {
+            iFrames -= Time.deltaTime;
+        }
+
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
         if (isGrounded && velocity.y < 0)
@@ -60,13 +108,10 @@ public class SanchoMovement : MonoBehaviour
             jumpCount = maxJumps;
         }
 
-        // --- 2. HAREKET (KAMERAYA GÖRE) ---
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
-        // --- BUG FIX: Daire Çizme Sorununu Çözen Kýsým ---
-        // Sadece fare hareket ediyorsa veya karakter duruyorsa kamera açýsýný referans al
         if (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || inputDir.magnitude < 0.1f)
         {
             referenceYaw = cam.eulerAngles.y;
@@ -74,16 +119,14 @@ public class SanchoMovement : MonoBehaviour
 
         if (inputDir.magnitude >= 0.1f)
         {
-            // cam.eulerAngles.y yerine referenceYaw kullanýyoruz
             float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
             Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            controller.Move(moveDir.normalized * speed * Time.deltaTime);
+            if (controller.enabled) controller.Move(moveDir.normalized * speed * Time.deltaTime);
         }
 
-        // --- 3. DÝNAMÝK ZIPLAMA ---
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -95,37 +138,54 @@ public class SanchoMovement : MonoBehaviour
             velocity.y *= jumpCutMultiplier;
         }
 
-        // --- 4. YERÇEKÝMÝ VE ÝVME ---
         velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+        if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
 
     void OnEnable()
     {
-        // --- BUG FIX: Karakter geçiþinde yön sapýtmasýný önler ---
         turnSmoothVelocity = 0f;
-        if (Camera.main != null)
-        {
-            referenceYaw = Camera.main.transform.eulerAngles.y;
-        }
+        if (Camera.main != null) referenceYaw = Camera.main.transform.eulerAngles.y;
 
+        // --- SWÄ°TCH Ä°LE SANCHO'YA GEÃ‡Ä°NCE KAMERAYI Ã‡AL ---
         if (normalCamera != null)
         {
-            normalCamera.gameObject.SetActive(true);
-            // SÝHÝRLÝ SATIR: Sancho'ya geçerken kamerayý anýnda enseye yapýþtýr.
+            normalCamera.Follow = this.transform;
+            normalCamera.LookAt = this.transform;
             normalCamera.PreviousStateIsValid = false;
         }
     }
 
     void OnDisable()
     {
-        if (normalCamera != null) normalCamera.gameObject.SetActive(false);
+        // ORTAK KAMERAYI ASLA KAPATMIYORUZ! BURASI TAMAMEN BOÅž!
     }
 
-    // --- YENÝ EKLENDÝ: Zýplama Tahtasý / Mantar için dýþarýdan fýrlatma ---
     public void ExternalJump(float bounceHeight)
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+    }
+
+    // --- YENÄ° EKLENEN HASAR VE Ã–LÃœM FONKSÄ°YONLARI ---
+    public void TakeDamage(float damageAmount)
+    {
+        if (iFrames > 0) return; // 1 saniyelik Ã¶lÃ¼msÃ¼zlÃ¼k devredeyse hasar alma!
+
+        currentHealth -= damageAmount;
+        iFrames = 1f; // Hasar yedi, 1 saniye dokunulmaz yap
+
+        Debug.Log("ðŸ©¸ Sancho HASAR ALDI! Kalan Can: " + currentHealth);
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log("ðŸ’€ Sancho Ã–LDÃœ! ðŸ’€");
+        // Ä°leride buraya baÅŸa dÃ¶nme veya Game Over ekranÄ± eklenebilir.
     }
 }

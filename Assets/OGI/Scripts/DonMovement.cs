@@ -1,16 +1,26 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Cinemachine;
 
 [RequireComponent(typeof(CharacterController))]
 public class DonMovement : MonoBehaviour
 {
-    [Header("Hareket Ayarlar�")]
+    // --- YENİ EKLENEN SAĞLIK SİSTEMİ ---
+    [Header("Sağlık Sistemi")]
+    public float maxHealth = 100f;
+    public float currentHealth;
+    private float iFrames = 0f; // Hasar alınca 1 saniye ölümsüzlük
+
+    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ ---
+    private GameObject currentPlatform;
+    private Quaternion previousPlatformRotation;
+
+    [Header("Hareket Ayarları")]
     public float speed = 6f;
     public float turnSmoothTime = 0.1f;
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    [Header("Z�plama & Fizik")]
+    [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
     [Range(0.1f, 0.9f)] public float jumpCutMultiplier = 0.5f;
     public float gravity = -19.62f;
@@ -18,35 +28,48 @@ public class DonMovement : MonoBehaviour
     private int jumpCount;
     private Vector3 velocity;
 
-    [Header("Zemin Kontrol�")]
+    [Header("Zemin Kontrolü")]
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
     private bool isGrounded;
 
-    [Header("M�zrak Ayarlar�")]
+    [Header("Mızrak Ayarları")]
     public bool isLanceEquipped = true;
     public GameObject lancePrefab;
     public float throwForce = 100f;
-    [Tooltip("M�zraktan atlarken ne kadar uza�a f�rlas�n? (1 normal, 1.5 �ok uzak)")]
     public float lanceJumpMultiplier = 1f;
-
-    // --- YEN� EKLENEN AYAR BURADA ---
-    [Tooltip("M�zra�a tutunmak i�in C'ye bast���nda ne kadar yak�nda olman gerekti�ini belirler")]
     public float latchRadius = 1.5f;
+    public float lanceStickOffset = 1.1f;
 
     [HideInInspector] public bool isLatched = false;
+    private Transform latchedLance;
 
-    [Header("Ni�an Alma (Hybrid Style)")]
+    [Header("Nişan Alma (Tek Kamera Zoom)")]
     public GameObject crosshairUI;
     [Range(0.1f, 1f)] public float slowMotionAmount = 0.3f;
     public CinemachineFreeLook normalCamera;
-    public CinemachineFreeLook aimCamera;
 
-    [Header("Duvar K�rma (Dash / Omuz Atma)")]
+    public float normalFOV = 40f;
+    public float aimFOV = 20f;
+
+    [Tooltip("Nişan alırken karakteri sağa almak için negatif (-1), sola almak için pozitif (1)")]
+    public float aimOffsetX = -1f;
+
+    [Tooltip("Nişan alırken kamerayı ne kadar yukarı kaldıracağını belirler (Örn: 0.5 veya 1.2)")]
+    public float aimOffsetY = 0.8f;
+
+    public float zoomSpeed = 10f;
+    private float currentOffsetX = 0f;
+    private float currentOffsetY = 0f;
+
+    // Senin orijinal kamera ayarlarını ezmemek için hafıza
+    private float[] baseOffsetX = new float[3];
+    private float[] baseOffsetY = new float[3];
+
+    [Header("Duvar Kırma (Dash / Omuz Atma)")]
     public float dashSpeed = 20f;
     public float dashDuration = 0.3f;
-    [Tooltip("Yetene�in tekrar kullan�labilmesi i�in ge�mesi gereken s�re (Saniye)")]
     public float dashCooldown = 10f;
     public GameObject wallBreakEffect;
 
@@ -63,14 +86,68 @@ public class DonMovement : MonoBehaviour
         cam = Camera.main.transform;
         Cursor.lockState = CursorLockMode.Locked;
 
+        // --- YENİ: OYUN BAŞINDA CANI FULLE ---
+        currentHealth = maxHealth;
+
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
-        if (normalCamera != null) normalCamera.Priority = 10;
-        if (aimCamera != null) aimCamera.Priority = 5;
+        if (normalCamera != null)
+        {
+            normalCamera.Priority = 10;
+            normalCamera.Follow = this.transform;
+            normalCamera.LookAt = this.transform;
+            normalCamera.PreviousStateIsValid = false;
+
+            normalCamera.m_Lens.FieldOfView = normalFOV;
+            currentOffsetX = 0f;
+            currentOffsetY = 0f;
+
+            for (int i = 0; i < 3; i++)
+            {
+                var composer = normalCamera.GetRig(i).GetCinemachineComponent<CinemachineComposer>();
+                if (composer != null)
+                {
+                    baseOffsetX[i] = composer.m_TrackedObjectOffset.x;
+                    baseOffsetY[i] = composer.m_TrackedObjectOffset.y;
+                }
+            }
+        }
     }
 
     void Update()
     {
+        // --- YENİ: PLATFORM FİZİĞİ (DÖNEN ZEMİN TAKİBİ) ---
+        RaycastHit platformHit;
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1f, groundMask))
+        {
+            if (platformHit.collider.gameObject.GetComponent<MovingColliders>())
+            {
+                if (currentPlatform != platformHit.collider.gameObject)
+                {
+                    currentPlatform = platformHit.collider.gameObject;
+                    previousPlatformRotation = currentPlatform.transform.rotation;
+                }
+
+                Quaternion platformRotationDifference = currentPlatform.transform.rotation * Quaternion.Inverse(previousPlatformRotation);
+                platformRotationDifference.ToAngleAxis(out float angle, out Vector3 axis);
+
+                if (axis.y > 0.9f || axis.y < -0.9f)
+                {
+                    transform.RotateAround(currentPlatform.transform.position, Vector3.up, angle);
+                }
+
+                previousPlatformRotation = currentPlatform.transform.rotation;
+            }
+            else { currentPlatform = null; }
+        }
+        else { currentPlatform = null; }
+
+        // --- YENİ: ÖLÜMSÜZLÜK SÜRESİNİ DÜŞÜR ---
+        if (iFrames > 0)
+        {
+            iFrames -= Time.deltaTime;
+        }
+
         if (dashCooldownTimer > 0)
         {
             dashCooldownTimer -= Time.deltaTime;
@@ -78,6 +155,16 @@ public class DonMovement : MonoBehaviour
 
         if (isLatched)
         {
+            if (latchedLance != null)
+            {
+                transform.position = latchedLance.position + (Vector3.up * lanceStickOffset);
+            }
+            else
+            {
+                DetachAndJump();
+                return;
+            }
+
             SetAimMode(false);
             if (Input.GetButtonDown("Jump")) DetachAndJump();
             return;
@@ -97,23 +184,20 @@ public class DonMovement : MonoBehaviour
 
         bool isAiming = Input.GetMouseButton(1);
 
+        float targetFOV = normalFOV;
+        float targetOffsetX = 0f;
+        float targetOffsetY = 0f;
+
         if (isLanceEquipped && !isDashing)
         {
-            if (Input.GetMouseButtonDown(1) && normalCamera != null && aimCamera != null)
-            {
-                aimCamera.m_XAxis.Value = normalCamera.m_XAxis.Value;
-                aimCamera.m_YAxis.Value = normalCamera.m_YAxis.Value;
-            }
-            else if (Input.GetMouseButtonUp(1) && normalCamera != null && aimCamera != null)
-            {
-                normalCamera.m_XAxis.Value = aimCamera.m_XAxis.Value;
-                normalCamera.m_YAxis.Value = aimCamera.m_YAxis.Value;
-            }
-
             if (isAiming)
             {
                 SetAimMode(true);
                 if (Input.GetMouseButtonDown(0)) ThrowLance();
+
+                targetFOV = aimFOV;
+                targetOffsetX = aimOffsetX;
+                targetOffsetY = aimOffsetY;
             }
             else
             {
@@ -123,6 +207,26 @@ public class DonMovement : MonoBehaviour
         else if (isDashing)
         {
             SetAimMode(false);
+        }
+
+        if (normalCamera != null)
+        {
+            normalCamera.m_Lens.FieldOfView = Mathf.Lerp(normalCamera.m_Lens.FieldOfView, targetFOV, Time.deltaTime * zoomSpeed);
+
+            currentOffsetX = Mathf.Lerp(currentOffsetX, targetOffsetX, Time.deltaTime * zoomSpeed);
+            currentOffsetY = Mathf.Lerp(currentOffsetY, targetOffsetY, Time.deltaTime * zoomSpeed);
+
+            for (int i = 0; i < 3; i++)
+            {
+                var composer = normalCamera.GetRig(i).GetCinemachineComponent<CinemachineComposer>();
+                if (composer != null)
+                {
+                    Vector3 offset = composer.m_TrackedObjectOffset;
+                    offset.x = baseOffsetX[i] + currentOffsetX;
+                    offset.y = baseOffsetY[i] + currentOffsetY;
+                    composer.m_TrackedObjectOffset = offset;
+                }
+            }
         }
 
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
@@ -148,7 +252,7 @@ public class DonMovement : MonoBehaviour
             }
             else
             {
-                controller.Move(transform.forward * dashSpeed * Time.deltaTime);
+                if (controller.enabled) controller.Move(transform.forward * dashSpeed * Time.deltaTime);
             }
         }
         else
@@ -171,7 +275,7 @@ public class DonMovement : MonoBehaviour
                     transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
                     Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-                    controller.Move(moveDir.normalized * speed * Time.deltaTime);
+                    if (controller.enabled) controller.Move(moveDir.normalized * speed * Time.deltaTime);
                 }
             }
             else
@@ -180,7 +284,7 @@ public class DonMovement : MonoBehaviour
                 transform.rotation = Quaternion.Euler(0, yawCamera, 0);
 
                 Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-                controller.Move(moveDir * (speed * 0.6f) * Time.deltaTime);
+                if (controller.enabled) controller.Move(moveDir * (speed * 0.6f) * Time.deltaTime);
             }
         }
 
@@ -196,20 +300,15 @@ public class DonMovement : MonoBehaviour
         }
 
         velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+        if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (isDashing && hit.gameObject.CompareTag("BreakableWall"))
         {
-            if (wallBreakEffect != null)
-            {
-                Instantiate(wallBreakEffect, hit.point, Quaternion.LookRotation(hit.normal));
-            }
-
+            if (wallBreakEffect != null) Instantiate(wallBreakEffect, hit.point, Quaternion.LookRotation(hit.normal));
             Destroy(hit.gameObject);
-
             isDashing = false;
             dashTimer = 0f;
         }
@@ -217,7 +316,6 @@ public class DonMovement : MonoBehaviour
 
     void CheckForLanceLatch()
     {
-        // --- 4F YER�NE BURASI ARTIK LATCHRADIUS OLDU ---
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, latchRadius);
         foreach (var hitCollider in hitColliders)
         {
@@ -234,21 +332,14 @@ public class DonMovement : MonoBehaviour
         if (aiming)
         {
             if (crosshairUI != null) crosshairUI.SetActive(true);
-
             Time.timeScale = slowMotionAmount;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
-
-            if (normalCamera != null) normalCamera.Priority = 5;
-            if (aimCamera != null) aimCamera.Priority = 15;
         }
         else
         {
             if (crosshairUI != null) crosshairUI.SetActive(false);
             Time.timeScale = 1f;
             Time.fixedDeltaTime = 0.02f;
-
-            if (normalCamera != null) normalCamera.Priority = 15;
-            if (aimCamera != null) aimCamera.Priority = 5;
         }
     }
 
@@ -272,16 +363,19 @@ public class DonMovement : MonoBehaviour
     public void LatchOntoLance(Transform lance)
     {
         isLatched = true;
+        latchedLance = lance;
         velocity = Vector3.zero;
         jumpCount = 0;
         controller.enabled = false;
-        transform.position = lance.position;
-        controller.enabled = true;
+        transform.position = lance.position + (Vector3.up * lanceStickOffset);
     }
 
     void DetachAndJump()
     {
         isLatched = false;
+        latchedLance = null;
+        controller.enabled = true;
+
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         Vector3 inputDir = new Vector3(h, 0f, v).normalized;
@@ -297,32 +391,46 @@ public class DonMovement : MonoBehaviour
     void OnEnable()
     {
         turnSmoothVelocity = 0f;
-        if (Camera.main != null)
-        {
-            referenceYaw = Camera.main.transform.eulerAngles.y;
-        }
+        if (Camera.main != null) referenceYaw = Camera.main.transform.eulerAngles.y;
 
         if (normalCamera != null)
         {
-            normalCamera.gameObject.SetActive(true);
+            normalCamera.Follow = this.transform;
+            normalCamera.LookAt = this.transform;
             normalCamera.PreviousStateIsValid = false;
-        }
-        if (aimCamera != null)
-        {
-            aimCamera.gameObject.SetActive(true);
-            aimCamera.PreviousStateIsValid = false;
         }
     }
 
     void OnDisable()
     {
-        if (normalCamera != null) normalCamera.gameObject.SetActive(false);
-        if (aimCamera != null) aimCamera.gameObject.SetActive(false);
+
     }
 
     public void ExternalJump(float bounceHeight)
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+    }
+
+    // --- YENİ EKLENEN HASAR VE ÖLÜM FONKSİYONLARI ---
+    public void TakeDamage(float damageAmount)
+    {
+        if (iFrames > 0) return; // 1 saniyelik ölümsüzlük devredeyse hasar alma!
+
+        currentHealth -= damageAmount;
+        iFrames = 1f; // Hasar yedi, 1 saniye dokunulmaz yap
+
+        Debug.Log("🩸 Don Quixote HASAR ALDI! Kalan Can: " + currentHealth);
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log("💀 Don Quixote ÖLDÜ! 💀");
+        // İleride buraya başa dönme veya Game Over ekranı eklenebilir.
     }
 }
