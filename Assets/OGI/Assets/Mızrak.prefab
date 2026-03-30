@@ -150,4 +150,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isStuck: 0
   embedDepth: -3
-  maxHitAngle: 45
+  maxHitAngle: 120
