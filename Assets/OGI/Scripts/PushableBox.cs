@@ -52,7 +52,7 @@ public class PushableBox : MonoBehaviour
             else TryGrab();
         }
 
-        
+
         if (isGrabbed && playerCC != null)
         {
             float vertical = Input.GetAxis("Vertical");   // W ve S
@@ -123,6 +123,14 @@ public class PushableBox : MonoBehaviour
                     }
 
                     isGrabbed = true;
+
+                    // --- YENİ EKLENDİ: SANCHO KUTUYU TUTTU, SWİTCH KİLİTLENDİ ---
+                    if (DualRealityManager.Instance != null)
+                    {
+                        DualRealityManager.Instance.canSwitch = false;
+                    }
+                    // -------------------------------------------------------------
+
                     rb.isKinematic = true; // Fizik sapıtmasın diye anlık yerçekimini kapatıyoruz
 
                     AlignPlayerToBox();
@@ -145,6 +153,14 @@ public class PushableBox : MonoBehaviour
         if (!isGrabbed) return;
 
         isGrabbed = false;
+
+        // --- YENİ EKLENDİ: SANCHO KUTUYU BIRAKTI, SWİTCH KİLİDİ AÇILDI ---
+        if (DualRealityManager.Instance != null)
+        {
+            DualRealityManager.Instance.canSwitch = true;
+        }
+        // ---------------------------------------------------------------
+
         transform.SetParent(null);
 
         rb.isKinematic = false; // Bırakınca yerçekimi tekrar başlar

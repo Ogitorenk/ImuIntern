@@ -1,14 +1,17 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class DualRealityManager : MonoBehaviour
 {
     public static DualRealityManager Instance;
 
-    [Header("Karakter Prefablarý")]
+    [Header("Karakter PrefablarÄ±")]
     public GameObject donQuixote;
     public GameObject sancho;
 
     [HideInInspector] public bool isDonActive = true;
+
+    // --- YENÄ° EKLENDÄ°: SWITCH KÄ°LÄ°DÄ° ---
+    [HideInInspector] public bool canSwitch = true;
 
     void Awake()
     {
@@ -17,16 +20,24 @@ public class DualRealityManager : MonoBehaviour
 
     void Start()
     {
-        // Oyun baþlarken Don'u aç, Sancho'yu kapat
+        // Oyun baÅŸlarken Don'u aÃ§, Sancho'yu kapat
         SwitchCharacter(true);
     }
 
     void Update()
     {
-        // TAB tuþuna basýldýðýnda karakter deðiþtir
+        // TAB tuÅŸuna basÄ±ldÄ±ÄŸÄ±nda VE kilit aÃ§Ä±kken (canSwitch == true) karakter deÄŸiÅŸtir
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            SwitchCharacter(!isDonActive);
+            if (canSwitch)
+            {
+                SwitchCharacter(!isDonActive);
+            }
+            else
+            {
+                // Kutu iterken basarsa konsola uyarÄ± atsÄ±n (oyun iÃ§inde de ses falan Ã§alabilirsin ileride)
+                Debug.Log("ðŸš« Åžu an karakter deÄŸiÅŸtirilemez! (Sancho meÅŸgul)");
+            }
         }
     }
 
@@ -37,7 +48,7 @@ public class DualRealityManager : MonoBehaviour
         GameObject activeChar = isDonActive ? donQuixote : sancho;
         GameObject inactiveChar = isDonActive ? sancho : donQuixote;
 
-        // Ýnaktif karakterin pozisyonunu, aktif karaktere kopyala
+        // Ä°naktif karakterin pozisyonunu, aktif karaktere kopyala
         CharacterController ccActive = activeChar.GetComponent<CharacterController>();
 
         if (ccActive != null) ccActive.enabled = false;
@@ -47,17 +58,17 @@ public class DualRealityManager : MonoBehaviour
 
         if (ccActive != null) ccActive.enabled = true;
 
-        // Modelleri aç/kapat
+        // Modelleri aÃ§/kapat
         activeChar.SetActive(true);
         inactiveChar.SetActive(false);
 
-        // --- GÜNCELLEMELER ÇAÐRILIYOR ---
+        // --- GÃœNCELLEMELER Ã‡AÄžRILIYOR ---
         UpdateAllJumpPads();
         UpdateAllBreakablePlatforms();
         UpdateAllMovingIllusionPlatforms();
     }
 
-    // --- YENÝ EKLENDÝ (true): Sahnede gizli/kapalý olsa bile tüm JumpPad'leri bulur ---
+    // --- YENÄ° EKLENDÄ° (true): Sahnede gizli/kapalÄ± olsa bile tÃ¼m JumpPad'leri bulur ---
     void UpdateAllJumpPads()
     {
         IllusionJumpPad[] jumpPads = FindObjectsOfType<IllusionJumpPad>(true);
@@ -67,7 +78,7 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // --- YENÝ EKLENDÝ (true): Sahnede gizli/kapalý olsa bile tüm Kýrýlabilir Platformlarý bulur ---
+    // --- YENÄ° EKLENDÄ° (true): Sahnede gizli/kapalÄ± olsa bile tÃ¼m KÄ±rÄ±labilir PlatformlarÄ± bulur ---
     void UpdateAllBreakablePlatforms()
     {
         BreakableIllusionPlatform[] platforms = FindObjectsOfType<BreakableIllusionPlatform>(true);
@@ -77,7 +88,7 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // --- YENÝ EKLENDÝ (true): Sahnede gizli/kapalý olsa bile tüm Ýllüzyonlu Hareketli Platformlarý bulur ---
+    // --- YENÄ° EKLENDÄ° (true): Sahnede gizli/kapalÄ± olsa bile tÃ¼m Ä°llÃ¼zyonlu Hareketli PlatformlarÄ± bulur ---
     void UpdateAllMovingIllusionPlatforms()
     {
         MovingIllusionPlatform[] movingPlatforms = FindObjectsOfType<MovingIllusionPlatform>(true);
