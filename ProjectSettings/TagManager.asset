@@ -8,6 +8,7 @@ TagManager:
   - BreakableWall
   - Wall
   - Platform
+  - MovingPlatform
   layers:
   - Default
   - TransparentFX
