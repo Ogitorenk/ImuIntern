@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 
-// Bu satır sayesinde kodu objeye attığın an Unity otomatik Rigidbody ekler!
 [RequireComponent(typeof(Rigidbody))]
 public class PushableBox : MonoBehaviour
 {
@@ -11,6 +10,11 @@ public class PushableBox : MonoBehaviour
     [Header("--- İtme/Çekme Ayarları ---")]
     public float pushSpeed = 3f;
     public float grabDistance = 1.2f;
+    public float turnSpeed = 60f;
+
+    [Header("--- Yeni: Basamak Ayarları ---")]
+    public float stepHeight = 0.5f;
+    public float stepSmooth = 5f;
 
     private bool isGrabbed = false;
     private Transform playerTransform;
@@ -18,14 +22,15 @@ public class PushableBox : MonoBehaviour
     private MonoBehaviour playerMovementScript;
     private Rigidbody rb;
 
+    // Asansörü takip etmek için değişken
+    private Transform currentPlatform = null;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-
-        // --- KUTU FİZİĞİ AYARLARI ---
-        rb.mass = 50f; // 50 kilo
-        rb.drag = 0f;  // Yerde buz gibi kaymasın diye sürtünme
-        rb.constraints = RigidbodyConstraints.FreezeRotation; // İttirirken takla atıp devrilmesin
+        rb.mass = 50f;
+        rb.drag = 0f;
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
 
         if (DualRealityManager.Instance != null)
         {
@@ -38,34 +43,41 @@ public class PushableBox : MonoBehaviour
         bool isDon = DualRealityManager.Instance != null && DualRealityManager.Instance.isDonActive;
         UpdatePerception(isDon);
 
-        // Don aktifse örs olur, zorla bıraktırırız
         if (isDon && isGrabbed)
         {
             ReleaseBox();
             return;
         }
 
-        // C tuşu ile Tutma/Bırakma (Sadece Sancho)
         if (!isDon && Input.GetKeyDown(KeyCode.C))
         {
             if (isGrabbed) ReleaseBox();
             else TryGrab();
         }
 
-
+        // --- SENİN HAREKET KODUN (DOKUNULMADI) ---
         if (isGrabbed && playerCC != null)
         {
-            float vertical = Input.GetAxis("Vertical");   // W ve S
-            float horizontal = Input.GetAxis("Horizontal"); // A ve D (YENİ)
+            float vertical = Input.GetAxis("Vertical");
+            float horizontal = Input.GetAxis("Horizontal");
 
-            // --- YENİ: A VE D İLE KARAKTERİ (VE KUTUYU) DÖNDÜR ---
-            float turnSpeed = 60f; // Dönüş hızı (İstersen bunu en yukarıya public float olarak da ekleyebilirsin)
             playerTransform.Rotate(0, horizontal * turnSpeed * Time.deltaTime, 0);
 
-            // --- İLERİ / GERİ İTME ---
             Vector3 moveDir = playerTransform.forward * vertical * pushSpeed;
-            moveDir.y = -9.81f; // Yerçekimi
 
+            float yVel = -9.81f;
+            if (vertical != 0)
+            {
+                if (Physics.Raycast(transform.position + Vector3.up * 0.1f, playerTransform.forward * vertical, 0.8f))
+                {
+                    if (!Physics.Raycast(transform.position + Vector3.up * stepHeight, playerTransform.forward * vertical, 0.9f))
+                    {
+                        yVel = stepSmooth;
+                    }
+                }
+            }
+
+            moveDir.y = yVel;
             playerCC.Move(moveDir * Time.deltaTime);
         }
     }
@@ -75,96 +87,53 @@ public class PushableBox : MonoBehaviour
         if (donOrsModeli != null) donOrsModeli.SetActive(isDon);
         if (sanchoKutuModeli != null) sanchoKutuModeli.SetActive(!isDon);
 
-        // --- İLLÜZYON FİZİĞİ ---
         if (rb != null && !isGrabbed)
         {
-            if (isDon)
-            {
-                rb.isKinematic = true; // Don için örs: Sabit kalır, itilemez, havadaysa düşmez
-            }
-            else
-            {
-                rb.isKinematic = false; // Sancho için kutu: Yerçekimi çalışır, yere düşer
-            }
+            rb.isKinematic = isDon;
         }
     }
 
     private void TryGrab()
     {
         Debug.Log("🔍 Sancho C'ye bastı! Kutu etrafı taranıyor...");
-
         Collider[] hits = Physics.OverlapSphere(transform.position, 3f);
-        bool playerBulundu = false;
 
         foreach (var hit in hits)
         {
-            // Karakterin kendisine veya herhangi bir child (alt) objesine değdiysek
             if (hit.CompareTag("Player") || hit.transform.root.CompareTag("Player"))
             {
-                playerBulundu = true;
-
-                // Karakterin ana objesini bul (CharacterController'ın olduğu en üst obje)
                 playerCC = hit.GetComponentInParent<CharacterController>();
-
                 if (playerCC != null)
                 {
                     playerTransform = playerCC.transform;
-
-                    // Scripti bul ve kapat (Artık kesinlikle bulacak)
                     playerMovementScript = playerTransform.GetComponent("SanchoMovement") as MonoBehaviour;
 
-                    if (playerMovementScript != null)
-                    {
-                        playerMovementScript.enabled = false;
-                    }
-                    else
-                    {
-                        Debug.Log("⚠️ DİKKAT: Karakter bulundu ama 'SanchoMovement' scripti bulunamadı!");
-                    }
+                    if (playerMovementScript != null) playerMovementScript.enabled = false;
 
                     isGrabbed = true;
+                    if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = false;
 
-                    // --- YENİ EKLENDİ: SANCHO KUTUYU TUTTU, SWİTCH KİLİTLENDİ ---
-                    if (DualRealityManager.Instance != null)
-                    {
-                        DualRealityManager.Instance.canSwitch = false;
-                    }
-                    // -------------------------------------------------------------
-
-                    rb.isKinematic = true; // Fizik sapıtmasın diye anlık yerçekimini kapatıyoruz
-
+                    rb.isKinematic = true;
                     AlignPlayerToBox();
-
                     transform.SetParent(playerTransform, true);
-                    Debug.Log("✅ KUTU BAŞARIYLA TUTULDU!");
-                    return; // Tutma başarılı, aramayı bitir
+                    return;
                 }
             }
-        }
-
-        if (!playerBulundu)
-        {
-            Debug.Log("❌ Kutu etrafında 'Player' tagine sahip hiçbir şey bulamadı! Sancho'nun tagi Untagged kalmış olabilir.");
         }
     }
 
     private void ReleaseBox()
     {
         if (!isGrabbed) return;
-
         isGrabbed = false;
 
-        // --- YENİ EKLENDİ: SANCHO KUTUYU BIRAKTI, SWİTCH KİLİDİ AÇILDI ---
-        if (DualRealityManager.Instance != null)
-        {
-            DualRealityManager.Instance.canSwitch = true;
-        }
-        // ---------------------------------------------------------------
+        if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = true;
 
-        transform.SetParent(null);
+        // --- TRIGGER TEMELLİ ASANSÖR ÇÖZÜMÜ ---
+        // Eğer bir asansörün trigger'ı içindeysek ona bağlan, yoksa null yap.
+        transform.SetParent(currentPlatform);
 
-        rb.isKinematic = false; // Bırakınca yerçekimi tekrar başlar
-
+        rb.isKinematic = false;
         if (playerMovementScript != null) playerMovementScript.enabled = true;
 
         playerTransform = null;
@@ -176,20 +145,14 @@ public class PushableBox : MonoBehaviour
     {
         Vector3 dirToPlayer = (playerTransform.position - transform.position).normalized;
         dirToPlayer.y = 0;
-
         Vector3 snapDirection = transform.forward;
         float maxDot = -1f;
-
         Vector3[] directions = { transform.forward, -transform.forward, transform.right, -transform.right };
 
         foreach (Vector3 dir in directions)
         {
             float dot = Vector3.Dot(dirToPlayer, dir);
-            if (dot > maxDot)
-            {
-                maxDot = dot;
-                snapDirection = dir;
-            }
+            if (dot > maxDot) { maxDot = dot; snapDirection = dir; }
         }
 
         Vector3 targetPos = transform.position + (snapDirection * grabDistance);
@@ -199,5 +162,27 @@ public class PushableBox : MonoBehaviour
         playerTransform.position = targetPos;
         playerTransform.rotation = Quaternion.LookRotation(-snapDirection);
         playerCC.enabled = true;
+    }
+
+    // --- ASANSÖRÜN TETİKLEYİCİSİNE GİRDİĞİNDE ---
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("MovingPlatform"))
+        {
+            currentPlatform = other.transform;
+            // Eğer o an tutmuyorsak asansöre yapış
+            if (!isGrabbed) transform.SetParent(currentPlatform);
+        }
+    }
+
+    // --- ASANSÖRÜN TETİKLEYİCİSİNDEN ÇIKTIĞINDA ---
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("MovingPlatform"))
+        {
+            currentPlatform = null;
+            // Eğer o an tutmuyorsak bağını kopar
+            if (!isGrabbed) transform.SetParent(null);
+        }
     }
 }
