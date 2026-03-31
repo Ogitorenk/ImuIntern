@@ -10,9 +10,12 @@ public class DonMovement : MonoBehaviour
     public float currentHealth;
     private float iFrames = 0f; // Hasar alınca 1 saniye ölümsüzlük
 
-    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ ---
-    private GameObject currentPlatform;
-    private Quaternion previousPlatformRotation;
+    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ (GERÇEK TREN MANTIĞI) ---
+    private Transform activePlatform;
+    private Vector3 activeLocalPlatformPoint;
+    private Vector3 activeGlobalPlatformPoint;
+    private Quaternion activeLocalPlatformRotation;
+    private Quaternion activeGlobalPlatformRotation;
 
     [Header("Hareket Ayarları")]
     public float speed = 6f;
@@ -116,31 +119,59 @@ public class DonMovement : MonoBehaviour
 
     void Update()
     {
-        // --- YENİ: PLATFORM FİZİĞİ (DÖNEN ZEMİN TAKİBİ) ---
-        RaycastHit platformHit;
-        if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1f, groundMask))
+        // --- PLATFORM FİZİĞİ (GERÇEK TREN MANTIĞI KESİN ÇÖZÜM) ---
+        if (activePlatform != null)
         {
-            if (platformHit.collider.gameObject.GetComponent<MovingColliders>())
+            // 1. Platformun hareketini hesapla ve karaktere direkt yürüme olarak (Move) uygula
+            Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
+            Vector3 moveDiff = newGlobalPlatformPoint - activeGlobalPlatformPoint;
+
+            if (moveDiff.magnitude > 0.0001f)
             {
-                if (currentPlatform != platformHit.collider.gameObject)
-                {
-                    currentPlatform = platformHit.collider.gameObject;
-                    previousPlatformRotation = currentPlatform.transform.rotation;
-                }
-
-                Quaternion platformRotationDifference = currentPlatform.transform.rotation * Quaternion.Inverse(previousPlatformRotation);
-                platformRotationDifference.ToAngleAxis(out float angle, out Vector3 axis);
-
-                if (axis.y > 0.9f || axis.y < -0.9f)
-                {
-                    transform.RotateAround(currentPlatform.transform.position, Vector3.up, angle);
-                }
-
-                previousPlatformRotation = currentPlatform.transform.rotation;
+                controller.Move(moveDiff);
             }
-            else { currentPlatform = null; }
+
+            // 2. Platformun dönüşünü hesapla ve sadece karakterin kendi ekseninde çevir
+            Quaternion newGlobalPlatformRotation = activePlatform.rotation * activeLocalPlatformRotation;
+            Quaternion rotationDiff = newGlobalPlatformRotation * Quaternion.Inverse(activeGlobalPlatformRotation);
+
+            rotationDiff.ToAngleAxis(out float angle, out Vector3 axis);
+            if (angle > 0.001f)
+            {
+                transform.Rotate(axis, angle, Space.World);
+            }
+
+            // 3. Değerleri bir sonraki kare için hafızaya al
+            activeGlobalPlatformPoint = transform.position;
+            activeGlobalPlatformRotation = transform.rotation;
+            activeLocalPlatformPoint = activePlatform.InverseTransformPoint(transform.position);
+            activeLocalPlatformRotation = Quaternion.Inverse(activePlatform.rotation) * transform.rotation;
         }
-        else { currentPlatform = null; }
+
+        // --- ZEMİN VE PLATFORM TESPİTİ ---
+        RaycastHit platformHit;
+        // Zemin algılama mesafesini biraz uzun tuttuk ki pervane esnasında zıplamadığın sürece tutunsun (1.5f)
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1.5f, groundMask))
+        {
+            // Pervane kolunda veya merkezinde MovingColliders scriptini ara
+            MovingColliders mc = platformHit.collider.GetComponent<MovingColliders>();
+            if (mc == null) mc = platformHit.collider.GetComponentInParent<MovingColliders>();
+
+            if (mc != null)
+            {
+                Transform hitTransform = platformHit.collider.transform;
+                if (activePlatform != hitTransform)
+                {
+                    activePlatform = hitTransform;
+                    activeGlobalPlatformPoint = transform.position;
+                    activeGlobalPlatformRotation = transform.rotation;
+                    activeLocalPlatformPoint = activePlatform.InverseTransformPoint(transform.position);
+                    activeLocalPlatformRotation = Quaternion.Inverse(activePlatform.rotation) * transform.rotation;
+                }
+            }
+            else { activePlatform = null; }
+        }
+        else { activePlatform = null; }
 
         // --- YENİ: ÖLÜMSÜZLÜK SÜRESİNİ DÜŞÜR ---
         if (iFrames > 0)
@@ -393,6 +424,9 @@ public class DonMovement : MonoBehaviour
         turnSmoothVelocity = 0f;
         if (Camera.main != null) referenceYaw = Camera.main.transform.eulerAngles.y;
 
+        // --- BUG FİX: KARAKTER UYANDIĞINDA ESKİ PLATFORM HAFIZASINI SİL ---
+        activePlatform = null;
+
         if (normalCamera != null)
         {
             normalCamera.Follow = this.transform;
@@ -432,5 +466,17 @@ public class DonMovement : MonoBehaviour
     {
         Debug.Log("💀 Don Quixote ÖLDÜ! 💀");
         // İleride buraya başa dönme veya Game Over ekranı eklenebilir.
+    }
+
+    // --- PLATFORM TUTUNMA SİSTEMİ (ARTIK RotateAround Update İÇİNDE ÇALIŞIYOR) ---
+    private void OnTriggerEnter(Collider other)
+    {
+        // SetParent logic'i karakterin scale'ini bozduğu için sildik.
+        // Update içindeki Raycast pervaneyi mc.transform.position üzerinden döndürüyor.
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        // Boş bırakıldı.
     }
 }
