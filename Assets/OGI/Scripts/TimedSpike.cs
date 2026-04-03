@@ -9,6 +9,9 @@ public class TimedSpike : MonoBehaviour
     public Transform spikeMesh;
 
     [Header("Zamanlama ve Mesafe")]
+    [Tooltip("Oyun baþladýðýnda bu tuzaðýn ilk çalýþmasý için ne kadar beklesin? (Dalga efekti için)")]
+    public float startDelay = 0f; // --- YENÝ EKLENDÝ ---
+
     public float upDistance = 1.5f;  // Diken ne kadar yukarý çýkacak?
     public float upTime = 2f;        // Yukarýda ne kadar bekleyecek?
     public float downTime = 2f;      // Yerin altýnda ne kadar saklanacak?
@@ -42,6 +45,13 @@ public class TimedSpike : MonoBehaviour
 
     IEnumerator SpikeRoutine()
     {
+        // --- YENÝ: Döngüye girmeden önce ÝLK gecikmeyi bekle ---
+        if (startDelay > 0)
+        {
+            yield return new WaitForSeconds(startDelay);
+        }
+
+        // Sonrasý standart sonsuz döngü
         while (true)
         {
             yield return new WaitForSeconds(downTime);

@@ -148,18 +148,24 @@ public class DonMovement : MonoBehaviour
             activeLocalPlatformRotation = Quaternion.Inverse(activePlatform.rotation) * transform.rotation;
         }
 
-        // --- ZEMİN VE PLATFORM TESPİTİ ---
+        // --- ZEMİN VE PLATFORM TESPİTİ (RAYCAST SİSTEMİNE GEÇİŞ) ---
         RaycastHit platformHit;
-        // Zemin algılama mesafesini biraz uzun tuttuk ki pervane esnasında zıplamadığın sürece tutunsun (1.5f)
         if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1.5f, groundMask))
         {
-            // Pervane kolunda veya merkezinde MovingColliders scriptini ara
+            Transform hitTransform = null;
+
+            // Önce Pervane kontrolü (MovingColliders)
             MovingColliders mc = platformHit.collider.GetComponent<MovingColliders>();
             if (mc == null) mc = platformHit.collider.GetComponentInParent<MovingColliders>();
+            if (mc != null) hitTransform = platformHit.collider.transform;
 
-            if (mc != null)
+            // Sonra Platform kontrolü (MovingIllusionPlatform)
+            MovingIllusionPlatform mip = platformHit.collider.GetComponent<MovingIllusionPlatform>();
+            if (mip == null) mip = platformHit.collider.GetComponentInParent<MovingIllusionPlatform>();
+            if (mip != null) hitTransform = mip.movingBody; // Hareket eden gövdeye kilitlen!
+
+            if (hitTransform != null)
             {
-                Transform hitTransform = platformHit.collider.transform;
                 if (activePlatform != hitTransform)
                 {
                     activePlatform = hitTransform;
