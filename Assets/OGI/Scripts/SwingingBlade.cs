@@ -8,9 +8,6 @@ public class SwingingBlade : MonoBehaviour
     public float flingPower = 85f;
     public float flingUpward = 20f;
 
-    [Tooltip("Geriye fırlatma şiddeti (Her zaman koridorun başına)")]
-    public float geriFirlatmaGucu = 45f;
-
     [Header("Sallanma Ayarları")]
     public float swingSpeed = 2.5f;
     public float startAngle = 80f;
@@ -38,7 +35,6 @@ public class SwingingBlade : MonoBehaviour
         transform.localRotation = Quaternion.Euler(currentAngle, 0, 0);
 
         // BIÇAĞIN DÜNYADAKİ GERÇEK HIZINI HESAPLA
-        // Bıçak görselinin merkezini takip ediyoruz
         Vector3 currentPos = bladeColliders[0].bounds.center;
         currentVelocity = (currentPos - lastPosition) / Time.deltaTime;
         lastPosition = currentPos;
@@ -57,19 +53,21 @@ public class SwingingBlade : MonoBehaviour
                 if (other.TryGetComponent(out DonMovement don)) don.TakeDamage(damage);
                 else if (other.TryGetComponent(out SanchoMovement sancho)) sancho.TakeDamage(damage);
 
-                // --- 2. DÜNYA HIZINA GÖRE FIRLATMA ---
+                // --- 2. GERÇEKÇİ FİZİK YÖNÜ HESAPLAMA ---
 
-                // Bıçak dünyada (Scene View) sağa gidiyorsa itiş +1, sola gidiyorsa -1 olacak
-                float xPush = (currentVelocity.x > 0) ? 1f : -1f;
+                // A) Bıçağın savrulma yönü (Yukarı kalkmayı iptal ediyoruz, sadece yatay itiş)
+                Vector3 swingDirection = currentVelocity;
+                swingDirection.y = 0;
+                swingDirection.Normalize();
 
-                // Yatay itiş (Sağ-Sol)
-                Vector3 horizontalPush = Vector3.right * xPush * flingPower;
+                // B) Karakteri bıçaktan dışarı doğru iten yön (Karakter bıçağın içine girmesin diye)
+                Vector3 outwardPush = (cc.transform.position - bladeColliders[0].bounds.center);
+                outwardPush.y = 0;
+                outwardPush.Normalize();
 
-                // Geri itiş (Dünya -Z yönü, yani karakterin geldiği yol)
-                Vector3 backwardPush = Vector3.back * geriFirlatmaGucu;
-
-                // Vektörleri birleştir ve yönü sabitle
-                Vector3 finalDirection = (horizontalPush + backwardPush).normalized;
+                // C) İkisini harmanla! (Bıçağın gidiş yönü daha ağır basar: 1.5f çarpanı)
+                // Böylece oyuncu tam bıçağın gittiği yöne ama hafifçe dışa doğru savrulur.
+                Vector3 finalDirection = (swingDirection * 1.5f + outwardPush * 0.5f).normalized;
 
                 // 3. FIRLAT
                 StartCoroutine(ApplyBladeFling(cc, finalDirection));
@@ -96,6 +94,7 @@ public class SwingingBlade : MonoBehaviour
                 float currentFling = Mathf.Lerp(flingPower, 0, elapsed / duration);
                 vSpeed += Physics.gravity.y * 2.8f * Time.deltaTime;
 
+                // Yeni hesapladığımız kusursuz direction vektörü burada çalışıyor
                 Vector3 moveAmount = (direction * currentFling) + (Vector3.up * vSpeed);
                 cc.Move(moveAmount * Time.deltaTime);
             }

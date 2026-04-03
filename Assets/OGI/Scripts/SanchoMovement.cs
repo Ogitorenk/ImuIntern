@@ -65,10 +65,10 @@ public class SanchoMovement : MonoBehaviour
 
     void Update()
     {
-        // --- PLATFORM FİZİĞİ (GERÇEK TREN MANTIĞI KESİN ÇÖZÜM) ---
+        // --- 1. PLATFORM FİZİĞİ HESAPLAMA (TREN MANTIĞI) ---
         if (activePlatform != null)
         {
-            // 1. Platformun hareketini hesapla ve karaktere direkt yürüme olarak (Move) uygula
+            // Platformun hareketini hesapla ve karaktere direkt yürüme olarak (Move) uygula
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
             Vector3 moveDiff = newGlobalPlatformPoint - activeGlobalPlatformPoint;
 
@@ -77,7 +77,7 @@ public class SanchoMovement : MonoBehaviour
                 controller.Move(moveDiff);
             }
 
-            // 2. Platformun dönüşünü hesapla ve sadece karakterin kendi ekseninde çevir
+            // Platformun dönüşünü hesapla ve sadece karakterin kendi ekseninde çevir
             Quaternion newGlobalPlatformRotation = activePlatform.rotation * activeLocalPlatformRotation;
             Quaternion rotationDiff = newGlobalPlatformRotation * Quaternion.Inverse(activeGlobalPlatformRotation);
 
@@ -87,25 +87,31 @@ public class SanchoMovement : MonoBehaviour
                 transform.Rotate(axis, angle, Space.World);
             }
 
-            // 3. Değerleri bir sonraki kare için hafızaya al
+            // Değerleri bir sonraki kare için hafızaya al
             activeGlobalPlatformPoint = transform.position;
             activeGlobalPlatformRotation = transform.rotation;
             activeLocalPlatformPoint = activePlatform.InverseTransformPoint(transform.position);
             activeLocalPlatformRotation = Quaternion.Inverse(activePlatform.rotation) * transform.rotation;
         }
 
-        // --- ZEMİN VE PLATFORM TESPİTİ ---
+        // --- 2. ZEMİN VE PLATFORM TESPİTİ (RAYCAST SİSTEMİ) ---
         RaycastHit platformHit;
-        // Zemin algılama mesafesini biraz uzun tuttuk ki pervane esnasında zıplamadığın sürece tutunsun (1.5f)
         if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1.5f, groundMask))
         {
-            // Pervane kolunda veya merkezinde MovingColliders scriptini ara
+            Transform hitTransform = null;
+
+            // Önce Pervane kontrolü (MovingColliders)
             MovingColliders mc = platformHit.collider.GetComponent<MovingColliders>();
             if (mc == null) mc = platformHit.collider.GetComponentInParent<MovingColliders>();
+            if (mc != null) hitTransform = platformHit.collider.transform;
 
-            if (mc != null)
+            // Sonra Asansör kontrolü (MovingIllusionPlatform)
+            MovingIllusionPlatform mip = platformHit.collider.GetComponent<MovingIllusionPlatform>();
+            if (mip == null) mip = platformHit.collider.GetComponentInParent<MovingIllusionPlatform>();
+            if (mip != null) hitTransform = mip.movingBody; // Asansörün movingBody'sine kilitlen!
+
+            if (hitTransform != null)
             {
-                Transform hitTransform = platformHit.collider.transform;
                 if (activePlatform != hitTransform)
                 {
                     activePlatform = hitTransform;
@@ -119,7 +125,7 @@ public class SanchoMovement : MonoBehaviour
         }
         else { activePlatform = null; }
 
-        // --- YENİ: ÖLÜMSÜZLÜK SÜRESİNİ DÜŞÜR ---
+        // --- 3. DİĞER TÜM MEKANİKLER (Zerre dokunulmadı) ---
         if (iFrames > 0)
         {
             iFrames -= Time.deltaTime;
