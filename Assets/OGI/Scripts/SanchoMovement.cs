@@ -10,6 +10,10 @@ public class SanchoMovement : MonoBehaviour
     public float currentHealth;
     private float iFrames = 0f; // Hasar alınca 1 saniye ölümsüzlük
 
+    // --- YENİ: ETKİLEŞİM DURUMU ---
+    [Header("Etkileşim Durumu")]
+    public bool isHoldingBox = false; // Kutu tutarken Switch atılmasını engellemek için eklendi
+
     // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ (GERÇEK TREN MANTIĞI) ---
     private Transform activePlatform;
     private Vector3 activeLocalPlatformPoint;
@@ -223,9 +227,22 @@ public class SanchoMovement : MonoBehaviour
         }
     }
 
+    // Hem Don hem de Sancho Movement scriptlerinde Die() fonksiyonunu buna çevir:
     void Die()
     {
-        Debug.Log("💀 Sancho ÖLDÜ! 💀");
-        // İleride buraya başa dönme veya Game Over ekranı eklenebilir.
+        Debug.Log("💀 Sancho Öldü! Canlar sıfırlanıyor...");
+
+        // --- KRİTİK SATIR BURASI ---
+        if (DualRealityManager.Instance != null)
+        {
+            DualRealityManager.Instance.ResetAllHealth();
+        }
+
+        // Checkpoint'e ışınlanma
+        Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
+        controller.enabled = false;
+        transform.position = respawnPos;
+        controller.enabled = true;
+        velocity = Vector3.zero;
     }
 }

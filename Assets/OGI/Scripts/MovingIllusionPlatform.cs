@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class MovingIllusionPlatform : MonoBehaviour
 {
@@ -8,7 +9,13 @@ public class MovingIllusionPlatform : MonoBehaviour
     [Header("--- Platform Temel Ayarlarý ---")]
     public PlatformType platformType = PlatformType.Continuous;
     public float speed = 3f;
+    [Tooltip("Waypoint noktalarýna varýnca ne kadar beklesin?")]
     public float waitTime = 1f;
+
+    [Header("--- Yeni: Kalkýþ Gecikmesi (Delay) ---")]
+    [Tooltip("Pressure Sensitive modundayken, üzerine binildiðinde hareket etmeden önce kaç saniye beklesin?")]
+    public float detectionDelay = 0.5f;
+    private float currentDetectionTimer = 0f; // Arka planda sayan kronometre
 
     [Header("--- Dual Reality (Ýllüzyon) Ayarlarý ---")]
     public VisibilityMode visibilityMode = VisibilityMode.Both;
@@ -33,20 +40,26 @@ public class MovingIllusionPlatform : MonoBehaviour
     private bool isSolidForCurrentChar = true;
     private bool isExternallyActivated = false;
 
+    // --- PLATFORMA BÝNENLERÝN LÝSTESÝ ---
+    private List<Collider> activeObjectsOnPlatform = new List<Collider>();
+
     void Start()
     {
         if (movingBody == null) movingBody = transform;
 
-        // Waypoint pozisyonlarýný dünya koordinatýna çevir ve platformu ilkine koy
-        if (waypoints != null && waypoints.Length > 1)
+        // Waypoint pozisyonlarýný dünya koordinatýna çevir
+        if (waypoints != null && waypoints.Length > 0)
         {
             globalWaypoints = new Vector3[waypoints.Length];
             for (int i = 0; i < waypoints.Length; i++)
             {
                 globalWaypoints[i] = waypoints[i].position;
             }
-            movingBody.position = globalWaypoints[0];
-            currentTargetIndex = 1;
+
+            // YENÝ: Iþýnlanmayý sildik! 
+            // Platform Editörde nerede býrakýldýysa orada baþlar.
+            // Ýlk hedefi 0. nokta (Point A) olarak ayarlýyoruz.
+            currentTargetIndex = 0;
         }
         else
         {
@@ -59,7 +72,31 @@ public class MovingIllusionPlatform : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (globalWaypoints == null || globalWaypoints.Length < 2) return;
+        // --- LÝSTE TEMÝZLÝÐÝ VE KONTROLÜ ---
+        activeObjectsOnPlatform.RemoveAll(col => col == null || !col.gameObject.activeInHierarchy || !col.enabled);
+
+        bool hasPassengers = activeObjectsOnPlatform.Count > 0;
+
+        // --- YENÝ: DELAY (GECÝKME) SÝSTEMÝ ---
+        if (hasPassengers)
+        {
+            if (currentDetectionTimer < detectionDelay)
+            {
+                currentDetectionTimer += Time.fixedDeltaTime;
+                isPlayerOnPlatform = false; // Süre dolana kadar "üstünde kimse yok" gibi davran
+            }
+            else
+            {
+                isPlayerOnPlatform = true; // Süre doldu, hareket izni verildi
+            }
+        }
+        else
+        {
+            currentDetectionTimer = 0f; // Biri inerse sayacý sýfýrla
+            isPlayerOnPlatform = false;
+        }
+
+        if (globalWaypoints == null || globalWaypoints.Length == 0) return;
 
         bool shouldMove = false;
         switch (platformType)
@@ -74,7 +111,7 @@ public class MovingIllusionPlatform : MonoBehaviour
             HandleMovement();
         }
 
-        // Karakteri taþýma
+        // Karakteri/Kutuyu taþýma
         Vector3 deltaMovement = movingBody.position - lastPosition;
         if (isPlayerOnPlatform && isSolidForCurrentChar && deltaMovement.magnitude > 0.0001f)
         {
@@ -105,7 +142,6 @@ public class MovingIllusionPlatform : MonoBehaviour
             {
                 movingBody.position = targetPosition;
                 isWaiting = true;
-                Debug.Log($"<color=yellow>[Vardý]</color> {gameObject.name} Waypoint: {currentTargetIndex}");
             }
         }
     }
@@ -124,13 +160,15 @@ public class MovingIllusionPlatform : MonoBehaviour
         }
     }
 
-    // --- EN GARANTÝ ALGILAMA SÝSTEMÝ: TRIGGER ---
+    // --- LÝSTE MANTIÐINA GEÇÝÞ YAPAN TRIGGER'LAR ---
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player") || other.CompareTag("Pushable"))
         {
-            isPlayerOnPlatform = true;
-            Debug.Log("<color=green>[Giriþ]</color> Platforma biri bindi: " + other.name);
+            if (!activeObjectsOnPlatform.Contains(other))
+            {
+                activeObjectsOnPlatform.Add(other);
+            }
         }
     }
 
@@ -138,8 +176,10 @@ public class MovingIllusionPlatform : MonoBehaviour
     {
         if (other.CompareTag("Player") || other.CompareTag("Pushable"))
         {
-            isPlayerOnPlatform = false;
-            Debug.Log("<color=red>[Çýkýþ]</color> Platformdan biri indi.");
+            if (activeObjectsOnPlatform.Contains(other))
+            {
+                activeObjectsOnPlatform.Remove(other);
+            }
         }
     }
 

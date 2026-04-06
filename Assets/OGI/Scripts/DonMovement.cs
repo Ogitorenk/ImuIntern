@@ -468,21 +468,22 @@ public class DonMovement : MonoBehaviour
         }
     }
 
+    // Hem Don hem de Sancho Movement scriptlerinde Die() fonksiyonunu buna çevir:
     void Die()
     {
-        Debug.Log("💀 Don Quixote ÖLDÜ! 💀");
-        // İleride buraya başa dönme veya Game Over ekranı eklenebilir.
-    }
+        Debug.Log("💀 Don Öldü! Canlar sıfırlanıyor...");
 
-    // --- PLATFORM TUTUNMA SİSTEMİ (ARTIK RotateAround Update İÇİNDE ÇALIŞIYOR) ---
-    private void OnTriggerEnter(Collider other)
-    {
-        // SetParent logic'i karakterin scale'ini bozduğu için sildik.
-        // Update içindeki Raycast pervaneyi mc.transform.position üzerinden döndürüyor.
-    }
+        // --- KRİTİK SATIR BURASI ---
+        if (DualRealityManager.Instance != null)
+        {
+            DualRealityManager.Instance.ResetAllHealth();
+        }
 
-    private void OnTriggerExit(Collider other)
-    {
-        // Boş bırakıldı.
+        // Checkpoint'e ışınlanma
+        Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
+        controller.enabled = false;
+        transform.position = respawnPos;
+        controller.enabled = true;
+        velocity = Vector3.zero;
     }
 }

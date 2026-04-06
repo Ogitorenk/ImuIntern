@@ -16,6 +16,10 @@ public class SwingingBlade : MonoBehaviour
     private float lastHitTime = -10f;
     private float timer = 0f;
 
+    // --- YENİ EKLENDİ: BAŞLANGIÇ ROTASYON HAFIZASI ---
+    private float initialY;
+    private float initialZ;
+
     // --- YÖN BULUCU SİSTEM ---
     private Vector3 lastPosition;
     private Vector3 currentVelocity;
@@ -23,7 +27,13 @@ public class SwingingBlade : MonoBehaviour
 
     void Start()
     {
-        transform.localRotation = Quaternion.Euler(startAngle, 0, 0);
+        // Editörde verdiğin Y (sağ/sol) ve Z (eğim) açılarını hafızaya alıyoruz!
+        initialY = transform.localEulerAngles.y;
+        initialZ = transform.localEulerAngles.z;
+
+        // Başlangıçta o hafızadaki değerleri kullanarak başla
+        transform.localRotation = Quaternion.Euler(startAngle, initialY, initialZ);
+
         lastPosition = transform.position;
         bladeColliders = GetComponentsInChildren<Collider>();
     }
@@ -32,7 +42,9 @@ public class SwingingBlade : MonoBehaviour
     {
         timer += Time.deltaTime;
         float currentAngle = startAngle * Mathf.Cos(timer * swingSpeed);
-        transform.localRotation = Quaternion.Euler(currentAngle, 0, 0);
+
+        // X ekseninde sallan, ama Editördeki Y ve Z dönüşlerini SIFIRLAMA!
+        transform.localRotation = Quaternion.Euler(currentAngle, initialY, initialZ);
 
         // BIÇAĞIN DÜNYADAKİ GERÇEK HIZINI HESAPLA
         Vector3 currentPos = bladeColliders[0].bounds.center;
