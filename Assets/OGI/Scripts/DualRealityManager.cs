@@ -81,21 +81,29 @@ public class DualRealityManager : MonoBehaviour
     }
 
     // --- YENİ EKLENDİ: TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
+    // --- YENİ EKLENDİ: KESİN ÇÖZÜMLÜ CAN FULLEME ---
     public void ResetAllHealth()
     {
-        if (donQuixote != null)
+        // 'true' parametresi, karakter o an inaktif (gizli) olsa bile onu bulmasını sağlar!
+        DonMovement don = FindObjectOfType<DonMovement>(true);
+        if (don != null)
         {
-            var donScript = donQuixote.GetComponent<DonMovement>();
-            if (donScript != null) donScript.currentHealth = donScript.maxHealth;
+            don.currentHealth = don.maxHealth;
+
+            // DİKKAT: Eğer ekranda bir Can Barı (UI) varsa, onu güncelleyen kodu buraya eklemelisin.
+            // Örnek: don.UpdateHealthUI(); 
         }
 
+        SanchoMovement sancho = FindObjectOfType<SanchoMovement>(true);
         if (sancho != null)
         {
-            var sanchoScript = sancho.GetComponent<SanchoMovement>();
-            if (sanchoScript != null) sanchoScript.currentHealth = sanchoScript.maxHealth;
+            sancho.currentHealth = sancho.maxHealth;
+
+            // DİKKAT: Eğer ekranda bir Can Barı (UI) varsa, onu güncelleyen kodu buraya eklemelisin.
+            // Örnek: sancho.UpdateHealthUI();
         }
 
-        Debug.Log("<color=green>💚 Tüm ekibin canları fullendi!</color>");
+        Debug.Log("<color=green>💚 [SİSTEM] Sahnede gizli olan karakterler zorla bulundu ve canları 100 yapıldı!</color>");
     }
 
     // --- YENİ EKLENDİ (true): Sahnede gizli/kapalı olsa bile tüm JumpPad'leri bulur ---
