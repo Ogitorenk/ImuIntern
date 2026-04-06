@@ -26,17 +26,29 @@ public class DualRealityManager : MonoBehaviour
 
     void Update()
     {
-        // TAB tuşuna basıldığında VE kilit açıkken (canSwitch == true) karakter değiştir
+        // TAB tuşuna basıldığında
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            if (canSwitch)
+            // --- YENİ: SANCHO KUTU TUTUYOR MU KONTROLÜ ---
+            bool isSanchoHoldingBox = false;
+            if (!isDonActive && sancho != null)
+            {
+                SanchoMovement sm = sancho.GetComponent<SanchoMovement>();
+                if (sm != null && sm.isHoldingBox)
+                {
+                    isSanchoHoldingBox = true;
+                }
+            }
+
+            // Kilit açıkken VE Sancho kutu tutmuyorken karakter değiştir
+            if (canSwitch && !isSanchoHoldingBox)
             {
                 SwitchCharacter(!isDonActive);
             }
             else
             {
-                // Kutu iterken basarsa konsola uyarı atsın (oyun içinde de ses falan çalabilirsin ileride)
-                Debug.Log("🚫 Şu an karakter değiştirilemez! (Sancho meşgul)");
+                // Kutu iterken veya canSwitch false iken basarsa konsola uyarı atsın
+                Debug.Log("🚫 Şu an karakter değiştirilemez! (Geçiş kilitli veya Sancho kutu tutuyor)");
             }
         }
     }
@@ -66,6 +78,24 @@ public class DualRealityManager : MonoBehaviour
         UpdateAllJumpPads();
         UpdateAllBreakablePlatforms();
         UpdateAllMovingIllusionPlatforms();
+    }
+
+    // --- YENİ EKLENDİ: TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
+    public void ResetAllHealth()
+    {
+        if (donQuixote != null)
+        {
+            var donScript = donQuixote.GetComponent<DonMovement>();
+            if (donScript != null) donScript.currentHealth = donScript.maxHealth;
+        }
+
+        if (sancho != null)
+        {
+            var sanchoScript = sancho.GetComponent<SanchoMovement>();
+            if (sanchoScript != null) sanchoScript.currentHealth = sanchoScript.maxHealth;
+        }
+
+        Debug.Log("<color=green>💚 Tüm ekibin canları fullendi!</color>");
     }
 
     // --- YENİ EKLENDİ (true): Sahnede gizli/kapalı olsa bile tüm JumpPad'leri bulur ---
