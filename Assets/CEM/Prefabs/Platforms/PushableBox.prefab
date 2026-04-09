@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 910463742221513772}
   - component: {fileID: 76917648517918553}
   - component: {fileID: 327412797873483165}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SanchoBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -95,7 +95,7 @@ GameObject:
   - component: {fileID: 5294268466931331785}
   - component: {fileID: 9213899091950248924}
   - component: {fileID: 2498797713620129262}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: PushableBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135,6 +135,9 @@ MonoBehaviour:
   donOrsModeli: {fileID: 8327611345236820969}
   pushSpeed: 2
   grabDistance: 1.2
+  turnSpeed: 60
+  stepHeight: 0.5
+  stepSmooth: 5
 --- !u!54 &9213899091950248924
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -194,7 +197,7 @@ GameObject:
   - component: {fileID: 4732490195985819119}
   - component: {fileID: 1575481846417895677}
   - component: {fileID: 8440694284287550061}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: DonBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
