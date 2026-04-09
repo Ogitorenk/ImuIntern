@@ -133,15 +133,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7982169871771922331}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000019113051, y: -0.13088322, z: -0.0000014477521, w: 0.99139786}
-  m_LocalPosition: {x: -5.930269, y: 69.34341, z: 94.81707}
+  m_LocalRotation: {x: 5.2614263e-10, y: -0.00036033985, z: -0.0000014603137, w: 1}
+  m_LocalPosition: {x: -5.957629, y: 69.34341, z: 94.755}
   m_LocalScale: {x: 1.7601, y: 1.7601, z: 1.7601}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2336311314417183116}
   - {fileID: 6777345086130127188}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -15.041, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -0.041, z: 0}
 --- !u!65 &1461105853084792748
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -191,6 +191,11 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  onDeactivate:
+    m_PersistentCalls:
+      m_Calls: []
+  autoReset: 0
+  resetTime: 10
   leverHandle: {fileID: 6777345086130127188}
   pulledRotation: {x: 45, y: 0, z: 0}
 --- !u!1 &8428667046887611553
