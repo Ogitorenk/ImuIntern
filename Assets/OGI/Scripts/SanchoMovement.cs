@@ -27,9 +27,10 @@ public class SanchoMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    // --- YENİ EKLENDİ: KOŞMA VE EĞİLME ---
-    [Header("Ekstra Hareket (Koşma/Eğilme)")]
+    // --- YENİ EKLENDİ: KOŞMA, YÜRÜME VE EĞİLME ---
+    [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme)")]
     public float sprintSpeed = 10f; // Shift'e basınca çıkılacak hız
+    public float walkSpeed = 2f;    // Alt tuşuna basınca düşülecek yürüme hızı
     public float crouchSpeed = 3f;  // Eğilirkenki hız
     public float normalScaleY = 1f; // Kapsülün normal Y boyutu (1-1-1 olduğu için 1)
     public float crouchScaleY = 0.5f; // Eğilirkenki Y boyutu (Yarıya inmesi için)
@@ -37,6 +38,7 @@ public class SanchoMovement : MonoBehaviour
 
     private float currentSpeed; // Anlık hızımız
     private bool isCrouching = false; // Eğiliyor muyuz?
+    private bool isWalking = false;   // Yürüyor muyuz?
 
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
@@ -53,7 +55,11 @@ public class SanchoMovement : MonoBehaviour
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
 
-    // --- BURASI DEĞİŞTİ: PushableBox'un okuyabilmesi için public yapıldı ---
+    // --- YENİ: ERKEN İNİŞ SİSTEMİ ---
+    [Tooltip("Yere ne kadar mesafe kala iniş animasyonu başlasın?")]
+    public float nearGroundDistance = 1.2f;
+    private bool isNearGround;
+
     [HideInInspector] public bool isGrounded;
 
     [Header("Kamera Sistemi")]
@@ -62,16 +68,20 @@ public class SanchoMovement : MonoBehaviour
     private CharacterController controller;
     private Transform cam;
 
+    // --- YENİ: ANİMASYON SİSTEMİ BAĞLANTISI ---
+    private Animator animator;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
         cam = Camera.main.transform;
 
-        // --- YENİ: OYUN BAŞINDA CANI VE HIZI FULLE ---
+        // Kapsülün içindeki 3D modelin Animator'ünü bul
+        animator = GetComponentInChildren<Animator>();
+
         currentHealth = maxHealth;
         currentSpeed = speed;
 
-        // --- İLK AÇILIŞ: KAMERAYI ENSENE YAPIŞTIR ---
         if (normalCamera != null)
         {
             normalCamera.Priority = 10;
@@ -144,7 +154,6 @@ public class SanchoMovement : MonoBehaviour
             iFrames -= Time.deltaTime;
         }
 
-        // --- YENİ EKLENDİ: HIZ VE EĞİLME KONTROLÜ (KAPSÜL İÇİN) ---
         // Eğilme (Sol Ctrl veya Sağ Ctrl) - BASILI TUTMA Mantığı
         if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
         {
@@ -155,10 +164,24 @@ public class SanchoMovement : MonoBehaviour
             isCrouching = false;
         }
 
-        // Hız Belirleme
+        // Yürüme (Sol Alt veya Sağ Alt) - BASILI TUTMA Mantığı
+        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+        {
+            isWalking = true;
+        }
+        else
+        {
+            isWalking = false;
+        }
+
+        // Hız Belirleme (Öncelik Sırası: Eğilme > Yürüme > Koşma > Normal)
         if (isCrouching)
         {
             currentSpeed = crouchSpeed;
+        }
+        else if (isWalking)
+        {
+            currentSpeed = walkSpeed;
         }
         else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
         {
@@ -170,20 +193,33 @@ public class SanchoMovement : MonoBehaviour
         }
 
         // PROTOTİP KAPSÜL İÇİN BOYUT DEĞİŞTİRME:
-        // Sadece Y eksenini yumuşak bir şekilde 1'den 0.5'e (veya geri 1'e) ezerek küçültüyoruz.
-        // Scale ile küçüldüğü için görsel de fizik de aynı anda değişir, asla yere saplanmaz.
         float targetScaleY = isCrouching ? crouchScaleY : normalScaleY;
         Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
         transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
 
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
+        // --- YENİ: ERKEN İNİŞ İÇİN LAZER KONTROLÜ ---
+        // Eğer yerdeysek zaten NearGround doğrudur. Değilsek ve düşüyorsak lazeri atıyoruz.
+        if (!isGrounded && velocity.y < 0)
+        {
+            isNearGround = Physics.Raycast(transform.position, Vector3.down, nearGroundDistance, groundMask);
+        }
+        else
+        {
+            isNearGround = isGrounded;
+        }
+
+        // --- YERE DEĞDİĞİNDE TETİĞİ SIFIRLA ---
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
             velocity.x = 0f;
             velocity.z = 0f;
             jumpCount = 0;
+
+            // Havada double jump'tan kalan "Zıpla" emrini temizle!
+            if (animator != null) animator.ResetTrigger("Jump");
         }
         else if (!isGrounded && jumpCount == 0)
         {
@@ -199,21 +235,37 @@ public class SanchoMovement : MonoBehaviour
             referenceYaw = cam.eulerAngles.y;
         }
 
+        // --- ANİMASYON HIZINI HESAPLAMA ---
+        float animSpeed = 0f;
+
         if (inputDir.magnitude >= 0.1f)
         {
+            animSpeed = currentSpeed;
+
             float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
             Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            // BURASI DEĞİŞTİ: speed yerine currentSpeed kullanılıyor
             if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+        }
+
+        // --- ANİMATOR'E SİNYALLERİ GÖNDERME ---
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
+            animator.SetBool("isGrounded", isGrounded);
+            animator.SetBool("isNearGround", isNearGround); // YENİ PARAMETRE GÖNDERİLİYOR
+            animator.SetFloat("VerticalVelocity", velocity.y);
         }
 
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+
+            // ZIPLAMA ANİMASYONUNU TETİKLE
+            if (animator != null) animator.SetTrigger("Jump");
         }
 
         if (Input.GetButtonUp("Jump") && velocity.y > 0f)
@@ -248,6 +300,9 @@ public class SanchoMovement : MonoBehaviour
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+
+        // JUMP PAD GİBİ HARİCİ ZIPLAMALARDA DA ANİMASYONU ÇALIŞTIR
+        if (animator != null) animator.SetTrigger("Jump");
     }
 
     public void TakeDamage(float damageAmount)
