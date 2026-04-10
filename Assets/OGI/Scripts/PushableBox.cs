@@ -211,6 +211,16 @@ public class PushableBox : MonoBehaviour
                 if (playerCC != null)
                 {
                     playerTransform = playerCC.transform;
+                    SanchoMovement sm = playerTransform.GetComponent<SanchoMovement>();
+
+                    // --- YENİ EKLENDİ: ZIPLARKEN TUTMA KİLİDİ ---
+                    if (sm != null && !sm.isGrounded)
+                    {
+                        Debug.Log("🚫 Sancho havada, kutu tutulamaz!");
+                        return; // Havadaysa işlemi anında kes.
+                    }
+                    // -------------------------------------------
+
                     playerMovementScript = playerTransform.GetComponent("SanchoMovement") as MonoBehaviour;
 
                     // Sancho'nun hareket scripti kapandığı için yukarıdaki HandleGrabbedPlatformTracking devreye giriyor!
@@ -219,7 +229,6 @@ public class PushableBox : MonoBehaviour
                     isGrabbed = true;
                     if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = false;
 
-                    SanchoMovement sm = playerTransform.GetComponent<SanchoMovement>();
                     if (sm != null) sm.isHoldingBox = true;
 
                     rb.isKinematic = true;

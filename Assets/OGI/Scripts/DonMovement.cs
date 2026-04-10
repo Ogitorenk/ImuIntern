@@ -23,6 +23,17 @@ public class DonMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
+    // --- YENİ EKLENDİ: KOŞMA VE EĞİLME ---
+    [Header("Ekstra Hareket (Koşma/Eğilme)")]
+    public float sprintSpeed = 10f; // Shift'e basınca çıkılacak hız
+    public float crouchSpeed = 3f;  // Eğilirkenki hız
+    public float normalHeight = 2f; // Karakterin normal boyu
+    public float crouchHeight = 1f; // Eğilirkenki boyu
+    public float crouchTransitionSpeed = 10f; // Eğilme-Kalkma hızı (Animasyonumsu geçiş)
+
+    private float currentSpeed; // Anlık hızımız
+    private bool isCrouching = false; // Eğiliyor muyuz?
+
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
     [Range(0.1f, 0.9f)] public float jumpCutMultiplier = 0.5f;
@@ -89,8 +100,8 @@ public class DonMovement : MonoBehaviour
         cam = Camera.main.transform;
         Cursor.lockState = CursorLockMode.Locked;
 
-        // --- YENİ: OYUN BAŞINDA CANI FULLE ---
         currentHealth = maxHealth;
+        currentSpeed = speed; // Başlangıçta normal hızdayız
 
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
@@ -122,7 +133,6 @@ public class DonMovement : MonoBehaviour
         // --- PLATFORM FİZİĞİ (GERÇEK TREN MANTIĞI KESİN ÇÖZÜM) ---
         if (activePlatform != null)
         {
-            // 1. Platformun hareketini hesapla ve karaktere direkt yürüme olarak (Move) uygula
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
             Vector3 moveDiff = newGlobalPlatformPoint - activeGlobalPlatformPoint;
 
@@ -131,7 +141,6 @@ public class DonMovement : MonoBehaviour
                 controller.Move(moveDiff);
             }
 
-            // 2. Platformun dönüşünü hesapla ve sadece karakterin kendi ekseninde çevir
             Quaternion newGlobalPlatformRotation = activePlatform.rotation * activeLocalPlatformRotation;
             Quaternion rotationDiff = newGlobalPlatformRotation * Quaternion.Inverse(activeGlobalPlatformRotation);
 
@@ -141,7 +150,6 @@ public class DonMovement : MonoBehaviour
                 transform.Rotate(axis, angle, Space.World);
             }
 
-            // 3. Değerleri bir sonraki kare için hafızaya al
             activeGlobalPlatformPoint = transform.position;
             activeGlobalPlatformRotation = transform.rotation;
             activeLocalPlatformPoint = activePlatform.InverseTransformPoint(transform.position);
@@ -154,15 +162,13 @@ public class DonMovement : MonoBehaviour
         {
             Transform hitTransform = null;
 
-            // Önce Pervane kontrolü (MovingColliders)
             MovingColliders mc = platformHit.collider.GetComponent<MovingColliders>();
             if (mc == null) mc = platformHit.collider.GetComponentInParent<MovingColliders>();
             if (mc != null) hitTransform = platformHit.collider.transform;
 
-            // Sonra Platform kontrolü (MovingIllusionPlatform)
             MovingIllusionPlatform mip = platformHit.collider.GetComponent<MovingIllusionPlatform>();
             if (mip == null) mip = platformHit.collider.GetComponentInParent<MovingIllusionPlatform>();
-            if (mip != null) hitTransform = mip.movingBody; // Hareket eden gövdeye kilitlen!
+            if (mip != null) hitTransform = mip.movingBody;
 
             if (hitTransform != null)
             {
@@ -179,7 +185,6 @@ public class DonMovement : MonoBehaviour
         }
         else { activePlatform = null; }
 
-        // --- YENİ: ÖLÜMSÜZLÜK SÜRESİNİ DÜŞÜR ---
         if (iFrames > 0)
         {
             iFrames -= Time.deltaTime;
@@ -217,6 +222,41 @@ public class DonMovement : MonoBehaviour
             isDashing = true;
             dashTimer = dashDuration;
             dashCooldownTimer = dashCooldown;
+        }
+
+        // --- YENİ EKLENDİ: HIZ VE EĞİLME KONTROLÜ (KÜP PROTOTİP İÇİN KESİN ÇÖZÜM) ---
+        if (!isDashing && !isLatched)
+        {
+            // Eğilme (Sol Ctrl) - Basılı Tutma
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+            {
+                isCrouching = true;
+            }
+            else
+            {
+                isCrouching = false;
+            }
+
+            // Hız Belirleme
+            if (isCrouching)
+            {
+                currentSpeed = crouchSpeed;
+            }
+            else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            {
+                currentSpeed = sprintSpeed;
+            }
+            else
+            {
+                currentSpeed = speed;
+            }
+
+            // PROTOTİP KÜP İÇİN BOYUT DEĞİŞTİRME:
+            // Sadece Y eksenini yumuşak bir şekilde 2'den 1'e veya 1'den 2'ye ezerek küçültüyoruz.
+            // Scale ile küçüldüğü için görsel de fizik de aynı anda değişir, asla yere saplanmaz.
+            float targetScaleY = isCrouching ? crouchHeight : normalHeight;
+            Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
+            transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
         }
 
         bool isAiming = Input.GetMouseButton(1);
@@ -312,7 +352,7 @@ public class DonMovement : MonoBehaviour
                     transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
                     Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-                    if (controller.enabled) controller.Move(moveDir.normalized * speed * Time.deltaTime);
+                    if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
                 }
             }
             else
@@ -321,10 +361,11 @@ public class DonMovement : MonoBehaviour
                 transform.rotation = Quaternion.Euler(0, yawCamera, 0);
 
                 Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-                if (controller.enabled) controller.Move(moveDir * (speed * 0.6f) * Time.deltaTime);
+                if (controller.enabled) controller.Move(moveDir * (currentSpeed * 0.6f) * Time.deltaTime);
             }
         }
 
+        // Zıplama mekaniği
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -430,7 +471,6 @@ public class DonMovement : MonoBehaviour
         turnSmoothVelocity = 0f;
         if (Camera.main != null) referenceYaw = Camera.main.transform.eulerAngles.y;
 
-        // --- BUG FİX: KARAKTER UYANDIĞINDA ESKİ PLATFORM HAFIZASINI SİL ---
         activePlatform = null;
 
         if (normalCamera != null)
@@ -452,13 +492,12 @@ public class DonMovement : MonoBehaviour
         jumpCount = 1;
     }
 
-    // --- YENİ EKLENEN HASAR VE ÖLÜM FONKSİYONLARI ---
     public void TakeDamage(float damageAmount)
     {
-        if (iFrames > 0) return; // 1 saniyelik ölümsüzlük devredeyse hasar alma!
+        if (iFrames > 0) return;
 
         currentHealth -= damageAmount;
-        iFrames = 1f; // Hasar yedi, 1 saniye dokunulmaz yap
+        iFrames = 1f;
 
         Debug.Log("🩸 Don Quixote HASAR ALDI! Kalan Can: " + currentHealth);
 
@@ -468,18 +507,15 @@ public class DonMovement : MonoBehaviour
         }
     }
 
-    // Hem Don hem de Sancho Movement scriptlerinde Die() fonksiyonunu buna çevir:
     void Die()
     {
         Debug.Log("💀 Don Öldü! Canlar sıfırlanıyor...");
 
-        // --- KRİTİK SATIR BURASI ---
         if (DualRealityManager.Instance != null)
         {
             DualRealityManager.Instance.ResetAllHealth();
         }
 
-        // Checkpoint'e ışınlanma
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
         controller.enabled = false;
         transform.position = respawnPos;

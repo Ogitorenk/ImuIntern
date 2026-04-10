@@ -4,6 +4,9 @@ using System.Collections;
 public class WallPusher : MonoBehaviour
 {
     [Header("Hareket Ayarlarý")]
+    [Tooltip("Oyun baþladýðýnda ilk fýrlamadan önce kaç saniye beklesin? (Pistonlarý sýraya sokmak için)")]
+    public float initialDelay = 0f; // --- YENÝ EKLENDÝ ---
+
     [Tooltip("Piston ne kadar uzaða fýrlasýn?")]
     public float pushDistance = 4f;
     [Tooltip("Ýleri fýrlama hýzý (Çok hýzlý olmalý)")]
@@ -35,6 +38,13 @@ public class WallPusher : MonoBehaviour
 
     IEnumerator PusherRoutine()
     {
+        // --- YENÝ EKLENDÝ: ÝLK BAÞLAMA GECÝKMESÝ ---
+        // Sadece oyun baþladýðýnda 1 kere çalýþýr ve pistonu sýraya sokar
+        if (initialDelay > 0f)
+        {
+            yield return new WaitForSeconds(initialDelay);
+        }
+
         while (true)
         {
             // Yuvasýnda bekle
