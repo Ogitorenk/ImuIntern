@@ -23,9 +23,10 @@ public class DonMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    // --- YENİ EKLENDİ: KOŞMA VE EĞİLME ---
-    [Header("Ekstra Hareket (Koşma/Eğilme)")]
+    // --- YENİ EKLENDİ: KOŞMA, YÜRÜME VE EĞİLME ---
+    [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme)")]
     public float sprintSpeed = 10f; // Shift'e basınca çıkılacak hız
+    public float walkSpeed = 2f;    // YENİ: Alt tuşuna basınca düşülecek yürüme hızı
     public float crouchSpeed = 3f;  // Eğilirkenki hız
     public float normalHeight = 2f; // Karakterin normal boyu
     public float crouchHeight = 1f; // Eğilirkenki boyu
@@ -33,6 +34,7 @@ public class DonMovement : MonoBehaviour
 
     private float currentSpeed; // Anlık hızımız
     private bool isCrouching = false; // Eğiliyor muyuz?
+    private bool isWalking = false;   // YENİ: Yürüyor muyuz?
 
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
@@ -237,10 +239,24 @@ public class DonMovement : MonoBehaviour
                 isCrouching = false;
             }
 
+            // YENİ: Yürüme (Sol Alt veya Sağ Alt) - Basılı Tutma
+            if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+            {
+                isWalking = true;
+            }
+            else
+            {
+                isWalking = false;
+            }
+
             // Hız Belirleme
             if (isCrouching)
             {
                 currentSpeed = crouchSpeed;
+            }
+            else if (isWalking) // Eğilmiyorsak ama Alt'a basıyorsak yürü
+            {
+                currentSpeed = walkSpeed;
             }
             else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
