@@ -27,6 +27,19 @@ public class SanchoMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
+    // --- YENİ EKLENDİ: KOŞMA, YÜRÜME VE EĞİLME ---
+    [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme)")]
+    public float sprintSpeed = 10f; // Shift'e basınca çıkılacak hız
+    public float walkSpeed = 2f;    // Alt tuşuna basınca düşülecek yürüme hızı
+    public float crouchSpeed = 3f;  // Eğilirkenki hız
+    public float normalScaleY = 1f; // Kapsülün normal Y boyutu (1-1-1 olduğu için 1)
+    public float crouchScaleY = 0.5f; // Eğilirkenki Y boyutu (Yarıya inmesi için)
+    public float crouchTransitionSpeed = 10f; // Eğilme-Kalkma hızı (Animasyonumsu geçiş)
+
+    private float currentSpeed; // Anlık hızımız
+    private bool isCrouching = false; // Eğiliyor muyuz?
+    private bool isWalking = false;   // Yürüyor muyuz?
+
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
     [Range(0.1f, 0.9f)] public float jumpCutMultiplier = 0.5f;
@@ -41,7 +54,13 @@ public class SanchoMovement : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
-    private bool isGrounded;
+
+    // --- YENİ: ERKEN İNİŞ SİSTEMİ ---
+    [Tooltip("Yere ne kadar mesafe kala iniş animasyonu başlasın?")]
+    public float nearGroundDistance = 1.2f;
+    private bool isNearGround;
+
+    [HideInInspector] public bool isGrounded;
 
     [Header("Kamera Sistemi")]
     public CinemachineFreeLook normalCamera;
@@ -49,15 +68,20 @@ public class SanchoMovement : MonoBehaviour
     private CharacterController controller;
     private Transform cam;
 
+    // --- YENİ: ANİMASYON SİSTEMİ BAĞLANTISI ---
+    private Animator animator;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
         cam = Camera.main.transform;
 
-        // --- YENİ: OYUN BAŞINDA CANI FULLE ---
-        currentHealth = maxHealth;
+        // Kapsülün içindeki 3D modelin Animator'ünü bul
+        animator = GetComponentInChildren<Animator>();
 
-        // --- İLK AÇILIŞ: KAMERAYI ENSENE YAPIŞTIR ---
+        currentHealth = maxHealth;
+        currentSpeed = speed;
+
         if (normalCamera != null)
         {
             normalCamera.Priority = 10;
@@ -72,7 +96,6 @@ public class SanchoMovement : MonoBehaviour
         // --- 1. PLATFORM FİZİĞİ HESAPLAMA (TREN MANTIĞI) ---
         if (activePlatform != null)
         {
-            // Platformun hareketini hesapla ve karaktere direkt yürüme olarak (Move) uygula
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
             Vector3 moveDiff = newGlobalPlatformPoint - activeGlobalPlatformPoint;
 
@@ -81,7 +104,6 @@ public class SanchoMovement : MonoBehaviour
                 controller.Move(moveDiff);
             }
 
-            // Platformun dönüşünü hesapla ve sadece karakterin kendi ekseninde çevir
             Quaternion newGlobalPlatformRotation = activePlatform.rotation * activeLocalPlatformRotation;
             Quaternion rotationDiff = newGlobalPlatformRotation * Quaternion.Inverse(activeGlobalPlatformRotation);
 
@@ -91,7 +113,6 @@ public class SanchoMovement : MonoBehaviour
                 transform.Rotate(axis, angle, Space.World);
             }
 
-            // Değerleri bir sonraki kare için hafızaya al
             activeGlobalPlatformPoint = transform.position;
             activeGlobalPlatformRotation = transform.rotation;
             activeLocalPlatformPoint = activePlatform.InverseTransformPoint(transform.position);
@@ -104,15 +125,13 @@ public class SanchoMovement : MonoBehaviour
         {
             Transform hitTransform = null;
 
-            // Önce Pervane kontrolü (MovingColliders)
             MovingColliders mc = platformHit.collider.GetComponent<MovingColliders>();
             if (mc == null) mc = platformHit.collider.GetComponentInParent<MovingColliders>();
             if (mc != null) hitTransform = platformHit.collider.transform;
 
-            // Sonra Asansör kontrolü (MovingIllusionPlatform)
             MovingIllusionPlatform mip = platformHit.collider.GetComponent<MovingIllusionPlatform>();
             if (mip == null) mip = platformHit.collider.GetComponentInParent<MovingIllusionPlatform>();
-            if (mip != null) hitTransform = mip.movingBody; // Asansörün movingBody'sine kilitlen!
+            if (mip != null) hitTransform = mip.movingBody;
 
             if (hitTransform != null)
             {
@@ -129,20 +148,78 @@ public class SanchoMovement : MonoBehaviour
         }
         else { activePlatform = null; }
 
-        // --- 3. DİĞER TÜM MEKANİKLER (Zerre dokunulmadı) ---
+        // --- 3. DİĞER TÜM MEKANİKLER ---
         if (iFrames > 0)
         {
             iFrames -= Time.deltaTime;
         }
 
+        // Eğilme (Sol Ctrl veya Sağ Ctrl) - BASILI TUTMA Mantığı
+        if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+        {
+            isCrouching = true;
+        }
+        else
+        {
+            isCrouching = false;
+        }
+
+        // Yürüme (Sol Alt veya Sağ Alt) - BASILI TUTMA Mantığı
+        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+        {
+            isWalking = true;
+        }
+        else
+        {
+            isWalking = false;
+        }
+
+        // Hız Belirleme (Öncelik Sırası: Eğilme > Yürüme > Koşma > Normal)
+        if (isCrouching)
+        {
+            currentSpeed = crouchSpeed;
+        }
+        else if (isWalking)
+        {
+            currentSpeed = walkSpeed;
+        }
+        else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+        {
+            currentSpeed = sprintSpeed;
+        }
+        else
+        {
+            currentSpeed = speed;
+        }
+
+        // PROTOTİP KAPSÜL İÇİN BOYUT DEĞİŞTİRME:
+        float targetScaleY = isCrouching ? crouchScaleY : normalScaleY;
+        Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
+        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
+
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
+        // --- YENİ: ERKEN İNİŞ İÇİN LAZER KONTROLÜ ---
+        // Eğer yerdeysek zaten NearGround doğrudur. Değilsek ve düşüyorsak lazeri atıyoruz.
+        if (!isGrounded && velocity.y < 0)
+        {
+            isNearGround = Physics.Raycast(transform.position, Vector3.down, nearGroundDistance, groundMask);
+        }
+        else
+        {
+            isNearGround = isGrounded;
+        }
+
+        // --- YERE DEĞDİĞİNDE TETİĞİ SIFIRLA ---
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
             velocity.x = 0f;
             velocity.z = 0f;
             jumpCount = 0;
+
+            // Havada double jump'tan kalan "Zıpla" emrini temizle!
+            if (animator != null) animator.ResetTrigger("Jump");
         }
         else if (!isGrounded && jumpCount == 0)
         {
@@ -158,20 +235,37 @@ public class SanchoMovement : MonoBehaviour
             referenceYaw = cam.eulerAngles.y;
         }
 
+        // --- ANİMASYON HIZINI HESAPLAMA ---
+        float animSpeed = 0f;
+
         if (inputDir.magnitude >= 0.1f)
         {
+            animSpeed = currentSpeed;
+
             float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
             Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            if (controller.enabled) controller.Move(moveDir.normalized * speed * Time.deltaTime);
+            if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+        }
+
+        // --- ANİMATOR'E SİNYALLERİ GÖNDERME ---
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
+            animator.SetBool("isGrounded", isGrounded);
+            animator.SetBool("isNearGround", isNearGround); // YENİ PARAMETRE GÖNDERİLİYOR
+            animator.SetFloat("VerticalVelocity", velocity.y);
         }
 
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+
+            // ZIPLAMA ANİMASYONUNU TETİKLE
+            if (animator != null) animator.SetTrigger("Jump");
         }
 
         if (Input.GetButtonUp("Jump") && velocity.y > 0f)
@@ -188,10 +282,8 @@ public class SanchoMovement : MonoBehaviour
         turnSmoothVelocity = 0f;
         if (Camera.main != null) referenceYaw = Camera.main.transform.eulerAngles.y;
 
-        // --- BUG FİX: KARAKTER UYANDIĞINDA ESKİ PLATFORM HAFIZASINI SİL ---
         activePlatform = null;
 
-        // --- SWİTCH İLE SANCHO'YA GEÇİNCE KAMERAYI ÇAL ---
         if (normalCamera != null)
         {
             normalCamera.Follow = this.transform;
@@ -202,22 +294,23 @@ public class SanchoMovement : MonoBehaviour
 
     void OnDisable()
     {
-        // ORTAK KAMERAYI ASLA KAPATMIYORUZ!
     }
 
     public void ExternalJump(float bounceHeight)
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+
+        // JUMP PAD GİBİ HARİCİ ZIPLAMALARDA DA ANİMASYONU ÇALIŞTIR
+        if (animator != null) animator.SetTrigger("Jump");
     }
 
-    // --- YENİ EKLENEN HASAR VE ÖLÜM FONKSİYONLARI ---
     public void TakeDamage(float damageAmount)
     {
-        if (iFrames > 0) return; // 1 saniyelik ölümsüzlük devredeyse hasar alma!
+        if (iFrames > 0) return;
 
         currentHealth -= damageAmount;
-        iFrames = 1f; // Hasar yedi, 1 saniye dokunulmaz yap
+        iFrames = 1f;
 
         Debug.Log("🩸 Sancho HASAR ALDI! Kalan Can: " + currentHealth);
 
@@ -227,18 +320,15 @@ public class SanchoMovement : MonoBehaviour
         }
     }
 
-    // Hem Don hem de Sancho Movement scriptlerinde Die() fonksiyonunu buna çevir:
     void Die()
     {
         Debug.Log("💀 Sancho Öldü! Canlar sıfırlanıyor...");
 
-        // --- KRİTİK SATIR BURASI ---
         if (DualRealityManager.Instance != null)
         {
             DualRealityManager.Instance.ResetAllHealth();
         }
 
-        // Checkpoint'e ışınlanma
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
         controller.enabled = false;
         transform.position = respawnPos;
