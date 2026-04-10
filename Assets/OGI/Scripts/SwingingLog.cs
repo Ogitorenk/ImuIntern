@@ -23,9 +23,17 @@ public class SwingingLog : MonoBehaviour
 
     private Collider[] logColliders;
 
+    // --- YENİ EKLENDİ: BAŞLANGIÇ ROTASYON HAFIZASI ---
+    private float initialY;
+    private float initialZ;
+
     void Start()
     {
-        transform.localRotation = Quaternion.Euler(startAngle, 0, 0);
+        // Editörde verdiğin Y ve Z açılarını hafızaya alıyoruz!
+        initialY = transform.localEulerAngles.y;
+        initialZ = transform.localEulerAngles.z;
+
+        transform.localRotation = Quaternion.Euler(startAngle, initialY, initialZ);
 
         // Kütüğün ve menteşenin içindeki tüm fiziksel alanları bul
         logColliders = GetComponentsInChildren<Collider>();
@@ -37,7 +45,9 @@ public class SwingingLog : MonoBehaviour
         {
             timer += Time.deltaTime;
             float currentAngle = startAngle * Mathf.Cos(timer * swingSpeed);
-            transform.localRotation = Quaternion.Euler(currentAngle, 0, 0);
+
+            // X ekseninde sallanırken Editördeki Y ve Z dönüşlerini SIFIRLAMA!
+            transform.localRotation = Quaternion.Euler(currentAngle, initialY, initialZ);
         }
     }
 
