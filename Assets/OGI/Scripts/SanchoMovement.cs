@@ -4,6 +4,10 @@ using Cinemachine;
 [RequireComponent(typeof(CharacterController))]
 public class SanchoMovement : MonoBehaviour
 {
+    // --- YENİ EKLENDİ: ÖZEL SAHNE KONTROL ŞALTERİ ---
+    [Header("Özel Bölüm Kontrolü")]
+    public bool isControlled = true; // Hep true kalacak, sadece özel sahnede SwitchManager bunu false yapacak.
+
     // --- YENİ EKLENEN SAĞLIK SİSTEMİ ---
     [Header("Sağlık Sistemi")]
     public float maxHealth = 100f;
@@ -154,8 +158,8 @@ public class SanchoMovement : MonoBehaviour
             iFrames -= Time.deltaTime;
         }
 
-        // Eğilme (Sol Ctrl veya Sağ Ctrl) - BASILI TUTMA Mantığı
-        if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+        // Eğilme (Sol Ctrl veya Sağ Ctrl) - GÜNCELLENDİ
+        if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
         {
             isCrouching = true;
         }
@@ -164,8 +168,8 @@ public class SanchoMovement : MonoBehaviour
             isCrouching = false;
         }
 
-        // Yürüme (Sol Alt veya Sağ Alt) - BASILI TUTMA Mantığı
-        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+        // Yürüme (Sol Alt veya Sağ Alt) - GÜNCELLENDİ
+        if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
         {
             isWalking = true;
         }
@@ -174,7 +178,7 @@ public class SanchoMovement : MonoBehaviour
             isWalking = false;
         }
 
-        // Hız Belirleme (Öncelik Sırası: Eğilme > Yürüme > Koşma > Normal)
+        // Hız Belirleme
         if (isCrouching)
         {
             currentSpeed = crouchSpeed;
@@ -183,7 +187,7 @@ public class SanchoMovement : MonoBehaviour
         {
             currentSpeed = walkSpeed;
         }
-        else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+        else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) // GÜNCELLENDİ
         {
             currentSpeed = sprintSpeed;
         }
@@ -200,7 +204,6 @@ public class SanchoMovement : MonoBehaviour
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
         // --- YENİ: ERKEN İNİŞ İÇİN LAZER KONTROLÜ ---
-        // Eğer yerdeysek zaten NearGround doğrudur. Değilsek ve düşüyorsak lazeri atıyoruz.
         if (!isGrounded && velocity.y < 0)
         {
             isNearGround = Physics.Raycast(transform.position, Vector3.down, nearGroundDistance, groundMask);
@@ -218,7 +221,6 @@ public class SanchoMovement : MonoBehaviour
             velocity.z = 0f;
             jumpCount = 0;
 
-            // Havada double jump'tan kalan "Zıpla" emrini temizle!
             if (animator != null) animator.ResetTrigger("Jump");
         }
         else if (!isGrounded && jumpCount == 0)
@@ -226,11 +228,12 @@ public class SanchoMovement : MonoBehaviour
             jumpCount = maxJumps;
         }
 
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
+        // GÜNCELLENDİ: Kontrol bizdeyse tuşları oku, değilse 0 yolla
+        float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
+        float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
-        if (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || inputDir.magnitude < 0.1f)
+        if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f) // GÜNCELLENDİ
         {
             referenceYaw = cam.eulerAngles.y;
         }
@@ -255,20 +258,21 @@ public class SanchoMovement : MonoBehaviour
         {
             animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
             animator.SetBool("isGrounded", isGrounded);
-            animator.SetBool("isNearGround", isNearGround); // YENİ PARAMETRE GÖNDERİLİYOR
+            animator.SetBool("isNearGround", isNearGround);
             animator.SetFloat("VerticalVelocity", velocity.y);
         }
 
-        if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
+        // Zıplama - GÜNCELLENDİ
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
 
-            // ZIPLAMA ANİMASYONUNU TETİKLE
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (Input.GetButtonUp("Jump") && velocity.y > 0f)
+        // GÜNCELLENDİ
+        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f)
         {
             velocity.y *= jumpCutMultiplier;
         }
@@ -301,7 +305,6 @@ public class SanchoMovement : MonoBehaviour
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
 
-        // JUMP PAD GİBİ HARİCİ ZIPLAMALARDA DA ANİMASYONU ÇALIŞTIR
         if (animator != null) animator.SetTrigger("Jump");
     }
 

@@ -4,6 +4,10 @@ using Cinemachine;
 [RequireComponent(typeof(CharacterController))]
 public class DonMovement : MonoBehaviour
 {
+    // --- YENİ EKLENDİ: ÖZEL SAHNE KONTROL ŞALTERİ ---
+    [Header("Özel Bölüm Kontrolü")]
+    public bool isControlled = true; // Hep true kalacak, sadece özel sahnede SwitchManager bunu false yapacak.
+
     // --- YENİ EKLENEN SAĞLIK SİSTEMİ ---
     [Header("Sağlık Sistemi")]
     public float maxHealth = 100f;
@@ -210,27 +214,30 @@ public class DonMovement : MonoBehaviour
             }
 
             SetAimMode(false);
-            if (Input.GetButtonDown("Jump")) DetachAndJump();
+            // GÜNCELLENDİ: Kontrol bizdeyse atla
+            if (isControlled && Input.GetButtonDown("Jump")) DetachAndJump();
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.C))
+        // GÜNCELLENDİ: Kontrol bizdeyse mızrağa tutun
+        if (isControlled && Input.GetKeyDown(KeyCode.C))
         {
             CheckForLanceLatch();
         }
 
-        if (Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
+        // GÜNCELLENDİ: Kontrol bizdeyse Dash at
+        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
         {
             isDashing = true;
             dashTimer = dashDuration;
             dashCooldownTimer = dashCooldown;
         }
 
-        // --- YENİ EKLENDİ: HIZ VE EĞİLME KONTROLÜ (KÜP PROTOTİP İÇİN KESİN ÇÖZÜM) ---
+        // --- HIZ VE EĞİLME KONTROLÜ (KÜP PROTOTİP İÇİN KESİN ÇÖZÜM) ---
         if (!isDashing && !isLatched)
         {
-            // Eğilme (Sol Ctrl) - Basılı Tutma
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+            // Eğilme (Sol Ctrl) - Basılı Tutma - GÜNCELLENDİ
+            if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 isCrouching = true;
             }
@@ -239,8 +246,8 @@ public class DonMovement : MonoBehaviour
                 isCrouching = false;
             }
 
-            // YENİ: Yürüme (Sol Alt veya Sağ Alt) - Basılı Tutma
-            if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+            // Yürüme (Sol Alt veya Sağ Alt) - Basılı Tutma - GÜNCELLENDİ
+            if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
             {
                 isWalking = true;
             }
@@ -254,11 +261,11 @@ public class DonMovement : MonoBehaviour
             {
                 currentSpeed = crouchSpeed;
             }
-            else if (isWalking) // Eğilmiyorsak ama Alt'a basıyorsak yürü
+            else if (isWalking)
             {
                 currentSpeed = walkSpeed;
             }
-            else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) // GÜNCELLENDİ
             {
                 currentSpeed = sprintSpeed;
             }
@@ -268,14 +275,13 @@ public class DonMovement : MonoBehaviour
             }
 
             // PROTOTİP KÜP İÇİN BOYUT DEĞİŞTİRME:
-            // Sadece Y eksenini yumuşak bir şekilde 2'den 1'e veya 1'den 2'ye ezerek küçültüyoruz.
-            // Scale ile küçüldüğü için görsel de fizik de aynı anda değişir, asla yere saplanmaz.
             float targetScaleY = isCrouching ? crouchHeight : normalHeight;
             Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
             transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
         }
 
-        bool isAiming = Input.GetMouseButton(1);
+        // GÜNCELLENDİ: Kontrol bizdeyse sağ tıka basabiliyoruz
+        bool isAiming = isControlled && Input.GetMouseButton(1);
 
         float targetFOV = normalFOV;
         float targetOffsetX = 0f;
@@ -286,7 +292,8 @@ public class DonMovement : MonoBehaviour
             if (isAiming)
             {
                 SetAimMode(true);
-                if (Input.GetMouseButtonDown(0)) ThrowLance();
+                // GÜNCELLENDİ: Kontrol bizdeyse fırlat
+                if (isControlled && Input.GetMouseButtonDown(0)) ThrowLance();
 
                 targetFOV = aimFOV;
                 targetOffsetX = aimOffsetX;
@@ -350,13 +357,14 @@ public class DonMovement : MonoBehaviour
         }
         else
         {
-            float horizontal = Input.GetAxisRaw("Horizontal");
-            float vertical = Input.GetAxisRaw("Vertical");
+            // GÜNCELLENDİ: Kontrol bizdeyse tuşları oku, değilse 0 yolla ki karakter dursun
+            float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
+            float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
             Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
             if (!isAiming)
             {
-                if (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || inputDir.magnitude < 0.1f)
+                if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
                 {
                     referenceYaw = cam.eulerAngles.y;
                 }
@@ -381,14 +389,15 @@ public class DonMovement : MonoBehaviour
             }
         }
 
-        // Zıplama mekaniği
-        if (Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
+        // Zıplama mekaniği - GÜNCELLENDİ
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
         }
 
-        if (Input.GetButtonUp("Jump") && velocity.y > 0f)
+        // GÜNCELLENDİ
+        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f)
         {
             velocity.y *= jumpCutMultiplier;
         }
