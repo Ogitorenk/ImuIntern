@@ -58,7 +58,7 @@ public class PushableBox : MonoBehaviour
             return;
         }
 
-        if (!isDon && Input.GetKeyDown(KeyCode.C))
+        if (!isDon && Input.GetKeyDown(KeyCode.F))
         {
             if (isGrabbed) ReleaseBox();
             else TryGrab();

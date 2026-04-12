@@ -11,6 +11,12 @@ public class DoubleDoor : MonoBehaviour
     public float openAngle = 90f; // Bize doğru açılması için genelde 90 veya -90
     public float openSpeed = 2f;
 
+    // --- YENİ: ETKİLEŞİM AYARLARI ---
+    [Header("Etkileşim")]
+    public bool canBeOpenedDirectly = true; // Kapı doğrudan F ile açılabilsin mi? (Şalterle açılacaksa tikini kaldır)
+    public KeyCode interactKey = KeyCode.F; // Açma tuşu
+    private bool playerInRange = false;     // Oyuncu kapının dibinde mi?
+
     private bool isOpen = false;
     private Quaternion leftClosedRot;
     private Quaternion rightClosedRot;
@@ -23,10 +29,26 @@ public class DoubleDoor : MonoBehaviour
         leftClosedRot = leftHinge.localRotation;
         rightClosedRot = rightHinge.localRotation;
 
-        // Hedef rotasyonları hesapla (Bize doğru açılması için açıları ayarla)
-        // Eğer kapı ters açılırsa openAngle değerini eksi yapabilirsin
+        // Hedef rotasyonları hesapla 
         leftOpenRot = Quaternion.Euler(0, -openAngle, 0);
         rightOpenRot = Quaternion.Euler(0, openAngle, 0);
+    }
+
+    // --- YENİ: KULAK (F TUŞUNU DİNLER) ---
+    void Update()
+    {
+        // Oyuncu menzildeyse, doğrudan açılmaya izni varsa ve F'ye bastıysa
+        if (canBeOpenedDirectly && playerInRange && Input.GetKeyDown(interactKey))
+        {
+            if (!isOpen)
+            {
+                OpenDoors();
+            }
+            else
+            {
+                CloseDoors(); // İstersen ikinci basışta kapatır
+            }
+        }
     }
 
     // Bu fonksiyonu Şalter (Lever) veya Plaka'daki UnityEvent'e bağla!
@@ -37,7 +59,7 @@ public class DoubleDoor : MonoBehaviour
             StopAllCoroutines();
             StartCoroutine(MoveDoors(leftOpenRot, rightOpenRot));
             isOpen = true;
-            Debug.Log("<color=cyan>🚪 Kapılar bize doğru açılıyor...</color>");
+            Debug.Log("<color=cyan>🚪 Kapılar açılıyor...</color>");
         }
     }
 
@@ -49,6 +71,7 @@ public class DoubleDoor : MonoBehaviour
             StopAllCoroutines();
             StartCoroutine(MoveDoors(leftClosedRot, rightClosedRot));
             isOpen = false;
+            Debug.Log("<color=cyan>🚪 Kapılar kapanıyor...</color>");
         }
     }
 
@@ -61,6 +84,24 @@ public class DoubleDoor : MonoBehaviour
             leftHinge.localRotation = Quaternion.Slerp(leftHinge.localRotation, targetLeft, elapsed);
             rightHinge.localRotation = Quaternion.Slerp(rightHinge.localRotation, targetRight, elapsed);
             yield return null;
+        }
+    }
+
+    // --- YENİ: GÖZLER (OYUNCUYU GÖRÜR) ---
+    private void OnTriggerEnter(Collider other)
+    {
+        // Don Kişot veya Sancho kapının yanına geldiğinde anlar
+        if (other.GetComponent<SanchoMovement>() != null || other.GetComponent<DonMovement>() != null)
+        {
+            playerInRange = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.GetComponent<SanchoMovement>() != null || other.GetComponent<DonMovement>() != null)
+        {
+            playerInRange = false;
         }
     }
 }
