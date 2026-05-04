@@ -13,6 +13,11 @@ public class SharedBreakableObject : MonoBehaviour
     [Tooltip("Kýrýlma anýnda patlayacak Particle System")]
     public ParticleSystem breakParticles;
 
+    // --- YENÝ EKLENEN: ÝÇÝNDEN ÇIKACAK EÞYA ---
+    [Header("--- Düþecek Eþyalar (Loot) ---")]
+    [Tooltip("Kutu kýrýlýnca içinden ne çýksýn? (Boþ býrakýrsan sadece kýrýlýr)")]
+    public GameObject itemToDrop;
+
     [Header("--- Yeniden Doðma Ayarlarý ---")]
     [Tooltip("Kýrýldýktan bir süre sonra geri gelsin mi?")]
     public bool respawnable = false;
@@ -34,6 +39,15 @@ public class SharedBreakableObject : MonoBehaviour
         if (breakParticles != null)
         {
             breakParticles.Play();
+        }
+
+        // --- YENÝ EKLENEN: EÞYAYI YARAT (SPAWN) ---
+        // Eðer Inspector'dan içine bir iksir/eþya koyduysan, tam o an ortaya çýksýn
+        if (itemToDrop != null)
+        {
+            // Yere saplanmasýn diye kutunun merkezinden biraz yukarýda çýkartýyoruz
+            Vector3 dropPos = transform.position + Vector3.up * 0.5f;
+            Instantiate(itemToDrop, dropPos, Quaternion.identity);
         }
 
         // 3. Yeniden doðacaksa sayacý baþlat, yoksa objeyi tamamen yok et

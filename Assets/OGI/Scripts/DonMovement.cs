@@ -6,15 +6,28 @@ public class DonMovement : MonoBehaviour
 {
     // --- YENİ EKLENDİ: ÖZEL SAHNE KONTROL ŞALTERİ ---
     [Header("Özel Bölüm Kontrolü")]
-    public bool isControlled = true; // Hep true kalacak, sadece özel sahnede SwitchManager bunu false yapacak.
+    public bool isControlled = true;
 
     // --- YENİ EKLENEN SAĞLIK SİSTEMİ ---
     [Header("Sağlık Sistemi")]
     public float maxHealth = 100f;
     public float currentHealth;
-    private float iFrames = 0f; // Hasar alınca 1 saniye ölümsüzlük
+    private float iFrames = 0f;
 
-    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ (GERÇEK TREN MANTIĞI) ---
+    [Header("Envanter (Can İksiri)")]
+    public int healthPotionCount = 0;
+    public float healthPotionHealAmount = 20f;
+    public KeyCode healKey = KeyCode.Alpha1; // 1 Tuşu     
+
+    // --- YENİ EKLENDİ: ZAMAN İKSİRİ ---
+    [Header("Envanter (Zaman İksiri)")]
+    public int slowPotionCount = 0;
+    public float slowTimeAmount = 0.5f; // Zamanın hızı (%50 yavaşlar)
+    public float slowTimeDuration = 5f; // Gerçek hayatta 5 saniye sürer
+    public KeyCode slowTimeKey = KeyCode.Alpha2; // 2 Tuşu
+    public static bool isTimePotionActive = false; // Çakışmaları önleyen global şalter
+
+    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ ---
     private Transform activePlatform;
     private Vector3 activeLocalPlatformPoint;
     private Vector3 activeGlobalPlatformPoint;
@@ -27,18 +40,17 @@ public class DonMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    // --- YENİ EKLENDİ: KOŞMA, YÜRÜME VE EĞİLME ---
     [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme)")]
-    public float sprintSpeed = 10f; // Shift'e basınca çıkılacak hız
-    public float walkSpeed = 2f;    // YENİ: Alt tuşuna basınca düşülecek yürüme hızı
-    public float crouchSpeed = 3f;  // Eğilirkenki hız
-    public float normalHeight = 2f; // Karakterin normal boyu
-    public float crouchHeight = 1f; // Eğilirkenki boyu
-    public float crouchTransitionSpeed = 10f; // Eğilme-Kalkma hızı (Animasyonumsu geçiş)
+    public float sprintSpeed = 10f;
+    public float walkSpeed = 2f;
+    public float crouchSpeed = 3f;
+    public float normalHeight = 2f;
+    public float crouchHeight = 1f;
+    public float crouchTransitionSpeed = 10f;
 
-    private float currentSpeed; // Anlık hızımız
-    private bool isCrouching = false; // Eğiliyor muyuz?
-    private bool isWalking = false;   // YENİ: Yürüyor muyuz?
+    private float currentSpeed;
+    private bool isCrouching = false;
+    private bool isWalking = false;
 
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
@@ -83,7 +95,6 @@ public class DonMovement : MonoBehaviour
     private float currentOffsetX = 0f;
     private float currentOffsetY = 0f;
 
-    // Senin orijinal kamera ayarlarını ezmemek için hafıza
     private float[] baseOffsetX = new float[3];
     private float[] baseOffsetY = new float[3];
 
@@ -107,7 +118,7 @@ public class DonMovement : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
 
         currentHealth = maxHealth;
-        currentSpeed = speed; // Başlangıçta normal hızdayız
+        currentSpeed = speed;
 
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
@@ -136,7 +147,6 @@ public class DonMovement : MonoBehaviour
 
     void Update()
     {
-        // --- PLATFORM FİZİĞİ (GERÇEK TREN MANTIĞI KESİN ÇÖZÜM) ---
         if (activePlatform != null)
         {
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
@@ -162,7 +172,6 @@ public class DonMovement : MonoBehaviour
             activeLocalPlatformRotation = Quaternion.Inverse(activePlatform.rotation) * transform.rotation;
         }
 
-        // --- ZEMİN VE PLATFORM TESPİTİ (RAYCAST SİSTEMİNE GEÇİŞ) ---
         RaycastHit platformHit;
         if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1.5f, groundMask))
         {
@@ -201,6 +210,17 @@ public class DonMovement : MonoBehaviour
             dashCooldownTimer -= Time.deltaTime;
         }
 
+        // --- İKSİR KONTROLLERİ ---
+        if (isControlled && Input.GetKeyDown(healKey))
+        {
+            UseHealthPotion();
+        }
+
+        if (isControlled && Input.GetKeyDown(slowTimeKey))
+        {
+            UseSlowPotion();
+        }
+
         if (isLatched)
         {
             if (latchedLance != null)
@@ -214,18 +234,15 @@ public class DonMovement : MonoBehaviour
             }
 
             SetAimMode(false);
-            // GÜNCELLENDİ: Kontrol bizdeyse atla
             if (isControlled && Input.GetButtonDown("Jump")) DetachAndJump();
             return;
         }
 
-        // GÜNCELLENDİ: Kontrol bizdeyse mızrağa tutun
         if (isControlled && Input.GetKeyDown(KeyCode.C))
         {
             CheckForLanceLatch();
         }
 
-        // GÜNCELLENDİ: Kontrol bizdeyse Dash at
         if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
         {
             isDashing = true;
@@ -233,10 +250,8 @@ public class DonMovement : MonoBehaviour
             dashCooldownTimer = dashCooldown;
         }
 
-        // --- HIZ VE EĞİLME KONTROLÜ (KÜP PROTOTİP İÇİN KESİN ÇÖZÜM) ---
         if (!isDashing && !isLatched)
         {
-            // Eğilme (Sol Ctrl) - Basılı Tutma - GÜNCELLENDİ
             if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 isCrouching = true;
@@ -246,7 +261,6 @@ public class DonMovement : MonoBehaviour
                 isCrouching = false;
             }
 
-            // Yürüme (Sol Alt veya Sağ Alt) - Basılı Tutma - GÜNCELLENDİ
             if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
             {
                 isWalking = true;
@@ -265,7 +279,7 @@ public class DonMovement : MonoBehaviour
             {
                 currentSpeed = walkSpeed;
             }
-            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) // GÜNCELLENDİ
+            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             {
                 currentSpeed = sprintSpeed;
             }
@@ -274,13 +288,17 @@ public class DonMovement : MonoBehaviour
                 currentSpeed = speed;
             }
 
-            // PROTOTİP KÜP İÇİN BOYUT DEĞİŞTİRME:
+            // GÜNCELLENDİ: Zaman iksiri aktifse karakterin hızını telafi et
+            if (isTimePotionActive)
+            {
+                currentSpeed = currentSpeed * 1.5f;
+            }
+
             float targetScaleY = isCrouching ? crouchHeight : normalHeight;
             Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
             transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
         }
 
-        // GÜNCELLENDİ: Kontrol bizdeyse sağ tıka basabiliyoruz
         bool isAiming = isControlled && Input.GetMouseButton(1);
 
         float targetFOV = normalFOV;
@@ -292,7 +310,6 @@ public class DonMovement : MonoBehaviour
             if (isAiming)
             {
                 SetAimMode(true);
-                // GÜNCELLENDİ: Kontrol bizdeyse fırlat
                 if (isControlled && Input.GetMouseButtonDown(0)) ThrowLance();
 
                 targetFOV = aimFOV;
@@ -357,7 +374,6 @@ public class DonMovement : MonoBehaviour
         }
         else
         {
-            // GÜNCELLENDİ: Kontrol bizdeyse tuşları oku, değilse 0 yolla ki karakter dursun
             float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
             float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
             Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
@@ -389,14 +405,12 @@ public class DonMovement : MonoBehaviour
             }
         }
 
-        // Zıplama mekaniği - GÜNCELLENDİ
         if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
         }
 
-        // GÜNCELLENDİ
         if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f)
         {
             velocity.y *= jumpCutMultiplier;
@@ -441,8 +455,17 @@ public class DonMovement : MonoBehaviour
         else
         {
             if (crosshairUI != null) crosshairUI.SetActive(false);
-            Time.timeScale = 1f;
-            Time.fixedDeltaTime = 0.02f;
+
+            if (!isTimePotionActive)
+            {
+                Time.timeScale = 1f;
+                Time.fixedDeltaTime = 0.02f;
+            }
+            else
+            {
+                Time.timeScale = slowTimeAmount;
+                Time.fixedDeltaTime = 0.02f * Time.timeScale;
+            }
         }
     }
 
@@ -546,5 +569,63 @@ public class DonMovement : MonoBehaviour
         transform.position = respawnPos;
         controller.enabled = true;
         velocity = Vector3.zero;
+    }
+
+    public void UseHealthPotion()
+    {
+        if (healthPotionCount > 0 && currentHealth < maxHealth)
+        {
+            healthPotionCount--;
+            currentHealth += healthPotionHealAmount;
+
+            if (currentHealth > maxHealth) currentHealth = maxHealth;
+
+            Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
+        }
+        else if (currentHealth >= maxHealth)
+        {
+            Debug.Log("Canın zaten full kanka, israf etme!");
+        }
+        else
+        {
+            Debug.Log("Hiç can iksirin kalmamış!");
+        }
+    }
+
+    public void UseSlowPotion()
+    {
+        if (slowPotionCount > 0 && !isTimePotionActive)
+        {
+            slowPotionCount--;
+            StartCoroutine(SlowTimeRoutine());
+            Debug.Log("⏳ Zaman İksiri İçildi! Kalan İksir: " + slowPotionCount);
+        }
+        else if (isTimePotionActive)
+        {
+            Debug.Log("Zaman zaten yavaş kanka!");
+        }
+        else
+        {
+            Debug.Log("Hiç zaman iksirin kalmamış!");
+        }
+    }
+
+    private System.Collections.IEnumerator SlowTimeRoutine()
+    {
+        isTimePotionActive = true;
+        Time.timeScale = slowTimeAmount;
+        Time.fixedDeltaTime = 0.02f * Time.timeScale;
+
+        yield return new WaitForSecondsRealtime(slowTimeDuration);
+
+        isTimePotionActive = false;
+
+        if (!Input.GetMouseButton(1))
+        {
+            Time.timeScale = 1f;
+            Time.fixedDeltaTime = 0.02f;
+        }
+
+        Debug.Log("⏳ Zaman normale döndü!");
     }
 }

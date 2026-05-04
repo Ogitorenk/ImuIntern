@@ -4,21 +4,29 @@ using Cinemachine;
 [RequireComponent(typeof(CharacterController))]
 public class SanchoMovement : MonoBehaviour
 {
-    // --- YENİ EKLENDİ: ÖZEL SAHNE KONTROL ŞALTERİ ---
     [Header("Özel Bölüm Kontrolü")]
-    public bool isControlled = true; // Hep true kalacak, sadece özel sahnede SwitchManager bunu false yapacak.
+    public bool isControlled = true;
 
-    // --- YENİ EKLENEN SAĞLIK SİSTEMİ ---
     [Header("Sağlık Sistemi")]
     public float maxHealth = 100f;
     public float currentHealth;
-    private float iFrames = 0f; // Hasar alınca 1 saniye ölümsüzlük
+    private float iFrames = 0f;
 
-    // --- YENİ: ETKİLEŞİM DURUMU ---
+    [Header("Envanter (Can İksiri)")]
+    public int healthPotionCount = 0;
+    public float healthPotionHealAmount = 20f;
+    public KeyCode healKey = KeyCode.Alpha1; // 1 Tuşu
+
+    // --- YENİ EKLENDİ: ZAMAN İKSİRİ ---
+    [Header("Envanter (Zaman İksiri)")]
+    public int slowPotionCount = 0;
+    public float slowTimeAmount = 0.5f;
+    public float slowTimeDuration = 5f;
+    public KeyCode slowTimeKey = KeyCode.Alpha2; // 2 Tuşu
+
     [Header("Etkileşim Durumu")]
-    public bool isHoldingBox = false; // Kutu tutarken Switch atılmasını engellemek için eklendi
+    public bool isHoldingBox = false;
 
-    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ (GERÇEK TREN MANTIĞI) ---
     private Transform activePlatform;
     private Vector3 activeLocalPlatformPoint;
     private Vector3 activeGlobalPlatformPoint;
@@ -31,18 +39,17 @@ public class SanchoMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    // --- YENİ EKLENDİ: KOŞMA, YÜRÜME VE EĞİLME ---
     [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme)")]
-    public float sprintSpeed = 10f; // Shift'e basınca çıkılacak hız
-    public float walkSpeed = 2f;    // Alt tuşuna basınca düşülecek yürüme hızı
-    public float crouchSpeed = 3f;  // Eğilirkenki hız
-    public float normalScaleY = 1f; // Kapsülün normal Y boyutu (1-1-1 olduğu için 1)
-    public float crouchScaleY = 0.5f; // Eğilirkenki Y boyutu (Yarıya inmesi için)
-    public float crouchTransitionSpeed = 10f; // Eğilme-Kalkma hızı (Animasyonumsu geçiş)
+    public float sprintSpeed = 10f;
+    public float walkSpeed = 2f;
+    public float crouchSpeed = 3f;
+    public float normalScaleY = 1f;
+    public float crouchScaleY = 0.5f;
+    public float crouchTransitionSpeed = 10f;
 
-    private float currentSpeed; // Anlık hızımız
-    private bool isCrouching = false; // Eğiliyor muyuz?
-    private bool isWalking = false;   // Yürüyor muyuz?
+    private float currentSpeed;
+    private bool isCrouching = false;
+    private bool isWalking = false;
 
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
@@ -59,7 +66,6 @@ public class SanchoMovement : MonoBehaviour
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
 
-    // --- YENİ: ERKEN İNİŞ SİSTEMİ ---
     [Tooltip("Yere ne kadar mesafe kala iniş animasyonu başlasın?")]
     public float nearGroundDistance = 1.2f;
     private bool isNearGround;
@@ -71,16 +77,12 @@ public class SanchoMovement : MonoBehaviour
 
     private CharacterController controller;
     private Transform cam;
-
-    // --- YENİ: ANİMASYON SİSTEMİ BAĞLANTISI ---
     private Animator animator;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         cam = Camera.main.transform;
-
-        // Kapsülün içindeki 3D modelin Animator'ünü bul
         animator = GetComponentInChildren<Animator>();
 
         currentHealth = maxHealth;
@@ -91,13 +93,12 @@ public class SanchoMovement : MonoBehaviour
             normalCamera.Priority = 10;
             normalCamera.Follow = this.transform;
             normalCamera.LookAt = this.transform;
-            normalCamera.PreviousStateIsValid = false; // Anında ışınlan
+            normalCamera.PreviousStateIsValid = false;
         }
     }
 
     void Update()
     {
-        // --- 1. PLATFORM FİZİĞİ HESAPLAMA (TREN MANTIĞI) ---
         if (activePlatform != null)
         {
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
@@ -123,7 +124,6 @@ public class SanchoMovement : MonoBehaviour
             activeLocalPlatformRotation = Quaternion.Inverse(activePlatform.rotation) * transform.rotation;
         }
 
-        // --- 2. ZEMİN VE PLATFORM TESPİTİ (RAYCAST SİSTEMİ) ---
         RaycastHit platformHit;
         if (Physics.Raycast(groundCheck.position, Vector3.down, out platformHit, 1.5f, groundMask))
         {
@@ -152,13 +152,22 @@ public class SanchoMovement : MonoBehaviour
         }
         else { activePlatform = null; }
 
-        // --- 3. DİĞER TÜM MEKANİKLER ---
         if (iFrames > 0)
         {
             iFrames -= Time.deltaTime;
         }
 
-        // Eğilme (Sol Ctrl veya Sağ Ctrl) - GÜNCELLENDİ
+        // --- İKSİR KONTROLLERİ ---
+        if (isControlled && Input.GetKeyDown(healKey))
+        {
+            UseHealthPotion();
+        }
+
+        if (isControlled && Input.GetKeyDown(slowTimeKey))
+        {
+            UseSlowPotion();
+        }
+
         if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
         {
             isCrouching = true;
@@ -168,7 +177,6 @@ public class SanchoMovement : MonoBehaviour
             isCrouching = false;
         }
 
-        // Yürüme (Sol Alt veya Sağ Alt) - GÜNCELLENDİ
         if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
         {
             isWalking = true;
@@ -187,7 +195,7 @@ public class SanchoMovement : MonoBehaviour
         {
             currentSpeed = walkSpeed;
         }
-        else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) // GÜNCELLENDİ
+        else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
         {
             currentSpeed = sprintSpeed;
         }
@@ -196,14 +204,18 @@ public class SanchoMovement : MonoBehaviour
             currentSpeed = speed;
         }
 
-        // PROTOTİP KAPSÜL İÇİN BOYUT DEĞİŞTİRME:
+        // GÜNCELLENDİ: Zaman iksiri aktifse karakterin hızını telafi et
+        if (DonMovement.isTimePotionActive)
+        {
+            currentSpeed = currentSpeed * 1.5f;
+        }
+
         float targetScaleY = isCrouching ? crouchScaleY : normalScaleY;
         Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
         transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
 
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-        // --- YENİ: ERKEN İNİŞ İÇİN LAZER KONTROLÜ ---
         if (!isGrounded && velocity.y < 0)
         {
             isNearGround = Physics.Raycast(transform.position, Vector3.down, nearGroundDistance, groundMask);
@@ -213,7 +225,6 @@ public class SanchoMovement : MonoBehaviour
             isNearGround = isGrounded;
         }
 
-        // --- YERE DEĞDİĞİNDE TETİĞİ SIFIRLA ---
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
@@ -228,17 +239,15 @@ public class SanchoMovement : MonoBehaviour
             jumpCount = maxJumps;
         }
 
-        // GÜNCELLENDİ: Kontrol bizdeyse tuşları oku, değilse 0 yolla
         float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
         float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
-        if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f) // GÜNCELLENDİ
+        if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
         {
             referenceYaw = cam.eulerAngles.y;
         }
 
-        // --- ANİMASYON HIZINI HESAPLAMA ---
         float animSpeed = 0f;
 
         if (inputDir.magnitude >= 0.1f)
@@ -253,7 +262,6 @@ public class SanchoMovement : MonoBehaviour
             if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
         }
 
-        // --- ANİMATOR'E SİNYALLERİ GÖNDERME ---
         if (animator != null)
         {
             animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
@@ -262,7 +270,6 @@ public class SanchoMovement : MonoBehaviour
             animator.SetFloat("VerticalVelocity", velocity.y);
         }
 
-        // Zıplama - GÜNCELLENDİ
         if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -271,7 +278,6 @@ public class SanchoMovement : MonoBehaviour
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        // GÜNCELLENDİ
         if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f)
         {
             velocity.y *= jumpCutMultiplier;
@@ -337,5 +343,63 @@ public class SanchoMovement : MonoBehaviour
         transform.position = respawnPos;
         controller.enabled = true;
         velocity = Vector3.zero;
+    }
+
+    public void UseHealthPotion()
+    {
+        if (healthPotionCount > 0 && currentHealth < maxHealth)
+        {
+            healthPotionCount--;
+            currentHealth += healthPotionHealAmount;
+
+            if (currentHealth > maxHealth) currentHealth = maxHealth;
+
+            Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
+        }
+        else if (currentHealth >= maxHealth)
+        {
+            Debug.Log("Canın zaten full kanka, israf etme!");
+        }
+        else
+        {
+            Debug.Log("Hiç can iksirin kalmamış!");
+        }
+    }
+
+    public void UseSlowPotion()
+    {
+        if (slowPotionCount > 0 && !DonMovement.isTimePotionActive)
+        {
+            slowPotionCount--;
+            StartCoroutine(SlowTimeRoutine());
+            Debug.Log("⏳ Sancho Zaman İksiri İçti! Kalan İksir: " + slowPotionCount);
+        }
+        else if (DonMovement.isTimePotionActive)
+        {
+            Debug.Log("Zaman zaten yavaş kanka!");
+        }
+        else
+        {
+            Debug.Log("Hiç zaman iksirin kalmamış!");
+        }
+    }
+
+    private System.Collections.IEnumerator SlowTimeRoutine()
+    {
+        DonMovement.isTimePotionActive = true;
+        Time.timeScale = slowTimeAmount;
+        Time.fixedDeltaTime = 0.02f * Time.timeScale;
+
+        yield return new WaitForSecondsRealtime(slowTimeDuration);
+
+        DonMovement.isTimePotionActive = false;
+
+        if (!Input.GetMouseButton(1))
+        {
+            Time.timeScale = 1f;
+            Time.fixedDeltaTime = 0.02f;
+        }
+
+        Debug.Log("⏳ Zaman normale döndü!");
     }
 }
