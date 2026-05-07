@@ -4486,11 +4486,19 @@ PrefabInstance:
       objectReference: {fileID: 1257718403}
     - target: {fileID: 2007276811577473988, guid: 95ee524d3e5b561408e95bae234a64b3, type: 3}
       propertyPath: lanceHangOffset
-      value: -0.1
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2007276811577473988, guid: 95ee524d3e5b561408e95bae234a64b3, type: 3}
+      propertyPath: lanceWallOffset
+      value: -2.3
       objectReference: {fileID: 0}
     - target: {fileID: 2007276811577473988, guid: 95ee524d3e5b561408e95bae234a64b3, type: 3}
       propertyPath: landStunDuration
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2007276811577473988, guid: 95ee524d3e5b561408e95bae234a64b3, type: 3}
+      propertyPath: lanceForwardOffset
+      value: -0.35
       objectReference: {fileID: 0}
     - target: {fileID: 2007276811577473988, guid: 95ee524d3e5b561408e95bae234a64b3, type: 3}
       propertyPath: lanceRotationOffset.x
