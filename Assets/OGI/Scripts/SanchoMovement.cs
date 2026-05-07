@@ -69,6 +69,13 @@ public class SanchoMovement : MonoBehaviour
     [Tooltip("Yere ne kadar mesafe kala iniş animasyonu başlasın?")]
     public float nearGroundDistance = 1.2f;
     private bool isNearGround;
+    private bool wasGrounded;
+
+    // --- İNİŞ SERSEMLEMESİ (LAND STUN) ---
+    [Header("İniş Ayarları (Land)")]
+    [Tooltip("Karakter yere indiğinde kaç saniye boyunca hareket edemeyip animasyonun bitmesini beklesin?")]
+    public float landStunDuration = 0.15f;
+    private float landStunTimer = 0f;
 
     [HideInInspector] public bool isGrounded;
 
@@ -78,6 +85,7 @@ public class SanchoMovement : MonoBehaviour
     private CharacterController controller;
     private Transform cam;
     private Animator animator;
+    [HideInInspector] public bool isZiplining = false; // Zipline teline takıldık mı?
 
     void Start()
     {
@@ -157,7 +165,6 @@ public class SanchoMovement : MonoBehaviour
             iFrames -= Time.deltaTime;
         }
 
-        // --- İKSİR KONTROLLERİ ---
         if (isControlled && Input.GetKeyDown(healKey))
         {
             UseHealthPotion();
@@ -168,25 +175,47 @@ public class SanchoMovement : MonoBehaviour
             UseSlowPotion();
         }
 
-        if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+        // --- YENİ EKLENDİ: Zipline'da kayarken zıplama ile teli bırakma ---
+        if (isZiplining && isControlled && Input.GetButtonDown("Jump"))
         {
-            isCrouching = true;
+            isZiplining = false;
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            jumpCount = 1;
+            if (animator != null) animator.SetTrigger("Jump");
+        }
+
+        if (landStunTimer > 0)
+        {
+            landStunTimer -= Time.deltaTime;
+        }
+
+        // --- GÜNCELLENDİ: Zipline'dayken eğilme/yürüme iptal ---
+        if (!isZiplining)
+        {
+            if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            {
+                isCrouching = true;
+            }
+            else
+            {
+                isCrouching = false;
+            }
+
+            if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
+            {
+                isWalking = true;
+            }
+            else
+            {
+                isWalking = false;
+            }
         }
         else
         {
             isCrouching = false;
-        }
-
-        if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
-        {
-            isWalking = true;
-        }
-        else
-        {
             isWalking = false;
         }
 
-        // Hız Belirleme
         if (isCrouching)
         {
             currentSpeed = crouchSpeed;
@@ -204,7 +233,6 @@ public class SanchoMovement : MonoBehaviour
             currentSpeed = speed;
         }
 
-        // GÜNCELLENDİ: Zaman iksiri aktifse karakterin hızını telafi et
         if (DonMovement.isTimePotionActive)
         {
             currentSpeed = currentSpeed * 1.5f;
@@ -214,29 +242,48 @@ public class SanchoMovement : MonoBehaviour
         Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
         transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
 
+        wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
+        // Lazer yere yakınlığı kontrol ediyor
         if (!isGrounded && velocity.y < 0)
         {
-            isNearGround = Physics.Raycast(transform.position, Vector3.down, nearGroundDistance, groundMask);
+            isNearGround = Physics.Raycast(groundCheck.position, Vector3.down, nearGroundDistance, groundMask);
         }
         else
         {
             isNearGround = isGrounded;
         }
 
-        if (isGrounded && velocity.y < 0)
+        // --- GÜNCELLENDİ: Zipline'dayken yere inme iptal ---
+        if (!wasGrounded && isGrounded && velocity.y < 0f && !isZiplining)
         {
-            velocity.y = -2f;
-            velocity.x = 0f;
-            velocity.z = 0f;
-            jumpCount = 0;
-
-            if (animator != null) animator.ResetTrigger("Jump");
+            landStunTimer = landStunDuration;
         }
-        else if (!isGrounded && jumpCount == 0)
+
+        // --- YENİ EKLENDİ: Zipline'dayken yerçekimini kapat, y'yi sıfırla ---
+        if (isZiplining)
         {
-            jumpCount = maxJumps;
+            velocity.y = 0f;
+            jumpCount = 0;
+            isGrounded = false;
+            isNearGround = false;
+        }
+        else
+        {
+            if (isGrounded && velocity.y < 0)
+            {
+                velocity.y = -2f;
+                velocity.x = 0f;
+                velocity.z = 0f;
+                jumpCount = 0;
+
+                if (animator != null) animator.ResetTrigger("Jump");
+            }
+            else if (!isGrounded && jumpCount == 0)
+            {
+                jumpCount = maxJumps;
+            }
         }
 
         float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
@@ -250,16 +297,28 @@ public class SanchoMovement : MonoBehaviour
 
         float animSpeed = 0f;
 
-        if (inputDir.magnitude >= 0.1f)
+        // --- GÜNCELLENDİ: Zipline'dayken kendi kendine yürüme animasyonu iptal ---
+        if (isZiplining)
         {
-            animSpeed = currentSpeed;
+            animSpeed = 0f;
+        }
+        else if (inputDir.magnitude >= 0.1f)
+        {
+            if (landStunTimer > 0)
+            {
+                animSpeed = 0f;
+            }
+            else
+            {
+                animSpeed = currentSpeed;
 
-            float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+                float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
+                float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+                transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+                Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+            }
         }
 
         if (animator != null)
@@ -268,9 +327,13 @@ public class SanchoMovement : MonoBehaviour
             animator.SetBool("isGrounded", isGrounded);
             animator.SetBool("isNearGround", isNearGround);
             animator.SetFloat("VerticalVelocity", velocity.y);
+
+            // --- YENİ EKLENDİ: Zipline sinyalini Animatör'e gönder ---
+            animator.SetBool("isZiplining", isZiplining);
         }
 
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps)
+        // GÜNCELLENDİ: Zipline'dayken normal zıplamayı engelle (zaten yukarıda özel zıplaması var)
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
@@ -278,12 +341,16 @@ public class SanchoMovement : MonoBehaviour
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f)
+        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f && !isZiplining)
         {
             velocity.y *= jumpCutMultiplier;
         }
 
-        velocity.y += gravity * Time.deltaTime;
+        if (!isZiplining) // Zipline'dayken yerçekimini kapat
+        {
+            velocity.y += gravity * Time.deltaTime;
+        }
+
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
 
