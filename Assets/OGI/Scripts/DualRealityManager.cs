@@ -20,7 +20,7 @@ public class DualRealityManager : MonoBehaviour
 
     void Start()
     {
-        // Oyun başlarken Don'u aç, Sancho'yu kapat
+        // Oyun başlarken Don'u aç, Sancho'vu kapat
         SwitchCharacter(true);
     }
 
@@ -29,7 +29,15 @@ public class DualRealityManager : MonoBehaviour
         // TAB tuşuna basıldığında
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            // --- YENİ: SANCHO KUTU TUTUYOR MU KONTROLÜ ---
+            // --- YENİ EKLENDİ: ZİPLİNE KONTROLÜ ---
+            // Eğer oyunculardan biri zipline üzerindeyse geçişi engelle!
+            if (ZiplinePrefab.isAnyPlayerZiplining)
+            {
+                Debug.Log("🚫 Zipline üzerindeyken karakter değiştirilemez!");
+                return;
+            }
+
+            // --- SANCHO KUTU TUTUYOR MU KONTROLÜ ---
             bool isSanchoHoldingBox = false;
             if (!isDonActive && sancho != null)
             {
@@ -80,8 +88,7 @@ public class DualRealityManager : MonoBehaviour
         UpdateAllMovingIllusionPlatforms();
     }
 
-    // --- YENİ EKLENDİ: TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
-    // --- YENİ EKLENDİ: KESİN ÇÖZÜMLÜ CAN FULLEME ---
+    // --- TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
     public void ResetAllHealth()
     {
         // 'true' parametresi, karakter o an inaktif (gizli) olsa bile onu bulmasını sağlar!
@@ -89,24 +96,18 @@ public class DualRealityManager : MonoBehaviour
         if (don != null)
         {
             don.currentHealth = don.maxHealth;
-
-            // DİKKAT: Eğer ekranda bir Can Barı (UI) varsa, onu güncelleyen kodu buraya eklemelisin.
-            // Örnek: don.UpdateHealthUI(); 
         }
 
-        SanchoMovement sancho = FindObjectOfType<SanchoMovement>(true);
-        if (sancho != null)
+        SanchoMovement sanchoScript = FindObjectOfType<SanchoMovement>(true);
+        if (sanchoScript != null)
         {
-            sancho.currentHealth = sancho.maxHealth;
-
-            // DİKKAT: Eğer ekranda bir Can Barı (UI) varsa, onu güncelleyen kodu buraya eklemelisin.
-            // Örnek: sancho.UpdateHealthUI();
+            sanchoScript.currentHealth = sanchoScript.maxHealth;
         }
 
         Debug.Log("<color=green>💚 [SİSTEM] Sahnede gizli olan karakterler zorla bulundu ve canları 100 yapıldı!</color>");
     }
 
-    // --- YENİ EKLENDİ (true): Sahnede gizli/kapalı olsa bile tüm JumpPad'leri bulur ---
+    // --- Sahnede gizli/kapalı olsa bile tüm JumpPad'leri bulur ---
     void UpdateAllJumpPads()
     {
         IllusionJumpPad[] jumpPads = FindObjectsOfType<IllusionJumpPad>(true);
@@ -116,7 +117,7 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // --- YENİ EKLENDİ (true): Sahnede gizli/kapalı olsa bile tüm Kırılabilir Platformları bulur ---
+    // --- Sahnede gizli/kapalı olsa bile tüm Kırılabilir Platformları bulur ---
     void UpdateAllBreakablePlatforms()
     {
         BreakableIllusionPlatform[] platforms = FindObjectsOfType<BreakableIllusionPlatform>(true);
@@ -126,7 +127,7 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // --- YENİ EKLENDİ (true): Sahnede gizli/kapalı olsa bile tüm İllüzyonlu Hareketli Platformları bulur ---
+    // --- Sahnede gizli/kapalı olsa bile tüm İllüzyonlu Hareketli Platformları bulur ---
     void UpdateAllMovingIllusionPlatforms()
     {
         MovingIllusionPlatform[] movingPlatforms = FindObjectsOfType<MovingIllusionPlatform>(true);

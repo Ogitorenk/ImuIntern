@@ -65,17 +65,50 @@ public class DonMovement : MonoBehaviour
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
     private bool isGrounded;
+    private bool wasGrounded;
+
+    // --- YENİ EKLENDİ: İNİŞ SERSEMLEMESİ (LAND STUN) ---
+    [Header("İniş Ayarları (Land)")]
+    [Tooltip("Karakter yere indiğinde kaç saniye boyunca hareket edemeyip animasyonun bitmesini beklesin?")]
+    public float landStunDuration = 0.15f; // GÜNCELLENDİ: Kaymayı önlemek için süre kısaltıldı!
+    private float landStunTimer = 0f;
+
+    // --- YENİ EKLENDİ: ERKEN İNİŞ ---
+    [Tooltip("Yere ne kadar mesafe kala iniş animasyonu başlasın?")]
+    public float nearGroundDistance = 1.2f;
+    private bool isNearGround;
 
     [Header("Mızrak Ayarları")]
     public bool isLanceEquipped = true;
     public GameObject lancePrefab;
     public float throwForce = 100f;
+
+    // --- YENİ EKLENDİ: FIRLATMA SENKRONİZASYONU ---
+    [Tooltip("Tıkladıktan kaç saniye sonra mızrak elden çıksın?")]
+    public float throwDelay = 0.2f;
+    private bool isThrowing = false; // Spam yapmayı engeller
+
     public float lanceJumpMultiplier = 1f;
     public float latchRadius = 1.5f;
-    public float lanceStickOffset = 1.1f;
+
+    // --- GÜNCELLENDİ: Üstüne Çıkmak Yerine Altından Asılma Mesafesi ---
+    [Tooltip("Karakter mızrağın neresinden tutunacak? (-1.5 mızrağın altı demektir)")]
+    public float lanceHangOffset = -1.5f;
+
+    // --- YENİ EKLENDİ: MIZRAK ROTASYON VE DUVAR OFFSET AYARLARI ---
+    [Tooltip("Yeni prefab ters duruyorsa bu değerlerle oyna. Eski mızrak için X=90'dı. Yenisinde hepsini 0 yapıp test edebilirsin.")]
+    public Vector3 lanceRotationOffset = new Vector3(90f, 0f, 0f);
+
+    [Tooltip("Karakterin duvara girmemesi için mızraktan dışarı doğru (geriye) mesafesi.")]
+    public float lanceWallOffset = 0.8f;
+
+    // --- YEPYENİ EKLENDİ: KENDİ Z EKSENİNDE (İLERİ/GERİ) KAYDIRMA ---
+    [Tooltip("Karakterin kendi Z ekseninde (ileri/geri) mızrağa göre konumu. Elleri hizalamak için kullan.")]
+    public float lanceForwardOffset = 0f;
 
     [HideInInspector] public bool isLatched = false;
     private Transform latchedLance;
+    [HideInInspector] public bool isZiplining = false; // Zipline teline takıldık mı?
 
     [Header("Nişan Alma (Tek Kamera Zoom)")]
     public GameObject crosshairUI;
@@ -110,12 +143,15 @@ public class DonMovement : MonoBehaviour
 
     private CharacterController controller;
     private Transform cam;
+    private Animator animator;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         cam = Camera.main.transform;
         Cursor.lockState = CursorLockMode.Locked;
+
+        animator = GetComponentInChildren<Animator>();
 
         currentHealth = maxHealth;
         currentSpeed = speed;
@@ -210,7 +246,6 @@ public class DonMovement : MonoBehaviour
             dashCooldownTimer -= Time.deltaTime;
         }
 
-        // --- İKSİR KONTROLLERİ ---
         if (isControlled && Input.GetKeyDown(healKey))
         {
             UseHealthPotion();
@@ -225,7 +260,18 @@ public class DonMovement : MonoBehaviour
         {
             if (latchedLance != null)
             {
-                transform.position = latchedLance.position + (Vector3.up * lanceStickOffset);
+                // --- GÜNCELLENDİ: DUVAR YÖNÜNDE OFFSET VE KENDİ Z EKSENİNDE OFFSET UYGULAMASI ---
+                Vector3 pushAwayDir = -latchedLance.forward; // Varsayılan geri itme yönü
+                LanceObj lanceScript = latchedLance.GetComponent<LanceObj>();
+
+                if (lanceScript != null)
+                {
+                    // Mızrak duvara saplandığında kaydettiği duvar normalini (dışarı yönü) kullan!
+                    pushAwayDir = lanceScript.wallNormal;
+                }
+
+                // Hem Yüksekliği, Hem Duvardan Mesafeyi, Hem de Z ekseni (İleri/Geri) elleri hizalamayı ekliyoruz.
+                transform.position = latchedLance.position + (Vector3.up * lanceHangOffset) + (pushAwayDir * lanceWallOffset) + (transform.forward * lanceForwardOffset);
             }
             else
             {
@@ -236,6 +282,15 @@ public class DonMovement : MonoBehaviour
             SetAimMode(false);
             if (isControlled && Input.GetButtonDown("Jump")) DetachAndJump();
             return;
+        }
+
+        // --- YENİ EKLENDİ: Zipline'da kayarken zıplama ile teli bırakma ---
+        if (isZiplining && isControlled && Input.GetButtonDown("Jump"))
+        {
+            isZiplining = false;
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            jumpCount = 1;
+            if (animator != null) animator.SetTrigger("Jump");
         }
 
         if (isControlled && Input.GetKeyDown(KeyCode.C))
@@ -250,7 +305,13 @@ public class DonMovement : MonoBehaviour
             dashCooldownTimer = dashCooldown;
         }
 
-        if (!isDashing && !isLatched)
+        if (landStunTimer > 0)
+        {
+            landStunTimer -= Time.deltaTime;
+        }
+
+        // GÜNCELLENDİ: Zipline'dayken eğilme/yürüme iptal
+        if (!isDashing && !isLatched && !isZiplining)
         {
             if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
@@ -270,25 +331,11 @@ public class DonMovement : MonoBehaviour
                 isWalking = false;
             }
 
-            // Hız Belirleme
-            if (isCrouching)
-            {
-                currentSpeed = crouchSpeed;
-            }
-            else if (isWalking)
-            {
-                currentSpeed = walkSpeed;
-            }
-            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
-            {
-                currentSpeed = sprintSpeed;
-            }
-            else
-            {
-                currentSpeed = speed;
-            }
+            if (isCrouching) currentSpeed = crouchSpeed;
+            else if (isWalking) currentSpeed = walkSpeed;
+            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) currentSpeed = sprintSpeed;
+            else currentSpeed = speed;
 
-            // GÜNCELLENDİ: Zaman iksiri aktifse karakterin hızını telafi et
             if (isTimePotionActive)
             {
                 currentSpeed = currentSpeed * 1.5f;
@@ -300,17 +347,22 @@ public class DonMovement : MonoBehaviour
         }
 
         bool isAiming = isControlled && Input.GetMouseButton(1);
-
         float targetFOV = normalFOV;
         float targetOffsetX = 0f;
         float targetOffsetY = 0f;
 
-        if (isLanceEquipped && !isDashing)
+        // GÜNCELLENDİ: Zipline'dayken mızrak fırlatma iptal
+        if (isLanceEquipped && !isDashing && !isZiplining)
         {
             if (isAiming)
             {
                 SetAimMode(true);
-                if (isControlled && Input.GetMouseButtonDown(0)) ThrowLance();
+
+                // --- GÜNCELLENDİ: ARTIK DİREKT FIRLATMAK YERİNE COROUTINE ÇAĞIRIYORUZ ---
+                if (isControlled && Input.GetMouseButtonDown(0) && !isThrowing)
+                {
+                    StartCoroutine(ThrowRoutine());
+                }
 
                 targetFOV = aimFOV;
                 targetOffsetX = aimOffsetX;
@@ -321,7 +373,7 @@ public class DonMovement : MonoBehaviour
                 SetAimMode(false);
             }
         }
-        else if (isDashing)
+        else if (isDashing || isZiplining)
         {
             SetAimMode(false);
         }
@@ -346,19 +398,54 @@ public class DonMovement : MonoBehaviour
             }
         }
 
+        wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-        if (isGrounded && velocity.y < 0)
+        if (!isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f;
-            velocity.x = 0f;
-            velocity.z = 0f;
+            isNearGround = Physics.Raycast(groundCheck.position, Vector3.down, nearGroundDistance, groundMask);
+        }
+        else
+        {
+            isNearGround = isGrounded;
+        }
+
+        // GÜNCELLENDİ: Zipline'dayken yere inme iptal
+        if (!wasGrounded && isGrounded && velocity.y < 0f && !isZiplining)
+        {
+            if (animator != null) animator.SetTrigger("Land");
+            landStunTimer = landStunDuration;
+        }
+
+        // --- YENİ EKLENDİ: Zipline'dayken yerçekimini kapat ---
+        if (isZiplining)
+        {
+            velocity.y = 0f;
             jumpCount = 0;
+            isGrounded = false;
+            isNearGround = false;
         }
-        else if (!isGrounded && jumpCount == 0)
+        else
         {
-            jumpCount = maxJumps;
+            if (isGrounded && velocity.y < 0)
+            {
+                velocity.y = -2f;
+                velocity.x = 0f;
+                velocity.z = 0f;
+                jumpCount = 0;
+                if (animator != null) animator.ResetTrigger("Jump");
+            }
+            else if (!isGrounded && jumpCount == 0)
+            {
+                jumpCount = maxJumps;
+            }
         }
+
+        float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
+        float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
+        Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
+
+        float animSpeed = 0f;
 
         if (isDashing)
         {
@@ -372,12 +459,13 @@ public class DonMovement : MonoBehaviour
                 if (controller.enabled) controller.Move(transform.forward * dashSpeed * Time.deltaTime);
             }
         }
+        else if (isZiplining)
+        {
+            // Zipline'da manuel hareket yok, ray bizi taşıyacak (animasyon hızı 0)
+            animSpeed = 0f;
+        }
         else
         {
-            float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
-            float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
-            Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
-
             if (!isAiming)
             {
                 if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
@@ -387,12 +475,20 @@ public class DonMovement : MonoBehaviour
 
                 if (inputDir.magnitude >= 0.1f)
                 {
-                    float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
-                    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-                    transform.rotation = Quaternion.Euler(0f, angle, 0f);
+                    if (landStunTimer > 0)
+                    {
+                        animSpeed = 0f;
+                    }
+                    else
+                    {
+                        animSpeed = currentSpeed;
+                        float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
+                        float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+                        transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-                    if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+                        Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                        if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+                    }
                 }
             }
             else
@@ -400,24 +496,73 @@ public class DonMovement : MonoBehaviour
                 float yawCamera = cam.eulerAngles.y;
                 transform.rotation = Quaternion.Euler(0, yawCamera, 0);
 
-                Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-                if (controller.enabled) controller.Move(moveDir * (currentSpeed * 0.6f) * Time.deltaTime);
+                if (inputDir.magnitude >= 0.1f && landStunTimer <= 0)
+                {
+                    animSpeed = currentSpeed * 0.6f;
+                    Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
+                    if (controller.enabled) controller.Move(moveDir * (currentSpeed * 0.6f) * Time.deltaTime);
+                }
             }
         }
 
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing)
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
+            animator.SetBool("isGrounded", isGrounded);
+            animator.SetBool("isNearGround", isNearGround);
+            animator.SetFloat("VerticalVelocity", velocity.y);
+
+            // --- YENİ EKLENDİ: Zipline sinyalini Animatör'e gönder ---
+            animator.SetBool("isZiplining", isZiplining);
+
+            // --- YENİ EKLENDİ: MIZRAK ANİMASYON SİNYALLERİ ---
+            animator.SetBool("isAiming", isAiming);
+            animator.SetBool("isLanceHanging", isLatched);
+
+            if (isAiming)
+            {
+                animator.SetFloat("AimSpeed", vertical, 0.1f, Time.deltaTime);
+            }
+        }
+
+        // GÜNCELLENDİ: Zipline'dayken buradan zıplayamasın (yukarıda özel zıplaması var)
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && landStunTimer <= 0 && !isZiplining)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+
+            if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f)
+        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f && !isZiplining)
         {
             velocity.y *= jumpCutMultiplier;
         }
 
-        velocity.y += gravity * Time.deltaTime;
+        if (!isZiplining) // Zipline'dayken yerçekimini kapat
+        {
+            velocity.y += gravity * Time.deltaTime;
+        }
+
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
+    }
+
+    // --- YENİ EKLENDİ: GECİKMELİ FIRLATMA İÇİN COROUTINE ---
+    private System.Collections.IEnumerator ThrowRoutine()
+    {
+        isThrowing = true; // Spam'ı engelle
+
+        if (animator != null) animator.SetTrigger("Throw");
+
+        // Animasyondaki el ileri gitme anını bekle (Inspector'dan ayarlanır)
+        yield return new WaitForSeconds(throwDelay);
+
+        ThrowLance(); // Mızrağı tam bu anda fırlat!
+
+        // Animasyon bitene kadar biraz daha kilitli tut ki tuşa basıp durmasın
+        yield return new WaitForSeconds(0.4f);
+
+        isThrowing = false; // Tekrar atmaya hazır
     }
 
     void OnControllerColliderHit(ControllerColliderHit hit)
@@ -480,7 +625,9 @@ public class DonMovement : MonoBehaviour
         newLance.tag = "Lance";
 
         Vector3 flightDirection = (targetPoint - spawnPos).normalized;
-        newLance.transform.rotation = Quaternion.LookRotation(flightDirection) * Quaternion.Euler(90f, 0f, 0f);
+
+        // GÜNCELLENDİ: Artık rotasyon ofsetini Inspector'daki ayarlardan okuyor
+        newLance.transform.rotation = Quaternion.LookRotation(flightDirection) * Quaternion.Euler(lanceRotationOffset);
 
         Rigidbody lanceRb = newLance.GetComponent<Rigidbody>();
         if (lanceRb != null) lanceRb.velocity = flightDirection * throwForce;
@@ -493,7 +640,18 @@ public class DonMovement : MonoBehaviour
         velocity = Vector3.zero;
         jumpCount = 0;
         controller.enabled = false;
-        transform.position = lance.position + (Vector3.up * lanceStickOffset);
+
+        // --- GÜNCELLENDİ: Duvara girme bug'ını çözen kusursuz matematik ---
+        Vector3 pushAwayDir = -lance.forward;
+        LanceObj lanceScript = lance.GetComponent<LanceObj>();
+
+        if (lanceScript != null)
+        {
+            pushAwayDir = lanceScript.wallNormal; // Mızrak duvardan dışarı olan yönü biliyor!
+        }
+
+        // ELLERİ HİZALAMAK İÇİN KENDİ Z EKSENİMİZİ (transform.forward * lanceForwardOffset) EKLİYORUZ
+        transform.position = lance.position + (Vector3.up * lanceHangOffset) + (pushAwayDir * lanceWallOffset) + (transform.forward * lanceForwardOffset);
     }
 
     void DetachAndJump()
@@ -512,6 +670,8 @@ public class DonMovement : MonoBehaviour
 
         velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * lanceJumpMultiplier;
         jumpCount = 1;
+
+        if (animator != null) animator.SetTrigger("Jump");
     }
 
     void OnEnable()
@@ -538,6 +698,7 @@ public class DonMovement : MonoBehaviour
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+        if (animator != null) animator.SetTrigger("Jump");
     }
 
     public void TakeDamage(float damageAmount)

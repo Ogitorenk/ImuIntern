@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections; // YENİ: Coroutine kullanmak için eklendi
 
 public class LanceObj : MonoBehaviour
 {
@@ -8,6 +9,15 @@ public class LanceObj : MonoBehaviour
     [Header("--- Saplanma Ayarları ---")]
     public float embedDepth = 0.2f;
     public float maxHitAngle = 45f;
+
+    // --- YENİ: SAPLANMA ROTASYONU ---
+    [Tooltip("Duvara saplandığında ters duruyorsa bu değerleri 0, 0, 0 yap!")]
+    public Vector3 stickRotationOffset = new Vector3(90f, 0f, 0f);
+
+    // --- YENİ EKLENDİ: Duvarın dışarı doğru bakan yönü ---
+    [HideInInspector] public Vector3 wallNormal;
+
+    private Coroutine destroyRoutine; // YENİ: Ölüm sayacını tutacağımız değişken
 
     void Start()
     {
@@ -33,7 +43,7 @@ public class LanceObj : MonoBehaviour
         // Mızrağın geliş açısı ile duvarın yüzey açısını karşılaştır
         float hitAngle = Vector3.Angle(gercekCarpmaYonu, -contact.normal);
 
-        // 🚨 KONSOL AJANI: Eğer mızrak tutunmazsa konsola bak, sana sebebini söyleyecek!
+        // 🚨 KONSOL AJANI
         Debug.Log($"Mızrak Duvara Vurdu! Çarpma Açısı: {hitAngle}");
 
         // Çok yandan veya köşeden çarptıysa saplanma, sekip düşsün
@@ -49,8 +59,21 @@ public class LanceObj : MonoBehaviour
         isStuck = true;
         rb.isKinematic = true;
 
+        // --- YENİ EKLENDİ: Duvarın yönünü kaydet ki karakter bilsin ---
+        wallNormal = contact.normal;
+
+        // --- YENİ: ÖLÜM SAYACINI İPTAL ET ---
+        // Eğer sürtünüp silinme emri aldıysa, duvara saplandığı için o emri iptal ediyoruz!
+        if (destroyRoutine != null)
+        {
+            StopCoroutine(destroyRoutine);
+            destroyRoutine = null;
+            Debug.Log("🛡️ Mızrak saplandığı için yok olma emri iptal edildi!");
+        }
+
+        // --- GÜNCELLENDİ: ZORLA BÜKME YERİNE AYARLANABİLİR BÜKME ---
         Quaternion lookRot = Quaternion.LookRotation(-contact.normal);
-        transform.rotation = lookRot * Quaternion.Euler(90f, 0f, 0f);
+        transform.rotation = lookRot * Quaternion.Euler(stickRotationOffset);
 
         transform.position = contact.point;
         transform.position += -contact.normal * embedDepth;
@@ -62,6 +85,17 @@ public class LanceObj : MonoBehaviour
     private void CancelStick()
     {
         gameObject.tag = "Untagged";
-        Destroy(gameObject, 2f);
+
+        // --- GÜNCELLENDİ: İPTAL EDİLEBİLİR YOK OLMA SİSTEMİ ---
+        if (destroyRoutine == null && gameObject.activeInHierarchy)
+        {
+            destroyRoutine = StartCoroutine(DestroyAfterTime(2f));
+        }
+    }
+
+    private IEnumerator DestroyAfterTime(float time)
+    {
+        yield return new WaitForSeconds(time);
+        Destroy(gameObject);
     }
 }

@@ -13,6 +13,10 @@ public class ZiplinePrefab : MonoBehaviour
     public float playerOffset = -2.2f; // İpin ne kadar altında asılacak?
     public KeyCode interactKey = KeyCode.F;
 
+    // --- YENİ EKLENDİ: GLOBAL ZİPLİNE ŞALTERİ ---
+    // Bu şalter static olduğu için oyunun her yerinden (karakter değiştirme scriptinden bile) okunabilir!
+    public static bool isAnyPlayerZiplining = false;
+
     private bool playerInRange = false;
     private GameObject currentPlayer;
     private bool isZipping = false;
@@ -42,31 +46,44 @@ public class ZiplinePrefab : MonoBehaviour
         // İpi tam iki noktanın ortasına koy
         visualRope.position = (startPoint.position + endPoint.position) / 2f;
 
-        // İpi bitiş noktasına baktır
-        visualRope.LookAt(endPoint);
+        // Silindir boylamasına Y eksenindedir. LookAt (Z'yi çevirir) yerine objenin Y (up) eksenini yatırıyoruz.
+        visualRope.up = (endPoint.position - startPoint.position).normalized;
 
-        // İpin uzunluğunu iki nokta arasındaki mesafeye göre ayarla
-        // Not: Cylinder varsayılan olarak 2 birim boyundadır, o yüzden mesafeyi 2'ye bölüyoruz
+        // İpin uzunluğunu iki nokta arasındaki mesafeye göre ayarla (Default boy 2 olduğu için 2'ye bölüyoruz)
         float dist = Vector3.Distance(startPoint.position, endPoint.position);
-        visualRope.localScale = new Vector3(0.1f, 0.1f, dist / 2f);
-        // Eğer ipin yönü yanlışsa scale değerlerini (x,y,z) kendi modeline göre kurcala kanka
+        visualRope.localScale = new Vector3(0.1f, dist / 2f, 0.1f);
     }
 
     IEnumerator ZipRoutine()
     {
         isZipping = true;
 
-        // Karakteri hazırla
-        CharacterController cc = currentPlayer.GetComponent<CharacterController>();
-        MonoBehaviour moveScript = (MonoBehaviour)currentPlayer.GetComponent("DonMovement") ?? (MonoBehaviour)currentPlayer.GetComponent("SanchoMovement");
+        // --- YENİ EKLENDİ: Zipline başladı, karakter değiştirmeyi kilitle! ---
+        isAnyPlayerZiplining = true;
 
-        if (moveScript != null) moveScript.enabled = false;
+        // Karakter scriptlerini al
+        CharacterController cc = currentPlayer.GetComponent<CharacterController>();
+        DonMovement don = currentPlayer.GetComponent<DonMovement>();
+        SanchoMovement sancho = currentPlayer.GetComponent<SanchoMovement>();
+
+        // CharacterController'ı kapatıyoruz ki Transform ile pürüzsüz kaydıralım
+        if (cc != null) cc.enabled = false;
+
+        // Movement scriptlerini KAPATMIYORUZ (Animatör çalışsın diye). Sadece şalteri açıyoruz.
+        if (don != null) don.isZiplining = true;
+        if (sancho != null) sancho.isZiplining = true;
 
         float distance = Vector3.Distance(startPoint.position, endPoint.position);
         float t = 0;
 
         while (t < 1f)
         {
+            // Eğer kayarken zıplarsa teli bırak
+            if (Input.GetButtonDown("Jump"))
+            {
+                break; // Döngüyü kır, aşağıya düşüşe geç
+            }
+
             t += (zipSpeed / distance) * Time.deltaTime;
 
             Vector3 targetPos = Vector3.Lerp(startPoint.position, endPoint.position, t);
@@ -77,7 +94,14 @@ public class ZiplinePrefab : MonoBehaviour
             yield return null;
         }
 
-        if (moveScript != null) moveScript.enabled = true;
+        if (don != null) don.isZiplining = false;
+        if (sancho != null) sancho.isZiplining = false;
+
+        // Fiziği geri aç ki yere basabilsin
+        if (cc != null) cc.enabled = true;
+
+        // --- YENİ EKLENDİ: Zipline bitti, karakter değiştirmeyi serbest bırak! ---
+        isAnyPlayerZiplining = false;
         isZipping = false;
         Debug.Log("<color=cyan>🚠 Zipline başarıyla tamamlandı!</color>");
     }

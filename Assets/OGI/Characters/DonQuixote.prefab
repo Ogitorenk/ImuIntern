@@ -210,8 +210,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 115a140ac0021f1418a460befc12ac3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isControlled: 1
   maxHealth: 100
   currentHealth: 100
+  healthPotionCount: 0
+  healthPotionHealAmount: 20
+  healKey: 104
+  slowPotionCount: 0
+  slowTimeAmount: 0.5
+  slowTimeDuration: 5
+  slowTimeKey: 116
   speed: 8
   turnSmoothTime: 0.1
   sprintSpeed: 12
