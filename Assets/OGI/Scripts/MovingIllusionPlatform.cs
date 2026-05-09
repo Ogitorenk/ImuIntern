@@ -111,12 +111,17 @@ public class MovingIllusionPlatform : MonoBehaviour
             HandleMovement();
         }
 
-        // Karakteri/Kutuyu taþýma
+        // --- GÜNCELLENDÝ: SÜZÜLME / ÇÝFT HAREKET BUG'I ÇÖZÜMÜ ---
+        // Karakterlerin kendi içindeki scriptlerinde zaten mükemmel bir platformda durma kodu var.
+        // Buradaki MoveActiveCharacter da onlarý itmeye çalýþýnca karakterler süzülüyordu. 
+        // Bu yüzden platformun karakteri zorla ittirdiði aþaðýdaki kodu yorum satýrýna (kapalýya) aldým.
         Vector3 deltaMovement = movingBody.position - lastPosition;
+        /* 
         if (isPlayerOnPlatform && isSolidForCurrentChar && deltaMovement.magnitude > 0.0001f)
         {
             MoveActiveCharacter(deltaMovement);
         }
+        */
 
         lastPosition = movingBody.position;
     }

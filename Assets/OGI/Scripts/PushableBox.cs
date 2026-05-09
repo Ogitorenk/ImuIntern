@@ -21,6 +21,7 @@ public class PushableBox : MonoBehaviour
     private CharacterController playerCC;
     private MonoBehaviour playerMovementScript;
     private Rigidbody rb;
+    private Animator playerAnimator; // YENİ EKLENDİ: Animasyona erişmek için
 
     // --- KUTU YERDEYKEN PLATFORM TAKİBİ DEĞİŞKENLERİ ---
     private Transform currentPlatform = null;
@@ -64,7 +65,7 @@ public class PushableBox : MonoBehaviour
             else TryGrab();
         }
 
-        // --- KUTU TUTULURKEN OYUNCU HAREKETİ ---
+        // --- KUTU TUTULURKEN OYUNCU HAREKETİ VE ANİMASYONLARI ---
         if (isGrabbed && playerCC != null)
         {
             // 1. ÖNCE PLATFORMUN HAREKETİNİ OYUNCUYA UYGULA (Kapanan Scriptin Yerine Biz Taşıyoruz)
@@ -74,7 +75,13 @@ public class PushableBox : MonoBehaviour
             float vertical = Input.GetAxis("Vertical");
             float horizontal = Input.GetAxis("Horizontal");
 
-            playerTransform.Rotate(0, horizontal * turnSpeed * Time.deltaTime, 0);
+            // --- GÜNCELLENDİ: SADECE W VEYA S'YE BASARKEN DÖNME İZNİ ---
+            if (Mathf.Abs(vertical) > 0.01f)
+            {
+                // Çekerken (S) sağa sola dönmenin ters hissettirmemesi için Mathf.Sign(vertical) ile çarptık.
+                float turnAmount = horizontal * turnSpeed * Mathf.Sign(vertical) * Time.deltaTime;
+                playerTransform.Rotate(0, turnAmount, 0);
+            }
 
             Vector3 moveDir = playerTransform.forward * vertical * pushSpeed;
 
@@ -92,6 +99,12 @@ public class PushableBox : MonoBehaviour
 
             moveDir.y = yVel;
             playerCC.Move(moveDir * Time.deltaTime);
+
+            // --- YENİ EKLENDİ: OYUNCU ANİMASYONLARINI KUTU İÇİNDEN YÖNET ---
+            if (playerAnimator != null)
+            {
+                playerAnimator.SetFloat("PushPull", vertical, 0.1f, Time.deltaTime);
+            }
 
             // 3. BİR SONRAKİ KARE İÇİN HAFIZAYI GÜNCELLE
             UpdateGrabbedPlatformMemory();
@@ -222,6 +235,7 @@ public class PushableBox : MonoBehaviour
                     // -------------------------------------------
 
                     playerMovementScript = playerTransform.GetComponent("SanchoMovement") as MonoBehaviour;
+                    playerAnimator = playerTransform.GetComponentInChildren<Animator>(); // YENİ: Animatörü bul
 
                     // Sancho'nun hareket scripti kapandığı için yukarıdaki HandleGrabbedPlatformTracking devreye giriyor!
                     if (playerMovementScript != null) playerMovementScript.enabled = false;
@@ -229,7 +243,8 @@ public class PushableBox : MonoBehaviour
                     isGrabbed = true;
                     if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = false;
 
-                    if (sm != null) sm.isHoldingBox = true;
+                    // Kutu tutulduğunda BoxInteract state'ine geçmesi için isHoldingBox'ı aç!
+                    if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", true);
 
                     rb.isKinematic = true;
                     AlignPlayerToBox();
@@ -248,11 +263,8 @@ public class PushableBox : MonoBehaviour
 
         if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = true;
 
-        if (playerTransform != null)
-        {
-            SanchoMovement sm = playerTransform.GetComponent<SanchoMovement>();
-            if (sm != null) sm.isHoldingBox = false;
-        }
+        // Kutuyu bıraktığında normal Locomotion state'ine dönmesi için isHoldingBox'ı kapat!
+        if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", false);
 
         transform.SetParent(null);
         rb.isKinematic = false;
@@ -266,6 +278,7 @@ public class PushableBox : MonoBehaviour
 
         playerTransform = null;
         playerCC = null;
+        playerAnimator = null; // Animatör referansını temizle
     }
 
     private void AlignPlayerToBox()
