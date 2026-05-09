@@ -641,17 +641,18 @@ public class DonMovement : MonoBehaviour
         jumpCount = 0;
         controller.enabled = false;
 
-        // --- GÜNCELLENDİ: Duvara girme bug'ını çözen kusursuz matematik ---
         Vector3 pushAwayDir = -lance.forward;
         LanceObj lanceScript = lance.GetComponent<LanceObj>();
 
         if (lanceScript != null)
         {
-            pushAwayDir = lanceScript.wallNormal; // Mızrak duvardan dışarı olan yönü biliyor!
+            pushAwayDir = lanceScript.wallNormal;
         }
 
-        // ELLERİ HİZALAMAK İÇİN KENDİ Z EKSENİMİZİ (transform.forward * lanceForwardOffset) EKLİYORUZ
         transform.position = lance.position + (Vector3.up * lanceHangOffset) + (pushAwayDir * lanceWallOffset) + (transform.forward * lanceForwardOffset);
+
+        // --- YENİ EKLENDİ: SADECE BİR KERE ÇALIŞAN KAPI ZİLİ (TRIGGER) ---
+        if (animator != null) animator.SetTrigger("LanceCatch");
     }
 
     void DetachAndJump()
