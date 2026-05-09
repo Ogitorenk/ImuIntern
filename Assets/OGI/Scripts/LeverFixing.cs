@@ -7,7 +7,7 @@ public class LeverFixing : MonoBehaviour
     [Header("Tamir Ayarları")]
     public int requiredSuccesses = 5; // Kaç kere doğru tuşa basması lazım?
     public float timePerKey = 1.5f;   // Her tuş için kaç saniyesi var?
-    public KeyCode startKey = KeyCode.E; // Tamiri başlatma tuşu
+    public KeyCode startKey = KeyCode.F; // GÜNCELLENDİ: E yerine F yapıldı!
 
     [Header("UI (Arayüz) Bağlantıları")]
     public GameObject miniGameCanvas;
@@ -70,16 +70,9 @@ public class LeverFixing : MonoBehaviour
 
         if (sanchoPlayer != null)
         {
-            // --- YENİ EKLENDİ: KARAKTERİ IDLE'A ZORLA ---
-            // Fişi çekmeden önce Animator'a "Hızımız sıfır, dur!" diyoruz ki moonwalk yapmasın.
-            Animator sanchoAnim = sanchoPlayer.GetComponentInChildren<Animator>();
-            if (sanchoAnim != null)
-            {
-                sanchoAnim.SetFloat("Speed", 0f);
-            }
-
-            // Şimdi fişi çekip karakteri yerine çivileyebiliriz
-            sanchoPlayer.enabled = false;
+            // --- GÜNCELLENDİ: SANCHO'NUN FİŞİNİ ÇEKMEK YERİNE FONKSİYONUNU ÇAĞIRIYORUZ ---
+            // Artık Sancho'nun scriptini kapatmıyoruz, böylece animasyonlar kusursuz çalışacak!
+            sanchoPlayer.StartRepairing();
         }
 
         if (miniGameCanvas != null) miniGameCanvas.SetActive(true);
@@ -149,7 +142,11 @@ public class LeverFixing : MonoBehaviour
         promptText.text = reason + "\nBASA SARDIN!";
         promptText.color = Color.red;
 
-        if (sanchoPlayer != null) sanchoPlayer.enabled = true;
+        // --- GÜNCELLENDİ: OYUNCUYU SERBEST BIRAK ---
+        if (sanchoPlayer != null)
+        {
+            sanchoPlayer.StopRepairing();
+        }
 
         StartCoroutine(HideCanvasAfterDelay(2f));
     }
@@ -168,7 +165,11 @@ public class LeverFixing : MonoBehaviour
             smokeParticles.Stop();
         }
 
-        if (sanchoPlayer != null) sanchoPlayer.enabled = true;
+        // --- GÜNCELLENDİ: OYUNCUYU SERBEST BIRAK ---
+        if (sanchoPlayer != null)
+        {
+            sanchoPlayer.StopRepairing();
+        }
 
         if (originalLever != null)
         {
