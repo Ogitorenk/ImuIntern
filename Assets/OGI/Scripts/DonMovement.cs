@@ -410,8 +410,8 @@ public class DonMovement : MonoBehaviour
             isNearGround = isGrounded;
         }
 
-        // GÜNCELLENDİ: Zipline'dayken yere inme iptal
-        if (!wasGrounded && isGrounded && velocity.y < 0f && !isZiplining)
+        // --- GÜNCELLENDİ: Yüksek yere zıplama bug'ı için velocity şartı kaldırıldı ---
+        if (!wasGrounded && isGrounded && !isZiplining)
         {
             if (animator != null) animator.SetTrigger("Land");
             landStunTimer = landStunDuration;

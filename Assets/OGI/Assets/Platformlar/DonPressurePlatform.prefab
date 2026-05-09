@@ -303,13 +303,15 @@ MonoBehaviour:
   platformType: 1
   speed: 3
   waitTime: 1
-  invertedPerception: 0
+  detectionDelay: 0.5
+  visibilityMode: 0
   movingBody: {fileID: 6830409960625076498}
   solidGroup: {fileID: 5842451070278765118}
   illusionGroup: {fileID: 3208669374676383537}
   waypoints:
   - {fileID: 2906897447482208948}
   - {fileID: 8483766217833535356}
+  isPlayerOnPlatform: 0
 --- !u!65 &5424110465818869672
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -329,8 +331,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1.3238806, z: 1}
-  m_Center: {x: 0, y: 0.16194028, z: 0}
+  m_Size: {x: 0.9999999, y: 0.75730026, z: 1}
+  m_Center: {x: 0, y: -0.12134919, z: 0}
 --- !u!54 &914617781043214189
 Rigidbody:
   m_ObjectHideFlags: 0
