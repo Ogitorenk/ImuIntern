@@ -27,6 +27,9 @@ public class DonMovement : MonoBehaviour
     public KeyCode slowTimeKey = KeyCode.Alpha2; // 2 Tuşu
     public static bool isTimePotionActive = false; // Çakışmaları önleyen global şalter
 
+    // --- YENİ EKLENDİ: İKSİR İÇME KİLİDİ ---
+    [HideInInspector] public bool isDrinking = false;
+
     // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ ---
     private Transform activePlatform;
     private Vector3 activeLocalPlatformPoint;
@@ -293,12 +296,14 @@ public class DonMovement : MonoBehaviour
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (isControlled && Input.GetKeyDown(KeyCode.C))
+        // GÜNCELLENDİ: İçerken tutunma iptal
+        if (isControlled && Input.GetKeyDown(KeyCode.C) && !isDrinking)
         {
             CheckForLanceLatch();
         }
 
-        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f)
+        // GÜNCELLENDİ: İçerken dash iptal
+        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && isGrounded && dashCooldownTimer <= 0f && !isDrinking)
         {
             isDashing = true;
             dashTimer = dashDuration;
@@ -310,8 +315,8 @@ public class DonMovement : MonoBehaviour
             landStunTimer -= Time.deltaTime;
         }
 
-        // GÜNCELLENDİ: Zipline'dayken eğilme/yürüme iptal
-        if (!isDashing && !isLatched && !isZiplining)
+        // GÜNCELLENDİ: Zipline'dayken veya içerken eğilme/yürüme iptal
+        if (!isDashing && !isLatched && !isZiplining && !isDrinking)
         {
             if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
@@ -346,13 +351,14 @@ public class DonMovement : MonoBehaviour
             transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
         }
 
-        bool isAiming = isControlled && Input.GetMouseButton(1);
+        // GÜNCELLENDİ: İçerken aim alma iptal
+        bool isAiming = isControlled && Input.GetMouseButton(1) && !isDrinking;
         float targetFOV = normalFOV;
         float targetOffsetX = 0f;
         float targetOffsetY = 0f;
 
-        // GÜNCELLENDİ: Zipline'dayken mızrak fırlatma iptal
-        if (isLanceEquipped && !isDashing && !isZiplining)
+        // GÜNCELLENDİ: Zipline'dayken veya içerken mızrak fırlatma iptal
+        if (isLanceEquipped && !isDashing && !isZiplining && !isDrinking)
         {
             if (isAiming)
             {
@@ -373,7 +379,7 @@ public class DonMovement : MonoBehaviour
                 SetAimMode(false);
             }
         }
-        else if (isDashing || isZiplining)
+        else if (isDashing || isZiplining || isDrinking)
         {
             SetAimMode(false);
         }
@@ -441,8 +447,9 @@ public class DonMovement : MonoBehaviour
             }
         }
 
-        float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
-        float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
+        // GÜNCELLENDİ: İksir içerken WASD iptal
+        float horizontal = (isControlled && !isDrinking) ? Input.GetAxisRaw("Horizontal") : 0f;
+        float vertical = (isControlled && !isDrinking) ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
         float animSpeed = 0f;
@@ -459,7 +466,7 @@ public class DonMovement : MonoBehaviour
                 if (controller.enabled) controller.Move(transform.forward * dashSpeed * Time.deltaTime);
             }
         }
-        else if (isZiplining)
+        else if (isZiplining || isDrinking) // GÜNCELLENDİ: İçerken animSpeed 0 olur
         {
             // Zipline'da manuel hareket yok, ray bizi taşıyacak (animasyon hızı 0)
             animSpeed = 0f;
@@ -525,8 +532,8 @@ public class DonMovement : MonoBehaviour
             }
         }
 
-        // GÜNCELLENDİ: Zipline'dayken buradan zıplayamasın (yukarıda özel zıplaması var)
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && landStunTimer <= 0 && !isZiplining)
+        // GÜNCELLENDİ: Zipline'dayken ve iksir içerken buradan zıplayamasın
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && landStunTimer <= 0 && !isZiplining && !isDrinking)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
@@ -733,16 +740,15 @@ public class DonMovement : MonoBehaviour
         velocity = Vector3.zero;
     }
 
+    // --- GÜNCELLENDİ: İKSİR İÇME KONTROLLERİ ---
     public void UseHealthPotion()
     {
+        // Yerde değilsek, zaten içiyorsak, dash atıyorsak vs. engelle
+        if (!isGrounded || isDrinking || isZiplining || isDashing || isLatched) return;
+
         if (healthPotionCount > 0 && currentHealth < maxHealth)
         {
-            healthPotionCount--;
-            currentHealth += healthPotionHealAmount;
-
-            if (currentHealth > maxHealth) currentHealth = maxHealth;
-
-            Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
+            StartCoroutine(DrinkPotionRoutine(true));
         }
         else if (currentHealth >= maxHealth)
         {
@@ -756,11 +762,12 @@ public class DonMovement : MonoBehaviour
 
     public void UseSlowPotion()
     {
+        // Yerde değilsek, zaten içiyorsak vs. engelle
+        if (!isGrounded || isDrinking || isZiplining || isDashing || isLatched) return;
+
         if (slowPotionCount > 0 && !isTimePotionActive)
         {
-            slowPotionCount--;
-            StartCoroutine(SlowTimeRoutine());
-            Debug.Log("⏳ Zaman İksiri İçildi! Kalan İksir: " + slowPotionCount);
+            StartCoroutine(DrinkPotionRoutine(false));
         }
         else if (isTimePotionActive)
         {
@@ -770,6 +777,39 @@ public class DonMovement : MonoBehaviour
         {
             Debug.Log("Hiç zaman iksirin kalmamış!");
         }
+    }
+
+    // --- YENİ EKLENDİ: İKSİR İÇME ANİMASYON VE GECİKME COROUTINE'İ ---
+    private System.Collections.IEnumerator DrinkPotionRoutine(bool isHealthPotion)
+    {
+        isDrinking = true; // Kilidi kapat, WASD ve zıplama iptal olsun
+
+        // Karakterin anlık hızını sıfırla ki buzda kayar gibi içmesin
+        velocity.x = 0f;
+        velocity.z = 0f;
+
+        // Animator'e sinyal yolla
+        if (animator != null) animator.SetTrigger("DrinkPotion");
+
+        // 1 saniye bekle
+        yield return new WaitForSeconds(2f);
+
+        // 1 saniye sonra efekti ver
+        if (isHealthPotion)
+        {
+            healthPotionCount--;
+            currentHealth += healthPotionHealAmount;
+            if (currentHealth > maxHealth) currentHealth = maxHealth;
+            Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
+        }
+        else
+        {
+            slowPotionCount--;
+            StartCoroutine(SlowTimeRoutine());
+            Debug.Log("⏳ Zaman İksiri İçildi! Kalan İksir: " + slowPotionCount);
+        }
+
+        isDrinking = false; // Kilidi aç, karakter tekrar hareket etsin
     }
 
     private System.Collections.IEnumerator SlowTimeRoutine()

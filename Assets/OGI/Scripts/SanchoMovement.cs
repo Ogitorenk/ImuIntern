@@ -26,6 +26,10 @@ public class SanchoMovement : MonoBehaviour
     [Header("Etkileşim Durumu")]
     public bool isHoldingBox = false;
 
+    // --- YENİ EKLENDİ: İKSİR VE TAMİR KİLİTLERİ ---
+    [HideInInspector] public bool isDrinking = false;
+    [HideInInspector] public bool isRepairing = false; // TAMİR KİLİDİ
+
     private Transform activePlatform;
     private Vector3 activeLocalPlatformPoint;
     private Vector3 activeGlobalPlatformPoint;
@@ -185,7 +189,8 @@ public class SanchoMovement : MonoBehaviour
             landStunTimer -= Time.deltaTime;
         }
 
-        if (!isZiplining && !isHoldingBox) // Kutu tutarken eğilme iptal
+        // GÜNCELLENDİ: İçerken VEYA Tamir Ederken eğilme/yürüme iptal
+        if (!isZiplining && !isHoldingBox && !isDrinking && !isRepairing)
         {
             if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
@@ -279,8 +284,9 @@ public class SanchoMovement : MonoBehaviour
             }
         }
 
-        float horizontal = isControlled ? Input.GetAxisRaw("Horizontal") : 0f;
-        float vertical = isControlled ? Input.GetAxisRaw("Vertical") : 0f;
+        // GÜNCELLENDİ: İksir içerken VEYA Tamir Ederken WASD iptal
+        float horizontal = (isControlled && !isDrinking && !isRepairing) ? Input.GetAxisRaw("Horizontal") : 0f;
+        float vertical = (isControlled && !isDrinking && !isRepairing) ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
         if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
@@ -290,7 +296,8 @@ public class SanchoMovement : MonoBehaviour
 
         float animSpeed = 0f;
 
-        if (isZiplining)
+        // GÜNCELLENDİ: İçerken veya tamir ederken koşma animasyonu oynamasın
+        if (isZiplining || isDrinking || isRepairing)
         {
             animSpeed = 0f;
         }
@@ -306,7 +313,6 @@ public class SanchoMovement : MonoBehaviour
 
                 float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
 
-                // GÜNCELLENDİ: Kutu tutarken sağa sola dönmesin, hep kutuya baksın diye rotasyonu kilitledik
                 if (!isHoldingBox)
                 {
                     float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
@@ -326,16 +332,18 @@ public class SanchoMovement : MonoBehaviour
             animator.SetFloat("VerticalVelocity", velocity.y);
             animator.SetBool("isZiplining", isZiplining);
 
-            // --- YENİ EKLENDİ: KUTU İTME / ÇEKME SİNYALLERİ ---
             animator.SetBool("isHoldingBox", isHoldingBox);
             if (isHoldingBox)
             {
-                // W'ye basarsa +1 (İtme), S'ye basarsa -1 (Çekme), basmazsa 0 (Idle) gider.
                 animator.SetFloat("PushPull", vertical, 0.1f, Time.deltaTime);
             }
+
+            // --- YENİ EKLENDİ: TAMİR ANİMASYON SİNYALİ ---
+            animator.SetBool("isRepairing", isRepairing);
         }
 
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining && !isHoldingBox)
+        // GÜNCELLENDİ: İksir içerken veya Tamir ederken buradan zıplayamasın
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining && !isHoldingBox && !isDrinking && !isRepairing)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
@@ -416,14 +424,12 @@ public class SanchoMovement : MonoBehaviour
 
     public void UseHealthPotion()
     {
+        // GÜNCELLENDİ: Tamir ederken iksir içemesin
+        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing) return;
+
         if (healthPotionCount > 0 && currentHealth < maxHealth)
         {
-            healthPotionCount--;
-            currentHealth += healthPotionHealAmount;
-
-            if (currentHealth > maxHealth) currentHealth = maxHealth;
-
-            Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
+            StartCoroutine(DrinkPotionRoutine(true));
         }
         else if (currentHealth >= maxHealth)
         {
@@ -437,11 +443,12 @@ public class SanchoMovement : MonoBehaviour
 
     public void UseSlowPotion()
     {
+        // GÜNCELLENDİ: Tamir ederken iksir içemesin
+        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing) return;
+
         if (slowPotionCount > 0 && !DonMovement.isTimePotionActive)
         {
-            slowPotionCount--;
-            StartCoroutine(SlowTimeRoutine());
-            Debug.Log("⏳ Sancho Zaman İksiri İçti! Kalan İksir: " + slowPotionCount);
+            StartCoroutine(DrinkPotionRoutine(false));
         }
         else if (DonMovement.isTimePotionActive)
         {
@@ -451,6 +458,34 @@ public class SanchoMovement : MonoBehaviour
         {
             Debug.Log("Hiç zaman iksirin kalmamış!");
         }
+    }
+
+    private System.Collections.IEnumerator DrinkPotionRoutine(bool isHealthPotion)
+    {
+        isDrinking = true;
+
+        velocity.x = 0f;
+        velocity.z = 0f;
+
+        if (animator != null) animator.SetTrigger("DrinkPotion");
+
+        yield return new WaitForSeconds(2f);
+
+        if (isHealthPotion)
+        {
+            healthPotionCount--;
+            currentHealth += healthPotionHealAmount;
+            if (currentHealth > maxHealth) currentHealth = maxHealth;
+            Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
+        }
+        else
+        {
+            slowPotionCount--;
+            StartCoroutine(SlowTimeRoutine());
+            Debug.Log("⏳ Sancho Zaman İksiri İçti! Kalan İksir: " + slowPotionCount);
+        }
+
+        isDrinking = false;
     }
 
     private System.Collections.IEnumerator SlowTimeRoutine()
@@ -470,5 +505,48 @@ public class SanchoMovement : MonoBehaviour
         }
 
         Debug.Log("⏳ Zaman normale döndü!");
+    }
+
+    // ==========================================
+    // --- YENİ EKLENDİ: TAMİR SİSTEMİ METOTLARI ---
+    // ==========================================
+
+    // Bu fonksiyonu tamir edilecek bozuk bir objenin scriptinden (örn: F tuşuna basınca) çağıracaksın.
+    public void StartRepairing()
+    {
+        // Yerde değilsek, zaten tamir ediyorsak veya başka bir eylemdeysek engelle
+        if (!isGrounded || isRepairing || isDrinking || isZiplining || isHoldingBox) return;
+
+        isRepairing = true;
+
+        // Kaymayı önlemek için karakterin anlık hızını sıfırla
+        velocity.x = 0f;
+        velocity.z = 0f;
+
+        if (animator != null)
+        {
+            // "RepairStart" trigger'ını gönder ki başlangıç animasyonu oynasın
+            animator.SetTrigger("RepairStart");
+
+            // "isRepairing" bool'unu true yap ki Start bitince Loop (Döngü) animasyonunda kalsın
+            animator.SetBool("isRepairing", true);
+        }
+
+        Debug.Log("🔧 Sancho tamir etmeye başladı!");
+    }
+
+    // Tamir işlemi bitince veya oyuncu F'ye tekrar basıp iptal edince bu fonksiyonu çağıracaksın.
+    public void StopRepairing()
+    {
+        if (!isRepairing) return;
+
+        isRepairing = false;
+
+        if (animator != null)
+        {
+            animator.SetBool("isRepairing", false);
+        }
+
+        Debug.Log("✅ Sancho tamiri bitirdi (veya bıraktı)!");
     }
 }
