@@ -69,7 +69,12 @@ public class SwingingLog : MonoBehaviour
                 lastHitTime = Time.time;
                 Debug.Log($"<color=red>💥 DARBE:</color> 3 saniyelik cooldown başladı.");
 
-                // 1. HASAR VER
+                // --- YENİ EKLENDİ: Hasar yemeden önceki konumumuzu kaydediyoruz ---
+                Vector3 posBeforeHit = cc.transform.position;
+
+                bool isDead = false; // Adam öldü mü kontrolü
+
+                // 1. HASAR VER VE ÖLDÜ MÜ BAK
                 DonMovement don = cc.GetComponent<DonMovement>();
                 SanchoMovement sancho = cc.GetComponent<SanchoMovement>();
 
@@ -77,24 +82,38 @@ public class SwingingLog : MonoBehaviour
                 {
                     don.TakeDamage(damage);
                     playerScript = don;
+                    if (don.currentHealth <= 0) isDead = true;
                 }
                 else if (sancho != null)
                 {
                     sancho.TakeDamage(damage);
                     playerScript = sancho;
+                    if (sancho.currentHealth <= 0) isDead = true;
                 }
 
-                // --- 2. DİNAMİK YÖN HESAPLAMASI (İşte Büyü Burada) ---
-                // Tavandaki menteşeyi değil, oyuncuya çarpan GERÇEK odunun merkezini bul
-                Vector3 actualLogCenter = logColliders[0].bounds.center;
+                // --- SİHİRLİ KİLİT BURASI ---
+                // Eğer hasar yedikten sonra karakterin yeri aniden değiştiyse (Ölüp Checkpoint'e ışınlandıysa)
+                if (Vector3.Distance(cc.transform.position, posBeforeHit) > 2f)
+                {
+                    Debug.Log("🚫 Kütük öldürdü (veya ışınladı), fırlatma İPTAL!");
+                    return; // Direkt çık, fırlatma koduna hiç girme!
+                }
 
-                // Kütüğün merkezinden -> Oyuncuya doğru bir hat çiz (Nereden vurursa tersine iter)
-                Vector3 dynamicDirection = (cc.transform.position - actualLogCenter);
-                dynamicDirection.y = 0; // Sadece yatayda uçsun
-                dynamicDirection = dynamicDirection.normalized; // Gücü 1'e sabitle ki senin 80'lik flingPower'ı bozmasın
+                // --- 2. EĞER KARAKTER BU VURUŞLA ÖLMEDİYSE FIRLAT! ---
+                if (!isDead)
+                {
+                    // DİNAMİK YÖN HESAPLAMASI
+                    // Tavandaki menteşeyi değil, oyuncuya çarpan GERÇEK odunun merkezini bul
+                    Vector3 actualLogCenter = logColliders[0].bounds.center;
 
-                // 3. FIRLAT
-                StartCoroutine(ApplyExtremeFling(cc, dynamicDirection, playerScript));
+                    // Kütüğün merkezinden -> Oyuncuya doğru bir hat çiz (Nereden vurursa tersine iter)
+                    Vector3 dynamicDirection = (cc.transform.position - actualLogCenter);
+                    dynamicDirection.y = 0; // Sadece yatayda uçsun
+                    dynamicDirection = dynamicDirection.normalized; // Gücü 1'e sabitle ki senin 80'lik flingPower'ı bozmasın
+
+                    // 3. FIRLAT
+                    StartCoroutine(ApplyExtremeFling(cc, dynamicDirection, playerScript));
+                }
             }
         }
     }
@@ -114,8 +133,20 @@ public class SwingingLog : MonoBehaviour
         float elapsed = 0f;
         float verticalVelocity = flingUpward;
 
+        // YENİ EKLENDİ: Karakterin anlık pozisyonunu kaydet
+        Vector3 lastFramePos = cc.transform.position;
+
         while (elapsed < duration)
         {
+            // YENİ EKLENDİ: Eğer Deathzone karakteri öldürüp cc'yi kapatırsa güvenli çıkış yap
+            if (cc == null || !cc.enabled) break;
+
+            // YENİ EKLENDİ: Eğer karakter bir anda uzağa ışınlandıysa (Deathzone öldürüp Checkpoint'e attıysa) fırlatmayı İPTAL ET!
+            if (Vector3.Distance(cc.transform.position, lastFramePos) > 5f)
+            {
+                break;
+            }
+
             if (cc != null && cc.enabled)
             {
                 // İtme gücünü zamanla yumuşatarak azalt (Gerçekçi uçuş)
@@ -128,11 +159,15 @@ public class SwingingLog : MonoBehaviour
 
                 cc.Move(moveVector * Time.deltaTime);
             }
+
+            // YENİ EKLENDİ: Bir sonraki kare için pozisyonu güncelle
+            lastFramePos = cc.transform.position;
+
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Uçuş bittiğinde karakterin kontrollerini geri ver
+        // Uçuş bittiğinde (veya iptal olduğunda) karakterin kontrollerini geri ver
         if (playerScript != null) playerScript.enabled = true;
 
         // Kütüğü tekrar katı hale getir
