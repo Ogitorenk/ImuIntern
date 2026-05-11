@@ -8,13 +8,37 @@ public class ZiplinePrefab : MonoBehaviour
     public Transform endPoint;
     public Transform visualRope;
 
-    [Header("Ayarlar")]
+    // ========================================================
+    // --- GÜNCELLENDİ: HİZALAMA AYARLARI BÖLÜNDÜ ---
+    // ========================================================
+    [Header("Ayarlar (Base - Don Kişot'a Göre Ayarla)")]
+    [Tooltip("Genel hız.")]
     public float zipSpeed = 12f;
-    public float playerOffset = -2.2f; // İpin ne kadar altında asılacak?
+
+    [Tooltip("Base Yukarı / Aşağı (Don Kişot tam ipteyken bu kalsın)")]
+    public float playerOffset = -2.2f;
+
+    [Tooltip("Base Sağ / Sol")]
+    public float playerLateralOffset = 0f;
+
+    [Tooltip("Base İleri / Geri")]
+    public float playerForwardOffset = 0f;
+
+    // --- YENİ EKLENDİ: SANCHO'YA ÖZEL EKSTRA AYARLAR ---
+    [Header("Sancho Ekstra Ayarları (Base Üzerine Eklenir)")]
+    [Tooltip("Sancho'nun eli Don'a göre altta kalıyorsa buraya POZİTİF (örn: 0.5) değer vererek onu yukarı kaydır.")]
+    public float sanchoEkstraY = 0f;
+
+    [Tooltip("Sancho'yu sağa/sola ekstra kaydırmak için.")]
+    public float sanchoEkstraLateral = 0f;
+
+    [Tooltip("Sancho'yu ileri/geri ekstra kaydırmak için.")]
+    public float sanchoEkstraForward = 0f;
+    // ========================================================
+
+    [Header("İnteraksiyon")]
     public KeyCode interactKey = KeyCode.F;
 
-    // --- YENİ EKLENDİ: GLOBAL ZİPLİNE ŞALTERİ ---
-    // Bu şalter static olduğu için oyunun her yerinden (karakter değiştirme scriptinden bile) okunabilir!
     public static bool isAnyPlayerZiplining = false;
 
     private bool playerInRange = false;
@@ -26,7 +50,6 @@ public class ZiplinePrefab : MonoBehaviour
         UpdateRopeVisual();
     }
 
-    // Editor'de noktaları hareket ettirdiğinde ipin otomatik güncellenmesi için
     void OnValidate()
     {
         if (startPoint != null && endPoint != null && visualRope != null)
@@ -43,13 +66,9 @@ public class ZiplinePrefab : MonoBehaviour
 
     void UpdateRopeVisual()
     {
-        // İpi tam iki noktanın ortasına koy
         visualRope.position = (startPoint.position + endPoint.position) / 2f;
-
-        // Silindir boylamasına Y eksenindedir. LookAt (Z'yi çevirir) yerine objenin Y (up) eksenini yatırıyoruz.
         visualRope.up = (endPoint.position - startPoint.position).normalized;
 
-        // İpin uzunluğunu iki nokta arasındaki mesafeye göre ayarla (Default boy 2 olduğu için 2'ye bölüyoruz)
         float dist = Vector3.Distance(startPoint.position, endPoint.position);
         visualRope.localScale = new Vector3(0.1f, dist / 2f, 0.1f);
     }
@@ -57,39 +76,59 @@ public class ZiplinePrefab : MonoBehaviour
     IEnumerator ZipRoutine()
     {
         isZipping = true;
-
-        // --- YENİ EKLENDİ: Zipline başladı, karakter değiştirmeyi kilitle! ---
         isAnyPlayerZiplining = true;
 
-        // Karakter scriptlerini al
         CharacterController cc = currentPlayer.GetComponent<CharacterController>();
         DonMovement don = currentPlayer.GetComponent<DonMovement>();
         SanchoMovement sancho = currentPlayer.GetComponent<SanchoMovement>();
 
-        // CharacterController'ı kapatıyoruz ki Transform ile pürüzsüz kaydıralım
         if (cc != null) cc.enabled = false;
 
-        // Movement scriptlerini KAPATMIYORUZ (Animatör çalışsın diye). Sadece şalteri açıyoruz.
+        Vector3 zipDirection = (endPoint.position - startPoint.position).normalized;
+        zipDirection.y = 0f;
+
+        if (zipDirection != Vector3.zero)
+        {
+            currentPlayer.transform.rotation = Quaternion.LookRotation(zipDirection);
+        }
+
         if (don != null) don.isZiplining = true;
         if (sancho != null) sancho.isZiplining = true;
+
+        Vector3 rightDirection = Vector3.Cross(Vector3.up, zipDirection).normalized;
 
         float distance = Vector3.Distance(startPoint.position, endPoint.position);
         float t = 0;
 
+        // --- YENİ EKLENDİ: ŞU ANKİ OYUNCU SANCHO MU? ---
+        bool isCurrentPlayerSancho = sancho != null && (DualRealityManager.Instance != null && !DualRealityManager.Instance.isDonActive);
+        // ------------------------------------------------
+
         while (t < 1f)
         {
-            // Eğer kayarken zıplarsa teli bırak
             if (Input.GetButtonDown("Jump"))
             {
-                break; // Döngüyü kır, aşağıya düşüşe geç
+                break;
             }
 
             t += (zipSpeed / distance) * Time.deltaTime;
 
             Vector3 targetPos = Vector3.Lerp(startPoint.position, endPoint.position, t);
-            targetPos.y += playerOffset; // İpin altında asılı kalma payı
 
-            currentPlayer.transform.position = targetPos;
+            // 1. ÖNCE BASE (DON'UN) OFSETLERİNİ UYGULA
+            Vector3 finalOffset = (Vector3.up * playerOffset) + (rightDirection * playerLateralOffset) + (zipDirection * playerForwardOffset);
+
+            // ========================================================
+            // --- GÜNCELLENDİ: SANCHO İSE EKSTRA OFSETLERİ EKLE ---
+            // ========================================================
+            if (isCurrentPlayerSancho)
+            {
+                // Sancho eli altta kalıyor demiştin, sanchoEkstraY'ye pozitif değer verirsen onu yukarı çekeriz.
+                finalOffset += (Vector3.up * sanchoEkstraY) + (rightDirection * sanchoEkstraLateral) + (zipDirection * sanchoEkstraForward);
+            }
+            // ========================================================
+
+            currentPlayer.transform.position = targetPos + finalOffset;
 
             yield return null;
         }
@@ -97,13 +136,10 @@ public class ZiplinePrefab : MonoBehaviour
         if (don != null) don.isZiplining = false;
         if (sancho != null) sancho.isZiplining = false;
 
-        // Fiziği geri aç ki yere basabilsin
         if (cc != null) cc.enabled = true;
 
-        // --- YENİ EKLENDİ: Zipline bitti, karakter değiştirmeyi serbest bırak! ---
         isAnyPlayerZiplining = false;
         isZipping = false;
-        Debug.Log("<color=cyan>🚠 Zipline başarıyla tamamlandı!</color>");
     }
 
     private void OnTriggerEnter(Collider other)

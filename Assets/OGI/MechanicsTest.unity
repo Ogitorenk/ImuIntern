@@ -4420,6 +4420,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9213899091950248924, guid: 3e47c22441753734984b52ee1fed7d45, type: 3}
+      propertyPath: m_Mass
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 9213899091950248924, guid: 3e47c22441753734984b52ee1fed7d45, type: 3}
       propertyPath: m_UseGravity
       value: 0
       objectReference: {fileID: 0}
@@ -5042,7 +5046,19 @@ PrefabInstance:
       objectReference: {fileID: 299935549}
     - target: {fileID: 9065408873382620262, guid: 2d513d4b19829df4eb896262b887e64b, type: 3}
       propertyPath: playerOffset
-      value: -1.2
+      value: -1.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9065408873382620262, guid: 2d513d4b19829df4eb896262b887e64b, type: 3}
+      propertyPath: sanchoEkstraY
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9065408873382620262, guid: 2d513d4b19829df4eb896262b887e64b, type: 3}
+      propertyPath: playerLateralOffset
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9065408873382620262, guid: 2d513d4b19829df4eb896262b887e64b, type: 3}
+      propertyPath: sanchoEkstraLateral
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6087,13 +6103,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3278526269089496422, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6453298335911015178, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: m_Name
       value: DonQuixote
       objectReference: {fileID: 0}
     - target: {fileID: 6453298335911015178, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6498767202760481564, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: m_LocalPosition.x

@@ -656,6 +656,27 @@ public class DonMovement : MonoBehaviour
             pushAwayDir = lanceScript.wallNormal;
         }
 
+        // ========================================================
+        // --- GÜNCELLENDİ: ATLANILAN YÖNE GÖRE DİNAMİK YAN DÖNME ---
+        // ========================================================
+        // Karakterin mızrağa atlarkenki baktığı yönü (transform.forward), 
+        // duvarın yüzeyine paralel olacak şekilde yansıtıyoruz (ProjectOnPlane).
+        Vector3 lookDirection = Vector3.ProjectOnPlane(transform.forward, pushAwayDir);
+        lookDirection.y = 0f; // Karakter dimdik dursun, yana yatmasın
+
+        // Güvenlik kilidi: Eğer oyuncu duvara çapraz değil de tam 90 derece bodoslama atladıysa
+        // yön bulamaz, o zaman mecburen rastgele bir yan tarafa döndürüyoruz ki hata vermesin.
+        if (lookDirection.magnitude < 0.05f)
+        {
+            lookDirection = Vector3.Cross(Vector3.up, pushAwayDir);
+        }
+
+        if (lookDirection != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(lookDirection.normalized);
+        }
+        // ========================================================
+
         transform.position = lance.position + (Vector3.up * lanceHangOffset) + (pushAwayDir * lanceWallOffset) + (transform.forward * lanceForwardOffset);
 
         // --- YENİ EKLENDİ: SADECE BİR KERE ÇALIŞAN KAPI ZİLİ (TRIGGER) ---
