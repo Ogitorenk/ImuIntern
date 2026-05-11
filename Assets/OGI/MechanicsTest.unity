@@ -2462,6 +2462,11 @@ MonoBehaviour:
   m_BiasX: 0
   m_BiasY: 0
   m_CenterOnActivate: 1
+--- !u!1 &1041222136 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
+  m_PrefabInstance: {fileID: 580797111}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1084130176
 GameObject:
   m_ObjectHideFlags: 0
@@ -16602,6 +16607,10 @@ PrefabInstance:
       propertyPath: slowTimeDuration
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 8434642821560219865, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
+      propertyPath: eldekiGorselMizrak
+      value: 
+      objectReference: {fileID: 1041222136}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 3278526269089496422, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
