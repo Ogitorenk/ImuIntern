@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic; // YENİ EKLENDİ: Liste kullanabilmek için
 
 [RequireComponent(typeof(Rigidbody))]
 public class PushableBox : MonoBehaviour
@@ -21,22 +22,44 @@ public class PushableBox : MonoBehaviour
     private CharacterController playerCC;
     private MonoBehaviour playerMovementScript;
     private Rigidbody rb;
-    private Animator playerAnimator; // YENİ EKLENDİ: Animasyona erişmek için
+    private Animator playerAnimator;
 
     // --- KUTU YERDEYKEN PLATFORM TAKİBİ DEĞİŞKENLERİ ---
     private Transform currentPlatform = null;
     private Vector3 lastPlatformPosition;
     private Quaternion lastPlatformRotation;
 
-    // --- YENİ EKLENDİ: KUTU TUTULURKEN (PLAYER İÇİN) PLATFORM TAKİBİ DEĞİŞKENLERİ ---
+    // --- KUTU TUTULURKEN (PLAYER İÇİN) PLATFORM TAKİBİ DEĞİŞKENLERİ ---
     private Transform grabbedPlatform = null;
     private Vector3 grabbedLocalPos;
     private Vector3 grabbedGlobalPos;
     private Quaternion grabbedLocalRot;
     private Quaternion grabbedGlobalRot;
 
+    // ==========================================
+    // --- YENİ EKLENDİ: KUTU SIFIRLAMA HAFIZASI ---
+    // ==========================================
+    private Vector3 initialPosition;
+    private Quaternion initialRotation;
+    public static List<PushableBox> allBoxes = new List<PushableBox>();
+
+    void Awake()
+    {
+        // Sahnedeki tüm kutuları listeye ekle ki ölünce hepsine tek tuşla ulaşabilelim
+        if (!allBoxes.Contains(this)) allBoxes.Add(this);
+    }
+
+    void OnDestroy()
+    {
+        if (allBoxes.Contains(this)) allBoxes.Remove(this);
+    }
+
     void Start()
     {
+        // --- YENİ EKLENDİ: Oyun başlarken kutunun ilk yerini hafızaya kazı! ---
+        initialPosition = transform.position;
+        initialRotation = transform.rotation;
+
         rb = GetComponent<Rigidbody>();
         rb.mass = 50f;
         rb.drag = 0f;
@@ -65,27 +88,22 @@ public class PushableBox : MonoBehaviour
             else TryGrab();
         }
 
-        // --- KUTU TUTULURKEN OYUNCU HAREKETİ VE ANİMASYONLARI ---
         if (isGrabbed && playerCC != null)
         {
-            // 1. ÖNCE PLATFORMUN HAREKETİNİ OYUNCUYA UYGULA (Kapanan Scriptin Yerine Biz Taşıyoruz)
             HandleGrabbedPlatformTracking();
 
-            // 2. KULLANICI GİRDİSİNİ (WASD) UYGULA
             float vertical = Input.GetAxis("Vertical");
             float horizontal = Input.GetAxis("Horizontal");
 
-            // --- GÜNCELLENDİ: SADECE W VEYA S'YE BASARKEN DÖNME İZNİ ---
             if (Mathf.Abs(vertical) > 0.01f)
             {
-                // Çekerken (S) sağa sola dönmenin ters hissettirmemesi için Mathf.Sign(vertical) ile çarptık.
                 float turnAmount = horizontal * turnSpeed * Mathf.Sign(vertical) * Time.deltaTime;
                 playerTransform.Rotate(0, turnAmount, 0);
             }
 
             Vector3 moveDir = playerTransform.forward * vertical * pushSpeed;
 
-            float yVel = -9.81f; // Yerçekimi
+            float yVel = -9.81f;
             if (vertical != 0)
             {
                 if (Physics.Raycast(transform.position + Vector3.up * 0.1f, playerTransform.forward * vertical, 0.8f))
@@ -100,18 +118,15 @@ public class PushableBox : MonoBehaviour
             moveDir.y = yVel;
             playerCC.Move(moveDir * Time.deltaTime);
 
-            // --- YENİ EKLENDİ: OYUNCU ANİMASYONLARINI KUTU İÇİNDEN YÖNET ---
             if (playerAnimator != null)
             {
                 playerAnimator.SetFloat("PushPull", vertical, 0.1f, Time.deltaTime);
             }
 
-            // 3. BİR SONRAKİ KARE İÇİN HAFIZAYI GÜNCELLE
             UpdateGrabbedPlatformMemory();
         }
     }
 
-    // --- KUTU YERDEYKEN KUSURSUZ ASANSÖR TAKİBİ ---
     void FixedUpdate()
     {
         if (!isGrabbed && currentPlatform != null && rb != null && !rb.isKinematic)
@@ -135,23 +150,19 @@ public class PushableBox : MonoBehaviour
         }
     }
 
-    // --- İŞTE SENİ DÜŞMEKTEN KURTARACAK O SİHİRLİ FONKSİYON ---
     private void HandleGrabbedPlatformTracking()
     {
         RaycastHit hit;
-        // Oyuncunun merkezinden aşağı ışın atarak üzerinde olduğumuz platformu bul
         if (Physics.Raycast(playerTransform.position + Vector3.up * 0.5f, Vector3.down, out hit, 2f))
         {
             Transform hitTransform = null;
 
-            // MovingIllusionPlatform Kontrolü
             MovingIllusionPlatform mip = hit.collider.GetComponent<MovingIllusionPlatform>();
             if (mip == null) mip = hit.collider.GetComponentInParent<MovingIllusionPlatform>();
             if (mip != null) hitTransform = mip.movingBody;
 
             if (hitTransform != null)
             {
-                // Platforma yeni bindiysek veya platform değiştiyse hafızayı kur
                 if (grabbedPlatform != hitTransform)
                 {
                     grabbedPlatform = hitTransform;
@@ -161,7 +172,6 @@ public class PushableBox : MonoBehaviour
                     grabbedLocalRot = Quaternion.Inverse(grabbedPlatform.rotation) * playerTransform.rotation;
                 }
 
-                // Platformun yer değişimini (Delta) bul ve karaktere uygula
                 Vector3 newGlobalPos = grabbedPlatform.TransformPoint(grabbedLocalPos);
                 Vector3 moveDiff = newGlobalPos - grabbedGlobalPos;
 
@@ -170,7 +180,6 @@ public class PushableBox : MonoBehaviour
                     playerCC.Move(moveDiff);
                 }
 
-                // Platformun dönüşünü (Rotation) bul ve karaktere uygula
                 Quaternion newGlobalRot = grabbedPlatform.rotation * grabbedLocalRot;
                 Quaternion rotationDiff = newGlobalRot * Quaternion.Inverse(grabbedGlobalRot);
                 rotationDiff.ToAngleAxis(out float angle, out Vector3 axis);
@@ -226,24 +235,20 @@ public class PushableBox : MonoBehaviour
                     playerTransform = playerCC.transform;
                     SanchoMovement sm = playerTransform.GetComponent<SanchoMovement>();
 
-                    // --- YENİ EKLENDİ: ZIPLARKEN TUTMA KİLİDİ ---
                     if (sm != null && !sm.isGrounded)
                     {
                         Debug.Log("🚫 Sancho havada, kutu tutulamaz!");
-                        return; // Havadaysa işlemi anında kes.
+                        return;
                     }
-                    // -------------------------------------------
 
                     playerMovementScript = playerTransform.GetComponent("SanchoMovement") as MonoBehaviour;
-                    playerAnimator = playerTransform.GetComponentInChildren<Animator>(); // YENİ: Animatörü bul
+                    playerAnimator = playerTransform.GetComponentInChildren<Animator>();
 
-                    // Sancho'nun hareket scripti kapandığı için yukarıdaki HandleGrabbedPlatformTracking devreye giriyor!
                     if (playerMovementScript != null) playerMovementScript.enabled = false;
 
                     isGrabbed = true;
                     if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = false;
 
-                    // Kutu tutulduğunda BoxInteract state'ine geçmesi için isHoldingBox'ı aç!
                     if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", true);
 
                     rb.isKinematic = true;
@@ -259,11 +264,10 @@ public class PushableBox : MonoBehaviour
     {
         if (!isGrabbed) return;
         isGrabbed = false;
-        grabbedPlatform = null; // Bıraktığında platform hafızasını sil
+        grabbedPlatform = null;
 
         if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = true;
 
-        // Kutuyu bıraktığında normal Locomotion state'ine dönmesi için isHoldingBox'ı kapat!
         if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", false);
 
         transform.SetParent(null);
@@ -278,7 +282,7 @@ public class PushableBox : MonoBehaviour
 
         playerTransform = null;
         playerCC = null;
-        playerAnimator = null; // Animatör referansını temizle
+        playerAnimator = null;
     }
 
     private void AlignPlayerToBox()
@@ -330,6 +334,39 @@ public class PushableBox : MonoBehaviour
         {
             lastPlatformPosition = currentPlatform.position;
             lastPlatformRotation = currentPlatform.rotation;
+        }
+    }
+
+    // ==========================================
+    // --- YENİ EKLENDİ: SIFIRLAMA METOTLARI ---
+    // ==========================================
+
+    public void ResetToOriginalPosition()
+    {
+        // Eğer oyuncu ölürken kutuyu hala tutuyorsa, önce zorla bıraktırıyoruz!
+        if (isGrabbed)
+        {
+            ReleaseBox();
+        }
+
+        // Başlangıç noktasına ışınla
+        transform.position = initialPosition;
+        transform.rotation = initialRotation;
+
+        // Fizik motorunda kalmış eski hızları (itme gücünü) sıfırla
+        if (rb != null && !rb.isKinematic)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+    }
+
+    // Sahnede ne kadar kutu varsa hepsini tek tuşla sıfırlamaya yarayan o sihirli fonksiyon
+    public static void ResetAllBoxes()
+    {
+        foreach (var box in allBoxes)
+        {
+            if (box != null) box.ResetToOriginalPosition();
         }
     }
 }

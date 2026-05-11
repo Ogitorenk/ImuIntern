@@ -726,18 +726,33 @@ public class DonMovement : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("💀 Don Öldü! Canlar sıfırlanıyor...");
+        Debug.Log("💀 Don Öldü! Tüm fizik ve durumlar sıfırlanıyor...");
 
+        // 1. DON'A ÖZEL DURUM KİLİTLERİNİ SIFIRLA
+        isDrinking = false;
+        isLatched = false;
+        isThrowing = false; // Mızrak atarken ölürse kilitli kalmasın
+
+        // 2. CANLARI FULLE
         if (DualRealityManager.Instance != null)
         {
             DualRealityManager.Instance.ResetAllHealth();
         }
 
+        // 3. KUTULARI YERİNE GÖNDER
+        PushableBox.ResetAllBoxes();
+
+        // 4. FİZİK SIFIRLAMA VE IŞINLAMA
+        velocity = Vector3.zero; // Düşüş/Zıplama hızını sıfırla
+
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
+
         controller.enabled = false;
         transform.position = respawnPos;
+        controller.Move(Vector3.zero); // İçeride kalmış eski itme gücünü temizle
         controller.enabled = true;
-        velocity = Vector3.zero;
+
+        velocity = Vector3.zero; // Garanti sıfırlama
     }
 
     // --- GÜNCELLENDİ: İKSİR İÇME KONTROLLERİ ---
