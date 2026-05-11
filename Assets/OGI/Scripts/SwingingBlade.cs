@@ -16,22 +16,18 @@ public class SwingingBlade : MonoBehaviour
     private float lastHitTime = -10f;
     private float timer = 0f;
 
-    // --- YENİ EKLENDİ: BAŞLANGIÇ ROTASYON HAFIZASI ---
     private float initialY;
     private float initialZ;
 
-    // --- YÖN BULUCU SİSTEM ---
     private Vector3 lastPosition;
     private Vector3 currentVelocity;
     private Collider[] bladeColliders;
 
     void Start()
     {
-        // Editörde verdiğin Y (sağ/sol) ve Z (eğim) açılarını hafızaya alıyoruz!
         initialY = transform.localEulerAngles.y;
         initialZ = transform.localEulerAngles.z;
 
-        // Başlangıçta o hafızadaki değerleri kullanarak başla
         transform.localRotation = Quaternion.Euler(startAngle, initialY, initialZ);
 
         lastPosition = transform.position;
@@ -43,10 +39,8 @@ public class SwingingBlade : MonoBehaviour
         timer += Time.deltaTime;
         float currentAngle = startAngle * Mathf.Cos(timer * swingSpeed);
 
-        // X ekseninde sallan, ama Editördeki Y ve Z dönüşlerini SIFIRLAMA!
         transform.localRotation = Quaternion.Euler(currentAngle, initialY, initialZ);
 
-        // BIÇAĞIN DÜNYADAKİ GERÇEK HIZINI HESAPLA
         Vector3 currentPos = bladeColliders[0].bounds.center;
         currentVelocity = (currentPos - lastPosition) / Time.deltaTime;
         lastPosition = currentPos;
@@ -61,28 +55,50 @@ public class SwingingBlade : MonoBehaviour
             {
                 lastHitTime = Time.time;
 
-                // 1. HASAR VER
-                if (other.TryGetComponent(out DonMovement don)) don.TakeDamage(damage);
-                else if (other.TryGetComponent(out SanchoMovement sancho)) sancho.TakeDamage(damage);
+                // --- YENİ EKLENDİ: Hasar yemeden önceki konumumuzu kaydediyoruz ---
+                Vector3 posBeforeHit = cc.transform.position;
 
-                // --- 2. GERÇEKÇİ FİZİK YÖNÜ HESAPLAMA ---
+                bool isDead = false; // Adam öldü mü kontrolü
 
-                // A) Bıçağın savrulma yönü (Yukarı kalkmayı iptal ediyoruz, sadece yatay itiş)
-                Vector3 swingDirection = currentVelocity;
-                swingDirection.y = 0;
-                swingDirection.Normalize();
+                // 1. HASAR VER VE ÖLDÜ MÜ BAK
+                if (other.TryGetComponent(out DonMovement don))
+                {
+                    don.TakeDamage(damage);
+                    if (don.currentHealth <= 0) isDead = true;
+                }
+                else if (other.TryGetComponent(out SanchoMovement sancho))
+                {
+                    sancho.TakeDamage(damage);
+                    if (sancho.currentHealth <= 0) isDead = true;
+                }
 
-                // B) Karakteri bıçaktan dışarı doğru iten yön (Karakter bıçağın içine girmesin diye)
-                Vector3 outwardPush = (cc.transform.position - bladeColliders[0].bounds.center);
-                outwardPush.y = 0;
-                outwardPush.Normalize();
+                // --- SİHİRLİ KİLİT BURASI ---
+                // Eğer hasar yedikten sonra karakterin yeri aniden değiştiyse (Ölüp Checkpoint'e ışınlandıysa)
+                if (Vector3.Distance(cc.transform.position, posBeforeHit) > 2f)
+                {
+                    Debug.Log("🚫 Bıçak öldürdü (veya ışınladı), fırlatma İPTAL!");
+                    return; // Direkt çık, fırlatma koduna hiç girme!
+                }
 
-                // C) İkisini harmanla! (Bıçağın gidiş yönü daha ağır basar: 1.5f çarpanı)
-                // Böylece oyuncu tam bıçağın gittiği yöne ama hafifçe dışa doğru savrulur.
-                Vector3 finalDirection = (swingDirection * 1.5f + outwardPush * 0.5f).normalized;
+                // EĞER KARAKTER BU VURUŞLA ÖLMEDİYSE FIRLAT! (Öldüyse zaten ışınlandı, elleme)
+                if (!isDead)
+                {
+                    // A) Bıçağın savrulma yönü 
+                    Vector3 swingDirection = currentVelocity;
+                    swingDirection.y = 0;
+                    swingDirection.Normalize();
 
-                // 3. FIRLAT
-                StartCoroutine(ApplyBladeFling(cc, finalDirection));
+                    // B) Karakteri bıçaktan dışarı doğru iten yön 
+                    Vector3 outwardPush = (cc.transform.position - bladeColliders[0].bounds.center);
+                    outwardPush.y = 0;
+                    outwardPush.Normalize();
+
+                    // C) İkisini harmanla! 
+                    Vector3 finalDirection = (swingDirection * 1.5f + outwardPush * 0.5f).normalized;
+
+                    // 3. FIRLAT
+                    StartCoroutine(ApplyBladeFling(cc, finalDirection));
+                }
             }
         }
     }
@@ -99,17 +115,24 @@ public class SwingingBlade : MonoBehaviour
         float elapsed = 0f;
         float vSpeed = flingUpward;
 
+        Vector3 lastFramePos = cc.transform.position;
+
         while (elapsed < duration)
         {
-            if (cc != null)
-            {
-                float currentFling = Mathf.Lerp(flingPower, 0, elapsed / duration);
-                vSpeed += Physics.gravity.y * 2.8f * Time.deltaTime;
+            if (cc == null || !cc.enabled) break;
 
-                // Yeni hesapladığımız kusursuz direction vektörü burada çalışıyor
-                Vector3 moveAmount = (direction * currentFling) + (Vector3.up * vSpeed);
-                cc.Move(moveAmount * Time.deltaTime);
+            if (Vector3.Distance(cc.transform.position, lastFramePos) > 5f)
+            {
+                break;
             }
+
+            float currentFling = Mathf.Lerp(flingPower, 0, elapsed / duration);
+            vSpeed += Physics.gravity.y * 2.8f * Time.deltaTime;
+
+            Vector3 moveAmount = (direction * currentFling) + (Vector3.up * vSpeed);
+            cc.Move(moveAmount * Time.deltaTime);
+
+            lastFramePos = cc.transform.position;
             elapsed += Time.deltaTime;
             yield return null;
         }
