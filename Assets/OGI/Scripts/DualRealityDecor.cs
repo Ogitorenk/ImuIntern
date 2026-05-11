@@ -1,20 +1,26 @@
 using UnityEngine;
+using UnityEngine.Rendering.PostProcessing; // 1. BURAYI EKLEDÄ°K: Post-processing kÃ¼tÃ¼phanesi
 
 public class DualRealityDecor : MonoBehaviour
 {
-    [Header("--- İllüzyon Objeleri ---")]
-    [Tooltip("Don Kişot aktifken nerede ve ne şekilde görüneceğini ayarladığın obje")]
+    [Header("--- Ä°llÃ¼zyon Objeleri ---")]
+    [Tooltip("Don KiÅŸot aktifken nerede ve ne ÅŸekilde gÃ¶rÃ¼neceÄŸini ayarladÄ±ÄŸÄ±n obje")]
     public GameObject donView;
 
-    [Tooltip("Sancho aktifken nerede ve ne şekilde görüneceğini ayarladığın obje")]
+    [Tooltip("Sancho aktifken nerede ve ne ÅŸekilde gÃ¶rÃ¼neceÄŸini ayarladÄ±ÄŸÄ±n obje")]
     public GameObject sanchoView;
 
-    // Arka planda karakterin değişip değişmediğini takip eden hafıza
+    [Header("--- Renk Tonu AyarlarÄ± ---")] // 2. BURAYI EKLEDÄ°K: MÃ¼fettiÅŸ (Inspector) iÃ§in yeni alanlar
+    public PostProcessVolume globalVolume; 
+    public PostProcessProfile donProfile;
+    public PostProcessProfile sanchoProfile;
+
+    // Arka planda karakterin deÄŸiÅŸip deÄŸiÅŸmediÄŸini takip eden hafÄ±za
     private bool lastState;
 
     void Start()
     {
-        // Oyun başlarken kim aktifse ona göre objeleri aç/kapat
+        // Oyun baÅŸlarken kim aktifse ona gÃ¶re objeleri aÃ§/kapat
         if (DualRealityManager.Instance != null)
         {
             lastState = DualRealityManager.Instance.isDonActive;
@@ -24,13 +30,13 @@ public class DualRealityDecor : MonoBehaviour
 
     void Update()
     {
-        // Her karede karakterin değişip değişmediğini kontrol et
-        // (DualRealityManager'a kod eklememek için bu taktiği kullanıyoruz)
+        // Her karede karakterin deÄŸiÅŸip deÄŸiÅŸmediÄŸini kontrol et
+        // (DualRealityManager'a kod eklememek iÃ§in bu taktiÄŸi kullanÄ±yoruz)
         if (DualRealityManager.Instance != null)
         {
             bool currentState = DualRealityManager.Instance.isDonActive;
 
-            // Eğer karakter değiştiyse (TAB tuşuna basıldıysa) durumu güncelle
+            // EÄŸer karakter deÄŸiÅŸtiyse (TAB tuÅŸuna basÄ±ldÄ±ysa) durumu gÃ¼ncelle
             if (currentState != lastState)
             {
                 lastState = currentState;
@@ -41,10 +47,23 @@ public class DualRealityDecor : MonoBehaviour
 
     public void UpdatePerception(bool isDon)
     {
-        // Don aktifse Don'un objesi açılsın (Sancho'nunki kapansın)
+        // Don aktifse Don'un objesi aÃ§Ä±lsÄ±n (Sancho'nunki kapansÄ±n)
         if (donView != null) donView.SetActive(isDon);
 
-        // Sancho aktifse Sancho'nun objesi açılsın (Don'unki kapansın)
+        // Sancho aktifse Sancho'nun objesi aÃ§Ä±lsÄ±n (Don'unki kapansÄ±n)
         if (sanchoView != null) sanchoView.SetActive(!isDon);
+
+        // 3. BURAYI EKLEDÄ°K: Renk profili geÃ§iÅŸ mantÄ±ÄŸÄ±
+        if (globalVolume != null)
+        {
+            if (isDon && donProfile != null)
+            {
+                globalVolume.profile = donProfile;
+            }
+            else if (!isDon && sanchoProfile != null)
+            {
+                globalVolume.profile = sanchoProfile;
+            }
+        }
     }
 }
