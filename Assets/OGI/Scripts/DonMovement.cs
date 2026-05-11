@@ -86,6 +86,11 @@ public class DonMovement : MonoBehaviour
     public GameObject lancePrefab;
     public float throwForce = 100f;
 
+    // ========================================================
+    // --- YENİ EKLENDİ: ELDEKİ GÖRSEL MIZRAK (NİŞAN ALIRKEN) ---
+    // ========================================================
+    public GameObject eldekiGorselMizrak;
+
     // --- YENİ EKLENDİ: FIRLATMA SENKRONİZASYONU ---
     [Tooltip("Tıkladıktan kaç saniye sonra mızrak elden çıksın?")]
     public float throwDelay = 0.2f;
@@ -160,6 +165,11 @@ public class DonMovement : MonoBehaviour
         currentSpeed = speed;
 
         if (crosshairUI != null) crosshairUI.SetActive(false);
+
+        // ========================================================
+        // --- YENİ EKLENDİ: OYUN BAŞLARKEN MIZRAĞI GİZLE ---
+        // ========================================================
+        if (eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
 
         if (normalCamera != null)
         {
@@ -564,6 +574,11 @@ public class DonMovement : MonoBehaviour
         // Animasyondaki el ileri gitme anını bekle (Inspector'dan ayarlanır)
         yield return new WaitForSeconds(throwDelay);
 
+        // ========================================================
+        // --- YENİ EKLENDİ: TAM FIRLATTIĞIN AN ELİNDEKİNİ GİZLE ---
+        // ========================================================
+        if (eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
+
         ThrowLance(); // Mızrağı tam bu anda fırlat!
 
         // Animasyon bitene kadar biraz daha kilitli tut ki tuşa basıp durmasın
@@ -603,10 +618,20 @@ public class DonMovement : MonoBehaviour
             if (crosshairUI != null) crosshairUI.SetActive(true);
             Time.timeScale = slowMotionAmount;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
+
+            // ========================================================
+            // --- YENİ EKLENDİ: NİŞAN ALIRKEN MIZRAĞI GÖSTER ---
+            // ========================================================
+            if (eldekiGorselMizrak != null && !isThrowing) eldekiGorselMizrak.SetActive(true);
         }
         else
         {
             if (crosshairUI != null) crosshairUI.SetActive(false);
+
+            // ========================================================
+            // --- YENİ EKLENDİ: NİŞAN ALMAYI BIRAKINCA MIZRAĞI GİZLE ---
+            // ========================================================
+            if (eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
 
             if (!isTimePotionActive)
             {
