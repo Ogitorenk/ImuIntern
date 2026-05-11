@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections.Generic; // YENİ EKLENDİ: Liste kullanabilmek için
+using System.Collections.Generic;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PushableBox : MonoBehaviour
@@ -24,28 +24,22 @@ public class PushableBox : MonoBehaviour
     private Rigidbody rb;
     private Animator playerAnimator;
 
-    // --- KUTU YERDEYKEN PLATFORM TAKİBİ DEĞİŞKENLERİ ---
     private Transform currentPlatform = null;
     private Vector3 lastPlatformPosition;
     private Quaternion lastPlatformRotation;
 
-    // --- KUTU TUTULURKEN (PLAYER İÇİN) PLATFORM TAKİBİ DEĞİŞKENLERİ ---
     private Transform grabbedPlatform = null;
     private Vector3 grabbedLocalPos;
     private Vector3 grabbedGlobalPos;
     private Quaternion grabbedLocalRot;
     private Quaternion grabbedGlobalRot;
 
-    // ==========================================
-    // --- YENİ EKLENDİ: KUTU SIFIRLAMA HAFIZASI ---
-    // ==========================================
     private Vector3 initialPosition;
     private Quaternion initialRotation;
     public static List<PushableBox> allBoxes = new List<PushableBox>();
 
     void Awake()
     {
-        // Sahnedeki tüm kutuları listeye ekle ki ölünce hepsine tek tuşla ulaşabilelim
         if (!allBoxes.Contains(this)) allBoxes.Add(this);
     }
 
@@ -56,12 +50,12 @@ public class PushableBox : MonoBehaviour
 
     void Start()
     {
-        // --- YENİ EKLENDİ: Oyun başlarken kutunun ilk yerini hafızaya kazı! ---
         initialPosition = transform.position;
         initialRotation = transform.rotation;
 
         rb = GetComponent<Rigidbody>();
-        rb.mass = 50f;
+        // GÜNCELLENDİ: Oyuncu yürüyerek çarpıp itemesin diye tank gibi ağır yaptık
+        rb.mass = 99999f;
         rb.drag = 0f;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
 
@@ -102,6 +96,39 @@ public class PushableBox : MonoBehaviour
             }
 
             Vector3 moveDir = playerTransform.forward * vertical * pushSpeed;
+
+            // ========================================================
+            // --- YENİ EKLENDİ: KUTU DUVAR ÇARPIŞMA RADARI (BOXCAST) ---
+            // ========================================================
+            if (Mathf.Abs(vertical) > 0.01f)
+            {
+                Vector3 direction = playerTransform.forward * Mathf.Sign(vertical);
+                float distance = (pushSpeed * Time.deltaTime) + 0.15f;
+                Collider col = GetComponent<Collider>();
+
+                if (col != null)
+                {
+                    // Yere sürtüp takılmasın diye radarın boyutunu %85'e çektik
+                    Vector3 extents = col.bounds.extents * 0.85f;
+                    RaycastHit[] hits = Physics.BoxCastAll(col.bounds.center, extents, direction, transform.rotation, distance);
+
+                    foreach (var hit in hits)
+                    {
+                        // Radar kendine, oyuncuya, triggerlara veya hareketli platformlara takılmasın
+                        if (hit.collider.gameObject != gameObject &&
+                            hit.collider.transform.root != playerTransform.root &&
+                            !hit.collider.isTrigger &&
+                            !hit.collider.CompareTag("MovingPlatform"))
+                        {
+                            // Aha duvar! İleri gitmeyi anında iptal et.
+                            moveDir.x = 0;
+                            moveDir.z = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+            // ========================================================
 
             float yVel = -9.81f;
             if (vertical != 0)
@@ -218,6 +245,19 @@ public class PushableBox : MonoBehaviour
         if (rb != null && !isGrabbed)
         {
             rb.isKinematic = isDon;
+
+            // ========================================================
+            // --- GÜNCELLENDİ: TUTMADAN İTTİRMEYİ KÖKTEN ENGELLEME ---
+            // ========================================================
+            if (!isDon)
+            {
+                // Sancho modunda kutu düşebilsin ama oyuncu çarparak itemesin diye X ve Z kilitli!
+                rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
+            }
+            else
+            {
+                rb.constraints = RigidbodyConstraints.FreezeRotation;
+            }
         }
     }
 
@@ -251,7 +291,10 @@ public class PushableBox : MonoBehaviour
 
                     if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", true);
 
+                    // Tutulduğu an kilitleri açıp karakterin hareketine uyumlu hale getiriyoruz
+                    rb.constraints = RigidbodyConstraints.FreezeRotation;
                     rb.isKinematic = true;
+
                     AlignPlayerToBox();
                     transform.SetParent(playerTransform, true);
                     return;
@@ -337,23 +380,16 @@ public class PushableBox : MonoBehaviour
         }
     }
 
-    // ==========================================
-    // --- YENİ EKLENDİ: SIFIRLAMA METOTLARI ---
-    // ==========================================
-
     public void ResetToOriginalPosition()
     {
-        // Eğer oyuncu ölürken kutuyu hala tutuyorsa, önce zorla bıraktırıyoruz!
         if (isGrabbed)
         {
             ReleaseBox();
         }
 
-        // Başlangıç noktasına ışınla
         transform.position = initialPosition;
         transform.rotation = initialRotation;
 
-        // Fizik motorunda kalmış eski hızları (itme gücünü) sıfırla
         if (rb != null && !rb.isKinematic)
         {
             rb.velocity = Vector3.zero;
@@ -361,7 +397,6 @@ public class PushableBox : MonoBehaviour
         }
     }
 
-    // Sahnede ne kadar kutu varsa hepsini tek tuşla sıfırlamaya yarayan o sihirli fonksiyon
     public static void ResetAllBoxes()
     {
         foreach (var box in allBoxes)
