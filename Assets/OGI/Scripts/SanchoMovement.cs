@@ -26,7 +26,7 @@ public class SanchoMovement : MonoBehaviour
     [Header("Etkileşim Durumu")]
     public bool isHoldingBox = false;
 
-    // --- YENİ EKLENDİ: İKSİR VE TAMİR KİLİTLERİ ---
+    // --- İKSİR VE TAMİR KİLİTLERİ ---
     [HideInInspector] public bool isDrinking = false;
     [HideInInspector] public bool isRepairing = false; // TAMİR KİLİDİ
 
@@ -42,17 +42,50 @@ public class SanchoMovement : MonoBehaviour
     private float turnSmoothVelocity;
     private float referenceYaw;
 
-    [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme)")]
+    [Header("Ekstra Hareket (Koşma/Yürüme/Eğilme/Sürünme)")]
     public float sprintSpeed = 10f;
     public float walkSpeed = 2f;
     public float crouchSpeed = 3f;
-    public float normalScaleY = 1f;
-    public float crouchScaleY = 0.5f;
+
+    // ========================================================
+    // --- SÜRÜNME, KİLİT VE YÜKSEKLİK AYARLARI ---
+    // ========================================================
+    public float crawlSpeed = 1.5f;
+    public float normalHeight = 2f;
+    public float crouchHeight = 1f;
+    public float crawlHeight = 0.6f;
     public float crouchTransitionSpeed = 10f;
+
+    [Tooltip("Ctrl'ye basıp eğilirken kaç saniye hareket kilitlensin?")]
+    public float crouchDelayDuration = 1f; // Inspector'dan ayarlanabilir kilit süresi
 
     private float currentSpeed;
     private bool isCrouching = false;
     private bool isWalking = false;
+
+    private bool isCrawling = false;
+    private float crawlStartTimer = 0f;
+    private bool isCrouchToggled = false;
+
+    // Orijinal kapsül merkezini ve ayak tabanını tutacağımız değişkenler
+    private Vector3 baseCenter;
+    private float baseBottom;
+    // ========================================================
+
+    // ========================================================
+    // --- YENİ EKLENDİ: DODGE (KAÇINMA) AYARLARI ---
+    // ========================================================
+    [Header("Dodge (Kaçınma) Ayarları")]
+    public float dodgeSpeed = 15f;
+    public float dodgeDuration = 0.4f;
+    [Tooltip("Shift'e ne kadar kısa basılırsa dodge sayılacak?")]
+    public float shiftTapThreshold = 0.25f;
+
+    private bool isDodging = false;
+    private float dodgeTimer = 0f;
+    private bool isShiftPressed = false;
+    private float shiftPressTimer = 0f;
+    // ========================================================
 
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
@@ -96,6 +129,11 @@ public class SanchoMovement : MonoBehaviour
 
         currentHealth = maxHealth;
         currentSpeed = speed;
+
+        // ZEMİNE GİRME BUG'I İÇİN MATEMATİK
+        controller.height = normalHeight;
+        baseCenter = controller.center;
+        baseBottom = baseCenter.y - (controller.height / 2f);
 
         if (normalCamera != null)
         {
@@ -189,16 +227,85 @@ public class SanchoMovement : MonoBehaviour
             landStunTimer -= Time.deltaTime;
         }
 
-        // GÜNCELLENDİ: İçerken VEYA Tamir Ederken eğilme/yürüme iptal
-        if (!isZiplining && !isHoldingBox && !isDrinking && !isRepairing)
+        if (crawlStartTimer > 0)
         {
-            if (isControlled && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            crawlStartTimer -= Time.deltaTime;
+        }
+
+        // ========================================================
+        // --- YENİ EKLENDİ: SPRINT VE DODGE (BAS-ÇEK) KONTROLÜ ---
+        // ========================================================
+        // Tamir ederken veya elinde kutu varken Dodge atamasın!
+        if (isControlled && !isDrinking && !isRepairing && !isZiplining && !isHoldingBox && !isDodging)
+        {
+            if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
             {
-                isCrouching = true;
+                isShiftPressed = true;
+                shiftPressTimer = 0f;
+            }
+
+            if (isShiftPressed)
+            {
+                shiftPressTimer += Time.deltaTime;
+
+                if (Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift))
+                {
+                    isShiftPressed = false;
+
+                    // Eğer kısa basıldıysa DODGE at!
+                    if (shiftPressTimer <= shiftTapThreshold && isGrounded && landStunTimer <= 0f && !isCrouchToggled)
+                    {
+                        isDodging = true;
+                        dodgeTimer = dodgeDuration;
+                        if (animator != null) animator.SetTrigger("Dodge");
+                    }
+                }
+            }
+        }
+        else if (!Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift))
+        {
+            isShiftPressed = false;
+            shiftPressTimer = 0f;
+        }
+
+        // ========================================================
+        // --- GÜNCELLENDİ: EĞİLME, SÜRÜNME, KİLİT VE COLLIDER ---
+        // ========================================================
+        // Dodge atarken sürünme tetiklenmesin
+        if (!isZiplining && !isHoldingBox && !isDrinking && !isRepairing && !isDodging)
+        {
+            if (isControlled && (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl)))
+            {
+                isCrouchToggled = !isCrouchToggled;
+
+                if (isCrouchToggled)
+                {
+                    crawlStartTimer = crouchDelayDuration;
+                    if (animator != null) animator.SetTrigger("CrawlStart");
+                }
+                else
+                {
+                    crawlStartTimer = 0f;
+                }
+            }
+
+            if (isCrouchToggled)
+            {
+                if (crawlStartTimer > 0f)
+                {
+                    isCrouching = true;
+                    isCrawling = false;
+                }
+                else
+                {
+                    isCrouching = false;
+                    isCrawling = true;
+                }
             }
             else
             {
                 isCrouching = false;
+                isCrawling = false;
             }
 
             if (isControlled && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
@@ -209,38 +316,33 @@ public class SanchoMovement : MonoBehaviour
             {
                 isWalking = false;
             }
+
+            // Tost (Scale) olayını sildik, onun yerine direkt Kapsülün boyunu tıraşlıyoruz
+            float targetHeight = isCrawling ? crawlHeight : (isCrouching ? crouchHeight : normalHeight);
+            controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
+
+            // Kapsülün sadece "üstten" aşağı inmesi, tabanının zeminde sabit kalması için formül
+            controller.center = new Vector3(baseCenter.x, baseBottom + (controller.height / 2f), baseCenter.z);
         }
         else
         {
             isCrouching = false;
+            isCrawling = false;
             isWalking = false;
+            isCrouchToggled = false;
         }
 
-        if (isCrouching)
-        {
-            currentSpeed = crouchSpeed;
-        }
-        else if (isWalking)
-        {
-            currentSpeed = walkSpeed;
-        }
-        else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
-        {
-            currentSpeed = sprintSpeed;
-        }
-        else
-        {
-            currentSpeed = speed;
-        }
+        if (isCrawling) currentSpeed = crawlSpeed;
+        else if (isCrouching) currentSpeed = crouchSpeed;
+        else if (isWalking) currentSpeed = walkSpeed;
+        // Shift'e basılı tutuluyorsa (veya basıldıysa) koştur. Kısa çekersen yukarıdaki Dodge sistemi çalışacak.
+        else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) currentSpeed = sprintSpeed;
+        else currentSpeed = speed;
 
         if (DonMovement.isTimePotionActive)
         {
             currentSpeed = currentSpeed * 1.5f;
         }
-
-        float targetScaleY = isCrouching ? crouchScaleY : normalScaleY;
-        Vector3 targetScale = new Vector3(transform.localScale.x, targetScaleY, transform.localScale.z);
-        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
 
         wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask, QueryTriggerInteraction.Ignore);
@@ -284,9 +386,9 @@ public class SanchoMovement : MonoBehaviour
             }
         }
 
-        // GÜNCELLENDİ: İksir içerken VEYA Tamir Ederken WASD iptal
-        float horizontal = (isControlled && !isDrinking && !isRepairing) ? Input.GetAxisRaw("Horizontal") : 0f;
-        float vertical = (isControlled && !isDrinking && !isRepairing) ? Input.GetAxisRaw("Vertical") : 0f;
+        // İksir, Tamir VEYA Sürünme kilidi varken WASD iptal
+        float horizontal = (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f) ? Input.GetAxisRaw("Horizontal") : 0f;
+        float vertical = (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f) ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
         if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
@@ -296,10 +398,24 @@ public class SanchoMovement : MonoBehaviour
 
         float animSpeed = 0f;
 
-        // GÜNCELLENDİ: İçerken veya tamir ederken koşma animasyonu oynamasın
         if (isZiplining || isDrinking || isRepairing)
         {
             animSpeed = 0f;
+        }
+        // ========================================================
+        // --- YENİ EKLENDİ: DODGE (İLERİ ATILMA) FİZİĞİ ---
+        // ========================================================
+        else if (isDodging)
+        {
+            dodgeTimer -= Time.deltaTime;
+            if (dodgeTimer <= 0)
+            {
+                isDodging = false;
+            }
+            else
+            {
+                if (controller.enabled) controller.Move(transform.forward * dodgeSpeed * Time.deltaTime);
+            }
         }
         else if (inputDir.magnitude >= 0.1f)
         {
@@ -332,18 +448,21 @@ public class SanchoMovement : MonoBehaviour
             animator.SetFloat("VerticalVelocity", velocity.y);
             animator.SetBool("isZiplining", isZiplining);
 
+            animator.SetBool("isCrawling", isCrawling);
+            // Ekstra güvenlik için Animatör'e de gönderelim
+            animator.SetBool("isDodging", isDodging);
+
             animator.SetBool("isHoldingBox", isHoldingBox);
             if (isHoldingBox)
             {
                 animator.SetFloat("PushPull", vertical, 0.1f, Time.deltaTime);
             }
 
-            // --- YENİ EKLENDİ: TAMİR ANİMASYON SİNYALİ ---
             animator.SetBool("isRepairing", isRepairing);
         }
 
-        // GÜNCELLENDİ: İksir içerken veya Tamir ederken buradan zıplayamasın
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining && !isHoldingBox && !isDrinking && !isRepairing)
+        // GÜNCELLENDİ: Dodge atarken zıplayamayız
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining && !isHoldingBox && !isDrinking && !isRepairing && !isCrouchToggled && !isDodging)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
@@ -398,6 +517,15 @@ public class SanchoMovement : MonoBehaviour
         currentHealth -= damageAmount;
         iFrames = 1f;
 
+        // Hasar yediğinde Dodge yarıda kesilsin ki saçma yerlere kaymasın
+        isDodging = false;
+
+        // Kütük veya tuzak vurduğunda karakteri havaya sıçratıp yerden kesiyoruz
+        velocity.y = 5f;
+        isGrounded = false;
+
+        if (animator != null) animator.SetTrigger("Jump");
+
         Debug.Log("🩸 Sancho HASAR ALDI! Kalan Can: " + currentHealth);
 
         if (currentHealth <= 0)
@@ -410,37 +538,34 @@ public class SanchoMovement : MonoBehaviour
     {
         Debug.Log("💀 Sancho Öldü! Tüm fizik ve durumlar sıfırlanıyor...");
 
-        // 1. SANCHO'YA ÖZEL DURUM KİLİTLERİNİ SIFIRLA
         isDrinking = false;
         isRepairing = false;
         isHoldingBox = false;
+        isDodging = false;
 
-        // 2. CANLARI FULLE
         if (DualRealityManager.Instance != null)
         {
             DualRealityManager.Instance.ResetAllHealth();
         }
 
-        // 3. KUTULARI YERİNE GÖNDER
         PushableBox.ResetAllBoxes();
 
-        // 4. FİZİK SIFIRLAMA VE IŞINLAMA
-        velocity = Vector3.zero; // Düşüş/Zıplama hızını sıfırla
+        velocity = Vector3.zero;
 
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
 
         controller.enabled = false;
         transform.position = respawnPos;
-        controller.Move(Vector3.zero); // İçeride kalmış eski itme gücünü temizle
+        controller.Move(Vector3.zero);
         controller.enabled = true;
 
-        velocity = Vector3.zero; // Garanti sıfırlama
+        velocity = Vector3.zero;
     }
 
     public void UseHealthPotion()
     {
-        // GÜNCELLENDİ: Tamir ederken iksir içemesin
-        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing) return;
+        // GÜNCELLENDİ: Dodge atarken iksir içemesin
+        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing || isDodging) return;
 
         if (healthPotionCount > 0 && currentHealth < maxHealth)
         {
@@ -458,8 +583,8 @@ public class SanchoMovement : MonoBehaviour
 
     public void UseSlowPotion()
     {
-        // GÜNCELLENDİ: Tamir ederken iksir içemesin
-        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing) return;
+        // GÜNCELLENDİ: Dodge atarken iksir içemesin
+        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing || isDodging) return;
 
         if (slowPotionCount > 0 && !DonMovement.isTimePotionActive)
         {
@@ -522,35 +647,25 @@ public class SanchoMovement : MonoBehaviour
         Debug.Log("⏳ Zaman normale döndü!");
     }
 
-    // ==========================================
-    // --- YENİ EKLENDİ: TAMİR SİSTEMİ METOTLARI ---
-    // ==========================================
-
-    // Bu fonksiyonu tamir edilecek bozuk bir objenin scriptinden (örn: F tuşuna basınca) çağıracaksın.
     public void StartRepairing()
     {
-        // Yerde değilsek, zaten tamir ediyorsak veya başka bir eylemdeysek engelle
-        if (!isGrounded || isRepairing || isDrinking || isZiplining || isHoldingBox) return;
+        // GÜNCELLENDİ: Dodge atarken tamir edemesin
+        if (!isGrounded || isRepairing || isDrinking || isZiplining || isHoldingBox || isDodging) return;
 
         isRepairing = true;
 
-        // Kaymayı önlemek için karakterin anlık hızını sıfırla
         velocity.x = 0f;
         velocity.z = 0f;
 
         if (animator != null)
         {
-            // "RepairStart" trigger'ını gönder ki başlangıç animasyonu oynasın
             animator.SetTrigger("RepairStart");
-
-            // "isRepairing" bool'unu true yap ki Start bitince Loop (Döngü) animasyonunda kalsın
             animator.SetBool("isRepairing", true);
         }
 
         Debug.Log("🔧 Sancho tamir etmeye başladı!");
     }
 
-    // Tamir işlemi bitince veya oyuncu F'ye tekrar basıp iptal edince bu fonksiyonu çağıracaksın.
     public void StopRepairing()
     {
         if (!isRepairing) return;
