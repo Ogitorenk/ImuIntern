@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
       propertyPath: m_Name
-      value: lance
+      value: lancemain
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
       propertyPath: m_TagString
@@ -103,6 +103,7 @@ MonoBehaviour:
   embedDepth: -4.8
   maxHitAngle: 120
   stickRotationOffset: {x: -90, y: 0, z: 0}
+  wallNormal: {x: 0, y: 0, z: 0}
 --- !u!136 &-8261482338549563802
 CapsuleCollider:
   m_ObjectHideFlags: 0
