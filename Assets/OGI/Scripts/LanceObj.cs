@@ -3,6 +3,11 @@ using System.Collections; // YENİ: Coroutine kullanmak için eklendi
 
 public class LanceObj : MonoBehaviour
 {
+    // ========================================================
+    // --- YENİ EKLENDİ: SAHNEDEKİ TEK MIZRAĞI TUTACAK HAFIZA ---
+    // ========================================================
+    private static LanceObj currentActiveLance;
+
     private Rigidbody rb;
     public bool isStuck = false;
 
@@ -18,6 +23,21 @@ public class LanceObj : MonoBehaviour
     [HideInInspector] public Vector3 wallNormal;
 
     private Coroutine destroyRoutine; // YENİ: Ölüm sayacını tutacağımız değişken
+
+    // ========================================================
+    // --- YENİ EKLENDİ: YENİ MIZRAK DOĞDUĞUNDA ESKİSİNİ YOK ET ---
+    // ========================================================
+    void Awake()
+    {
+        // Eğer hafızada benden önce atılmış bir mızrak varsa ve o ben değilsem, eskisini yok et!
+        if (currentActiveLance != null && currentActiveLance != this)
+        {
+            Destroy(currentActiveLance.gameObject);
+        }
+
+        // Artık sahnedeki tek ve güncel mızrak benim!
+        currentActiveLance = this;
+    }
 
     void Start()
     {

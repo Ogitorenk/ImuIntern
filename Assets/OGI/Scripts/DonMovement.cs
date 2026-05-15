@@ -4,11 +4,9 @@ using Cinemachine;
 [RequireComponent(typeof(CharacterController))]
 public class DonMovement : MonoBehaviour
 {
-    // --- YENİ EKLENDİ: ÖZEL SAHNE KONTROL ŞALTERİ ---
     [Header("Özel Bölüm Kontrolü")]
     public bool isControlled = true;
 
-    // --- YENİ EKLENEN SAĞLIK SİSTEMİ ---
     [Header("Sağlık Sistemi")]
     public float maxHealth = 100f;
     public float currentHealth;
@@ -17,20 +15,17 @@ public class DonMovement : MonoBehaviour
     [Header("Envanter (Can İksiri)")]
     public int healthPotionCount = 0;
     public float healthPotionHealAmount = 20f;
-    public KeyCode healKey = KeyCode.Alpha1; // 1 Tuşu     
+    public KeyCode healKey = KeyCode.Alpha1;
 
-    // --- YENİ EKLENDİ: ZAMAN İKSİRİ ---
     [Header("Envanter (Zaman İksiri)")]
     public int slowPotionCount = 0;
-    public float slowTimeAmount = 0.5f; // Zamanın hızı (%50 yavaşlar)
-    public float slowTimeDuration = 5f; // Gerçek hayatta 5 saniye sürer
-    public KeyCode slowTimeKey = KeyCode.Alpha2; // 2 Tuşu
-    public static bool isTimePotionActive = false; // Çakışmaları önleyen global şalter
+    public float slowTimeAmount = 0.5f;
+    public float slowTimeDuration = 5f;
+    public KeyCode slowTimeKey = KeyCode.Alpha2;
+    public static bool isTimePotionActive = false;
 
-    // --- YENİ EKLENDİ: İKSİR İÇME KİLİDİ ---
     [HideInInspector] public bool isDrinking = false;
 
-    // --- YENİ: PLATFORM FİZİĞİ DEĞİŞKENLERİ ---
     private Transform activePlatform;
     private Vector3 activeLocalPlatformPoint;
     private Vector3 activeGlobalPlatformPoint;
@@ -48,9 +43,6 @@ public class DonMovement : MonoBehaviour
     public float walkSpeed = 2f;
     public float crouchSpeed = 3f;
 
-    // ========================================================
-    // --- GÜNCELLENDİ: SÜRÜNME, KİLİT VE YÜKSEKLİK AYARLARI ---
-    // ========================================================
     public float crawlSpeed = 1.5f;
     public float normalHeight = 2f;
     public float crouchHeight = 1f;
@@ -58,20 +50,22 @@ public class DonMovement : MonoBehaviour
     public float crouchTransitionSpeed = 10f;
 
     [Tooltip("Ctrl'ye basıp eğilirken kaç saniye hareket kilitlensin?")]
-    public float crouchDelayDuration = 1f; // Inspector'dan ayarlanabilir kilit süresi
+    public float crouchDelayDuration = 1f;
+
+    [Tooltip("Eğildikten sonra kalkmak veya kalktıktan sonra eğilmek için Ctrl'nin bekleme süresi (Saniye)")]
+    public float crouchCooldown = 2f;
+    private float crouchCooldownTimer = 0f;
 
     private float currentSpeed;
     private bool isCrouching = false;
     private bool isWalking = false;
 
-    private bool isCrawling = false;
+    [HideInInspector] public bool isCrawling = false;
+    [HideInInspector] public bool isCrouchToggled = false;
     private float crawlStartTimer = 0f;
-    private bool isCrouchToggled = false;
 
-    // Orijinal kapsül merkezini ve ayak tabanını tutacağımız değişkenler
     private Vector3 baseCenter;
     private float baseBottom;
-    // ========================================================
 
     [Header("Zıplama & Fizik")]
     public float jumpHeight = 2f;
@@ -85,16 +79,14 @@ public class DonMovement : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
-    private bool isGrounded;
+    [HideInInspector] public bool isGrounded;
     private bool wasGrounded;
 
-    // --- YENİ EKLENDİ: İNİŞ SERSEMLEMESİ (LAND STUN) ---
     [Header("İniş Ayarları (Land)")]
     [Tooltip("Karakter yere indiğinde kaç saniye boyunca hareket edemeyip animasyonun bitmesini beklesin?")]
     public float landStunDuration = 0.15f;
     private float landStunTimer = 0f;
 
-    // --- YENİ EKLENDİ: ERKEN İNİŞ ---
     [Tooltip("Yere ne kadar mesafe kala iniş animasyonu başlasın?")]
     public float nearGroundDistance = 1.2f;
     private bool isNearGround;
@@ -124,6 +116,9 @@ public class DonMovement : MonoBehaviour
 
     [Tooltip("Karakterin kendi Z ekseninde (ileri/geri) mızrağa göre konumu. Elleri hizalamak için kullan.")]
     public float lanceForwardOffset = 0f;
+
+    [Tooltip("Zıplamadan hemen önce çarpışmayı yoksayarak mızrağın ne kadar ilerisine ışınlanacak?")]
+    public float lanceGhostForwardOffset = 1.0f;
 
     [HideInInspector] public bool isLatched = false;
     private Transform latchedLance;
@@ -160,24 +155,23 @@ public class DonMovement : MonoBehaviour
     private float dashTimer = 0f;
     private float dashCooldownTimer = 0f;
 
-    // ========================================================
-    // --- YENİ EKLENDİ: DODGE (KAÇINMA) AYARLARI ---
-    // ========================================================
     [Header("Dodge (Kaçınma) Ayarları")]
     public float dodgeSpeed = 15f;
     public float dodgeDuration = 0.4f;
     [Tooltip("Shift'e ne kadar kısa basılırsa dodge sayılacak?")]
     public float shiftTapThreshold = 0.25f;
 
-    private bool isDodging = false;
+    [HideInInspector] public bool isDodging = false;
     private float dodgeTimer = 0f;
     private bool isShiftPressed = false;
     private float shiftPressTimer = 0f;
-    // ========================================================
 
     private CharacterController controller;
     private Transform cam;
     private Animator animator;
+
+    // --- YENİ: COMBAT BAĞLANTISI ---
+    private DonCombat donCombat;
 
     void Start()
     {
@@ -186,6 +180,7 @@ public class DonMovement : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
 
         animator = GetComponentInChildren<Animator>();
+        donCombat = GetComponent<DonCombat>();
 
         currentHealth = maxHealth;
         currentSpeed = speed;
@@ -193,10 +188,6 @@ public class DonMovement : MonoBehaviour
         if (crosshairUI != null) crosshairUI.SetActive(false);
         if (eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
 
-        // ========================================================
-        // --- YENİ EKLENDİ: ZEMİNE GİRME BUG'I İÇİN MATEMATİK ---
-        // ========================================================
-        // Oyun başında kapsülün merkezini ve ayak tabanının pozisyonunu hafızaya alıyoruz.
         baseCenter = controller.center;
         baseBottom = baseCenter.y - (controller.height / 2f);
 
@@ -225,6 +216,15 @@ public class DonMovement : MonoBehaviour
 
     void Update()
     {
+        // --- YENİ: COMBAT DURUMLARINI ÇEK ---
+        bool isAttacking = false;
+        bool isBlocking = false;
+        if (donCombat != null)
+        {
+            isAttacking = donCombat.isAttacking;
+            isBlocking = donCombat.isBlocking;
+        }
+
         if (activePlatform != null)
         {
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
@@ -336,16 +336,13 @@ public class DonMovement : MonoBehaviour
             CheckForLanceLatch();
         }
 
-        // ========================================================
-        // --- GÜNCELLENDİ: DASH (OMUZ ATMA) ANİMASYON TETİKLEMESİ ---
-        // ========================================================
-        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && !isDodging && isGrounded && dashCooldownTimer <= 0f && !isDrinking)
+        // GÜNCELLENDİ: Vururken veya Kalkan açarken Dash atamasın
+        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && !isDodging && isGrounded && dashCooldownTimer <= 0f && !isDrinking && !isAttacking && !isBlocking)
         {
             isDashing = true;
             dashTimer = dashDuration;
             dashCooldownTimer = dashCooldown;
 
-            // Animator'e "Dash" animasyonunu oynaması için sinyal yolluyoruz
             if (animator != null) animator.SetTrigger("Dash");
         }
 
@@ -359,10 +356,13 @@ public class DonMovement : MonoBehaviour
             crawlStartTimer -= Time.deltaTime;
         }
 
-        // ========================================================
-        // --- YENİ EKLENDİ: DODGE VE SPRINT (BAS-ÇEK) KONTROLÜ ---
-        // ========================================================
-        if (isControlled && !isDrinking && !isZiplining && !isLatched && !isDashing && !isDodging)
+        if (crouchCooldownTimer > 0)
+        {
+            crouchCooldownTimer -= Time.deltaTime;
+        }
+
+        // GÜNCELLENDİ: Vururken veya kalkanlıyken Dodge atamasın!
+        if (isControlled && !isDrinking && !isZiplining && !isLatched && !isDashing && !isDodging && !isCrouchToggled && !isAttacking && !isBlocking)
         {
             if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
             {
@@ -378,8 +378,7 @@ public class DonMovement : MonoBehaviour
                 {
                     isShiftPressed = false;
 
-                    // Eğer kısa basıldıysa DODGE at!
-                    if (shiftPressTimer <= shiftTapThreshold && isGrounded && landStunTimer <= 0f && !isCrouchToggled)
+                    if (shiftPressTimer <= shiftTapThreshold && isGrounded && landStunTimer <= 0f)
                     {
                         isDodging = true;
                         dodgeTimer = dodgeDuration;
@@ -393,27 +392,26 @@ public class DonMovement : MonoBehaviour
             isShiftPressed = false;
             shiftPressTimer = 0f;
         }
-        // ========================================================
 
-        // ========================================================
-        // --- GÜNCELLENDİ: BAS/ÇEK KİLİDİ VE YUKARIDAN KESİLEN COLLIDER ---
-        // ========================================================
-        // GÜNCELLENDİ: Dodge atarken eğilme mantığı da iptal
         if (!isDashing && !isDodging && !isLatched && !isZiplining && !isDrinking)
         {
             if (isControlled && (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl)))
             {
-                isCrouchToggled = !isCrouchToggled;
+                // GÜNCELLENDİ: Vururken veya kalkanlıyken eğilmesin
+                if (isGrounded && crouchCooldownTimer <= 0f && !isAttacking && !isBlocking)
+                {
+                    isCrouchToggled = !isCrouchToggled;
+                    crouchCooldownTimer = crouchCooldown;
 
-                if (isCrouchToggled)
-                {
-                    // Delay ayarını değişkene bağladık
-                    crawlStartTimer = crouchDelayDuration;
-                    if (animator != null) animator.SetTrigger("CrawlStart");
-                }
-                else
-                {
-                    crawlStartTimer = 0f;
+                    if (isCrouchToggled)
+                    {
+                        crawlStartTimer = crouchDelayDuration;
+                        if (animator != null) animator.SetTrigger("CrawlStart");
+                    }
+                    else
+                    {
+                        crawlStartTimer = 0f;
+                    }
                 }
             }
 
@@ -448,7 +446,7 @@ public class DonMovement : MonoBehaviour
             if (isCrawling) currentSpeed = crawlSpeed;
             else if (isCrouching) currentSpeed = crouchSpeed;
             else if (isWalking) currentSpeed = walkSpeed;
-            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) currentSpeed = sprintSpeed;
+            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled) currentSpeed = sprintSpeed;
             else currentSpeed = speed;
 
             if (isTimePotionActive)
@@ -456,11 +454,9 @@ public class DonMovement : MonoBehaviour
                 currentSpeed = currentSpeed * 1.5f;
             }
 
-            // Tost (Scale) olayını sildik, onun yerine direkt Kapsülün boyunu tıraşlıyoruz
             float targetHeight = isCrawling ? crawlHeight : (isCrouching ? crouchHeight : normalHeight);
             controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
 
-            // Kapsülün sadece "üstten" aşağı inmesi, tabanının zeminde sabit kalması için Orijinal Ayak Tabanı + (Boy / 2) formülü
             controller.center = new Vector3(baseCenter.x, baseBottom + (controller.height / 2f), baseCenter.z);
         }
         else
@@ -468,7 +464,6 @@ public class DonMovement : MonoBehaviour
             isCrouching = false;
             isCrawling = false;
             isWalking = false;
-            isCrouchToggled = false; // Başka bir işleme geçerse toggle sıfırlansın
         }
 
         bool isAiming = isControlled && Input.GetMouseButton(1) && !isDrinking;
@@ -562,8 +557,9 @@ public class DonMovement : MonoBehaviour
             }
         }
 
-        float horizontal = (isControlled && !isDrinking && crawlStartTimer <= 0f) ? Input.GetAxisRaw("Horizontal") : 0f;
-        float vertical = (isControlled && !isDrinking && crawlStartTimer <= 0f) ? Input.GetAxisRaw("Vertical") : 0f;
+        // GÜNCELLENDİ: Vururken veya Kalkanlıyken input okumayı kes
+        float horizontal = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking) ? Input.GetAxisRaw("Horizontal") : 0f;
+        float vertical = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking) ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
         float animSpeed = 0f;
@@ -596,9 +592,23 @@ public class DonMovement : MonoBehaviour
         {
             animSpeed = 0f;
         }
+        else if (isAttacking)
+        {
+            // ========================================================
+            // --- GÜNCELLENDİ: BUG ÇÖZÜMÜ - VURURKEN KAMERAYA DÖN ---
+            // ========================================================
+            animSpeed = 0f;
+            float yawCamera = cam.eulerAngles.y;
+            transform.rotation = Quaternion.Euler(0, yawCamera, 0);
+
+            // KARAKTER ATAKTAN ÇIKINCA YANLIŞ YÖNE GİTMESİN DİYE REFERANSI GÜNCELLİYORUZ
+            referenceYaw = yawCamera;
+            // ========================================================
+        }
         else
         {
-            if (!isAiming)
+            // NORMAL YÜRÜME
+            if (!isAiming && !isBlocking)
             {
                 if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
                 {
@@ -623,12 +633,18 @@ public class DonMovement : MonoBehaviour
                     }
                 }
             }
+            // NİŞAN ALIRKEN VEYA KALKAN AÇIKKEN
             else
             {
+                // KARAKTERİ MOUSE YÖNÜNE (KAMERAYA) DÖNMEYE ZORLA
                 float yawCamera = cam.eulerAngles.y;
                 transform.rotation = Quaternion.Euler(0, yawCamera, 0);
 
-                if (inputDir.magnitude >= 0.1f && landStunTimer <= 0)
+                // KALKAN BİTTİĞİNDE YANLIŞ YÖNE FIRLAMASIN DİYE REFERANSI GÜNCELLİYORUZ
+                referenceYaw = yawCamera;
+
+                // KALKAN AÇIK DEĞİLSE (SADECE NİŞAN ALIYORSA) YÜRÜMEYE İZİN VER
+                if (inputDir.magnitude >= 0.1f && landStunTimer <= 0 && !isBlocking)
                 {
                     animSpeed = currentSpeed * 0.6f;
                     Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
@@ -647,11 +663,8 @@ public class DonMovement : MonoBehaviour
             animator.SetBool("isAiming", isAiming);
             animator.SetBool("isLanceHanging", isLatched);
             animator.SetBool("isCrawling", isCrawling);
-
             animator.SetBool("isDodging", isDodging);
-
-            // --- YENİ EKLENDİ: DASH SİNYALİ ---
-            animator.SetBool("isDashing", isDashing); // Dodge gibi Dash'in bitişini de kontrol edebilmen için ekledim
+            animator.SetBool("isDashing", isDashing);
 
             if (isAiming)
             {
@@ -659,7 +672,8 @@ public class DonMovement : MonoBehaviour
             }
         }
 
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && !isDodging && landStunTimer <= 0 && !isZiplining && !isDrinking && !isCrouchToggled)
+        // GÜNCELLENDİ: Vururken veya Kalkanlıyken Zıplayamasın
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && !isDodging && landStunTimer <= 0 && !isZiplining && !isDrinking && !isCrouchToggled && !isAttacking && !isBlocking)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
@@ -679,7 +693,6 @@ public class DonMovement : MonoBehaviour
 
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
-
     private System.Collections.IEnumerator ThrowRoutine()
     {
         isThrowing = true;
@@ -704,7 +717,6 @@ public class DonMovement : MonoBehaviour
             if (wallBreakEffect != null) Instantiate(wallBreakEffect, hit.point, Quaternion.LookRotation(hit.normal));
             Destroy(hit.gameObject);
 
-            // Duvarı kırdıktan sonra dash mekaniği sıfırlanıyor (isteğe bağlı olarak devam da ettirilebilir)
             isDashing = false;
             dashTimer = 0f;
         }
@@ -725,6 +737,13 @@ public class DonMovement : MonoBehaviour
 
     void SetAimMode(bool aiming)
     {
+        // --- YENİ EKLENDİ: Combat scriptinden atak yapıp yapmadığımızı öğreniyoruz ---
+        bool isMelee = false;
+        if (donCombat != null)
+        {
+            isMelee = donCombat.isAttacking;
+        }
+
         if (aiming)
         {
             if (crosshairUI != null) crosshairUI.SetActive(true);
@@ -737,7 +756,9 @@ public class DonMovement : MonoBehaviour
         {
             if (crosshairUI != null) crosshairUI.SetActive(false);
 
-            if (eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
+            // --- GÜNCELLENDİ: SADECE YAKIN DÖVÜŞTE DEĞİLSEK MIZRAĞI GİZLE! ---
+            // isMelee true ise (yani kılıç/mızrak sallıyorsak) DonMovement mızrağı Kapatmaz.
+            if (eldekiGorselMizrak != null && !isMelee) eldekiGorselMizrak.SetActive(false);
 
             if (!isTimePotionActive)
             {
@@ -806,8 +827,11 @@ public class DonMovement : MonoBehaviour
 
     void DetachAndJump()
     {
+        Vector3 forwardDir = transform.forward;
+
         isLatched = false;
         latchedLance = null;
+        transform.position += forwardDir * lanceGhostForwardOffset;
         controller.enabled = true;
 
         float h = Input.GetAxisRaw("Horizontal");
@@ -816,6 +840,7 @@ public class DonMovement : MonoBehaviour
         Vector3 jumpDir = (inputDir.magnitude >= 0.1f) ?
             Quaternion.Euler(0f, Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + cam.eulerAngles.y, 0f) * Vector3.forward :
             cam.forward;
+
         jumpDir.y = 0.5f;
 
         velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * lanceJumpMultiplier;

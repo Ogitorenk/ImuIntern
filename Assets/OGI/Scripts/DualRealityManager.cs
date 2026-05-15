@@ -37,6 +37,35 @@ public class DualRealityManager : MonoBehaviour
                 return;
             }
 
+            // ========================================================
+            // --- GÜNCELLENDİ: EĞİLME / SÜRÜNME KONTROLÜ ---
+            // ========================================================
+            bool isActiveCharacterCrouching = false;
+
+            if (isDonActive && donQuixote != null)
+            {
+                DonMovement don = donQuixote.GetComponent<DonMovement>();
+                if (don != null && (don.isCrouchToggled || don.isCrawling))
+                {
+                    isActiveCharacterCrouching = true;
+                }
+            }
+            else if (!isDonActive && sancho != null)
+            {
+                SanchoMovement sm = sancho.GetComponent<SanchoMovement>();
+                if (sm != null && (sm.isCrouchToggled || sm.isCrawling))
+                {
+                    isActiveCharacterCrouching = true;
+                }
+            }
+
+            if (isActiveCharacterCrouching)
+            {
+                Debug.Log("🚫 Karakter eğilirken, sürünürken veya ayağa kalkma beklemesindeyken değiştirilemez!");
+                return; // Geçişi direkt iptal et
+            }
+            // ========================================================
+
             // --- SANCHO KUTU TUTUYOR MU KONTROLÜ ---
             bool isSanchoHoldingBox = false;
             if (!isDonActive && sancho != null)

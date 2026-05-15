@@ -48,7 +48,7 @@ public class SanchoMovement : MonoBehaviour
     public float crouchSpeed = 3f;
 
     // ========================================================
-    // --- SÜRÜNME, KİLİT VE YÜKSEKLİK AYARLARI ---
+    // --- GÜNCELLENDİ: SÜRÜNME, KİLİT VE BEKLEME (COOLDOWN) AYARLARI ---
     // ========================================================
     public float crawlSpeed = 1.5f;
     public float normalHeight = 2f;
@@ -59,13 +59,18 @@ public class SanchoMovement : MonoBehaviour
     [Tooltip("Ctrl'ye basıp eğilirken kaç saniye hareket kilitlensin?")]
     public float crouchDelayDuration = 1f; // Inspector'dan ayarlanabilir kilit süresi
 
+    [Tooltip("Eğildikten sonra kalkmak veya kalktıktan sonra eğilmek için Ctrl'nin bekleme süresi (Saniye)")]
+    public float crouchCooldown = 2f; // Inspector'dan değiştirebilirsin
+    private float crouchCooldownTimer = 0f;
+
     private float currentSpeed;
     private bool isCrouching = false;
     private bool isWalking = false;
 
-    private bool isCrawling = false;
+    // MANAGER'DAN OKUNABİLSİN DİYE PUBLIC YAPILDI! (Inspector'ı kirletmemesi için Gizlendi)
+    [HideInInspector] public bool isCrawling = false;
+    [HideInInspector] public bool isCrouchToggled = false;
     private float crawlStartTimer = 0f;
-    private bool isCrouchToggled = false;
 
     // Orijinal kapsül merkezini ve ayak tabanını tutacağımız değişkenler
     private Vector3 baseCenter;
@@ -232,11 +237,17 @@ public class SanchoMovement : MonoBehaviour
             crawlStartTimer -= Time.deltaTime;
         }
 
+        // Eğilme Cooldown sayacı
+        if (crouchCooldownTimer > 0)
+        {
+            crouchCooldownTimer -= Time.deltaTime;
+        }
+
         // ========================================================
-        // --- YENİ EKLENDİ: SPRINT VE DODGE (BAS-ÇEK) KONTROLÜ ---
+        // --- GÜNCELLENDİ: DODGE VE SPRINT (EĞİLİRKEN SHIFT İPTAL) ---
         // ========================================================
-        // Tamir ederken veya elinde kutu varken Dodge atamasın!
-        if (isControlled && !isDrinking && !isRepairing && !isZiplining && !isHoldingBox && !isDodging)
+        // isCrouchToggled eklendi. Eğiliyorsan veya sürünüyorsan Shift tuşu devredışı.
+        if (isControlled && !isDrinking && !isRepairing && !isZiplining && !isHoldingBox && !isDodging && !isCrouchToggled)
         {
             if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
             {
@@ -253,7 +264,7 @@ public class SanchoMovement : MonoBehaviour
                     isShiftPressed = false;
 
                     // Eğer kısa basıldıysa DODGE at!
-                    if (shiftPressTimer <= shiftTapThreshold && isGrounded && landStunTimer <= 0f && !isCrouchToggled)
+                    if (shiftPressTimer <= shiftTapThreshold && isGrounded && landStunTimer <= 0f)
                     {
                         isDodging = true;
                         dodgeTimer = dodgeDuration;
@@ -276,16 +287,21 @@ public class SanchoMovement : MonoBehaviour
         {
             if (isControlled && (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl)))
             {
-                isCrouchToggled = !isCrouchToggled;
+                // GÜNCELLENDİ: isGrounded (Zıplarken eğilme iptal) ve crouchCooldownTimer kontrolleri eklendi!
+                if (isGrounded && crouchCooldownTimer <= 0f)
+                {
+                    isCrouchToggled = !isCrouchToggled;
+                    crouchCooldownTimer = crouchCooldown; // Bekleme süresini başlat (2 Saniye)
 
-                if (isCrouchToggled)
-                {
-                    crawlStartTimer = crouchDelayDuration;
-                    if (animator != null) animator.SetTrigger("CrawlStart");
-                }
-                else
-                {
-                    crawlStartTimer = 0f;
+                    if (isCrouchToggled)
+                    {
+                        crawlStartTimer = crouchDelayDuration;
+                        if (animator != null) animator.SetTrigger("CrawlStart");
+                    }
+                    else
+                    {
+                        crawlStartTimer = 0f;
+                    }
                 }
             }
 
@@ -317,6 +333,18 @@ public class SanchoMovement : MonoBehaviour
                 isWalking = false;
             }
 
+            if (isCrawling) currentSpeed = crawlSpeed;
+            else if (isCrouching) currentSpeed = crouchSpeed;
+            else if (isWalking) currentSpeed = walkSpeed;
+            // Shift'e basılı tutuluyorsa (veya basıldıysa) koştur. (Eğilirken Shift zaten iptal)
+            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled) currentSpeed = sprintSpeed;
+            else currentSpeed = speed;
+
+            if (DonMovement.isTimePotionActive)
+            {
+                currentSpeed = currentSpeed * 1.5f;
+            }
+
             // Tost (Scale) olayını sildik, onun yerine direkt Kapsülün boyunu tıraşlıyoruz
             float targetHeight = isCrawling ? crawlHeight : (isCrouching ? crouchHeight : normalHeight);
             controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
@@ -329,19 +357,7 @@ public class SanchoMovement : MonoBehaviour
             isCrouching = false;
             isCrawling = false;
             isWalking = false;
-            isCrouchToggled = false;
-        }
-
-        if (isCrawling) currentSpeed = crawlSpeed;
-        else if (isCrouching) currentSpeed = crouchSpeed;
-        else if (isWalking) currentSpeed = walkSpeed;
-        // Shift'e basılı tutuluyorsa (veya basıldıysa) koştur. Kısa çekersen yukarıdaki Dodge sistemi çalışacak.
-        else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))) currentSpeed = sprintSpeed;
-        else currentSpeed = speed;
-
-        if (DonMovement.isTimePotionActive)
-        {
-            currentSpeed = currentSpeed * 1.5f;
+            // DİKKAT: Manager dışarıdan okuyacağı için isCrouchToggled'ı burada zorla false yapmıyorum, yoksa bug'a girer.
         }
 
         wasGrounded = isGrounded;
