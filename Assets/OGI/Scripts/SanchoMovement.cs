@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using Cinemachine;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
-public class SanchoMovement : MonoBehaviour
+public class SanchoMovement : MonoBehaviour, IDamageable
 {
     [Header("Özel Bölüm Kontrolü")]
     public bool isControlled = true;
@@ -377,7 +378,8 @@ public class SanchoMovement : MonoBehaviour
             isNearGround = isGrounded;
         }
 
-        if (!wasGrounded && isGrounded && !isZiplining)
+        // --- GÜNCELLENDİ: SANCHO DA HASAR YERKEN LAND'E KAÇMASIN ---
+        if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0)
         {
             if (animator != null) animator.SetTrigger("Land");
             landStunTimer = landStunDuration;
@@ -583,7 +585,8 @@ public class SanchoMovement : MonoBehaviour
         velocity.y = 5f;
         isGrounded = false;
 
-        if (animator != null) animator.SetTrigger("Jump");
+        // --- GÜNCELLENDİ: ARTIK JUMP YERİNE DAMAGE ANİMASYONU TETİKLENİYOR ---
+        if (animator != null) animator.SetTrigger("Damage");
 
         Debug.Log("🩸 Sancho HASAR ALDI! Kalan Can: " + currentHealth);
 
@@ -595,7 +598,23 @@ public class SanchoMovement : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("💀 Sancho Öldü! Tüm fizik ve durumlar sıfırlanıyor...");
+        if (animator != null) animator.SetTrigger("Death");
+
+        // --- GÜNCELLENDİ: DonRespawnRoutine yerine SanchoRespawnRoutine çağrılıyor ---
+        StartCoroutine(SanchoRespawnRoutine());
+    }
+
+    private IEnumerator SanchoRespawnRoutine()
+    {
+        // === 1. KİLİT: ÖLDÜĞÜMÜZ AN SANCHO'NUN INPUTLARINI KAPATIYORUZ ===
+        isControlled = false;
+
+        Debug.Log("💀 Sancho Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
+
+        // 2 saniye boyunca animasyonun oynamasını bekle
+        yield return new WaitForSeconds(2f);
+
+        Debug.Log("🔄 2 saniye bitti, Sancho için checkpoint sıfırlamaları yapılıyor...");
 
         isDrinking = false;
         isRepairing = false;
@@ -607,7 +626,7 @@ public class SanchoMovement : MonoBehaviour
             DualRealityManager.Instance.ResetAllHealth();
         }
 
-        PushableBox.ResetAllBoxes();
+        // --- UYARIN ÜZERİNE KUTU SIFIRLAMA KODU BURADAN TAMAMEN SİLİNDİ! ---
 
         velocity = Vector3.zero;
 
@@ -619,6 +638,16 @@ public class SanchoMovement : MonoBehaviour
         controller.enabled = true;
 
         velocity = Vector3.zero;
+
+        // === BUG ÇÖZÜMÜ: SANCHO DA DOĞUNCA DİREKT IDLE BAŞLASIN ===
+        if (animator != null)
+        {
+            animator.Play("Locomotion", 0, 0f); // Animator'daki adı Locomotion değilse kendi adını yaz kanka
+            animator.SetBool("isWalking", false);
+        }
+
+        // === 2. KİLİT AÇMA: CHECKPOINT'TE DOĞUNCA KONTROLÜ SANCHO'YA GERİ VERİYORUZ ===
+        isControlled = true;
     }
 
     public void UseHealthPotion()

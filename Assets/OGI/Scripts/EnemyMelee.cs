@@ -138,11 +138,15 @@ public class EnemyMelee : MonoBehaviour
             float distance = Vector3.Distance(transform.position, player.position);
             if (distance <= attackRange + 0.5f) // Ufak bir kaçma payý toleransý
             {
-                DonMovement donMovement = player.GetComponent<DonMovement>();
-                if (donMovement != null)
+                // ========================================================
+                // --- GÜNCELLENDÝ: ARTIK IDAMAGEABLE KÝMLÝÐÝNE VURUYORUZ ---
+                // ========================================================
+                IDamageable damageableTarget = player.GetComponent<IDamageable>();
+                if (damageableTarget != null)
                 {
-                    donMovement.TakeDamage(attackDamage);
+                    damageableTarget.TakeDamage(attackDamage); // Don mu Sancho mu bakmýyor, hasarý basýyor!
                 }
+                // ========================================================
             }
         }
 
@@ -151,7 +155,7 @@ public class EnemyMelee : MonoBehaviour
         isAttacking = false;
     }
 
-    // Bizim Don Kiþot bu metoda hasar gönderecek
+    // Bizim Don veya Sancho bu metoda hasar gönderecek
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
@@ -200,8 +204,5 @@ public class EnemyMelee : MonoBehaviour
         if (animator != null) animator.SetTrigger("Death");
 
         Debug.Log(gameObject.name + " GEBERDÝ!");
-
-        // Ýstersen cesedi 5 saniye sonra sahneden silebilirsin (Þu an yorum satýrý)
-        // Destroy(gameObject, 5f);
     }
 }
