@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using Cinemachine;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
-public class DonMovement : MonoBehaviour
+public class DonMovement : MonoBehaviour, IDamageable
 {
     [Header("Özel Bölüm Kontrolü")]
     public bool isControlled = true;
@@ -11,6 +12,8 @@ public class DonMovement : MonoBehaviour
     public float maxHealth = 100f;
     public float currentHealth;
     private float iFrames = 0f;
+    [Tooltip("Ölürken karakterin ne kadar yukarı ışınlanacağını ayarlar.")]
+    public float deathYOffset = 100f; // Sen test et diye direkt 100f verdim kanka!;
 
     [Header("Envanter (Can İksiri)")]
     public int healthPotionCount = 0;
@@ -528,7 +531,8 @@ public class DonMovement : MonoBehaviour
             isNearGround = isGrounded;
         }
 
-        if (!wasGrounded && isGrounded && !isZiplining)
+        // --- GÜNCELLENDİ: EĞER HASAR YENİ YENMİŞSE (iFrames > 0 İSE) LAND TETİKLENMESİN ---
+        if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0)
         {
             if (animator != null) animator.SetTrigger("Land");
             landStunTimer = landStunDuration;
@@ -878,10 +882,12 @@ public class DonMovement : MonoBehaviour
 
     public void TakeDamage(float damageAmount)
     {
-        if (iFrames > 0) return;
+        // === BUG ÇÖZÜMÜ: EĞER ZATEN ÖLMÜŞSEK VEYA iFRAME AKTİFSE HASAR HESAPLAMA ===
+        if (currentHealth <= 0 || iFrames > 0) return;
 
+        // Hasarı sadece TEK BİR KEZ düşüyoruz kanka (Çift hasar bug'ı çözüldü)
         currentHealth -= damageAmount;
-        iFrames = 1f;
+        iFrames = 1f; // Hasar yediğin an 1 saniye dokunulmaz oluyorsan
 
         isDashing = false;
         isDodging = false;
@@ -889,7 +895,7 @@ public class DonMovement : MonoBehaviour
         velocity.y = 5f;
         isGrounded = false;
 
-        if (animator != null) animator.SetTrigger("Jump");
+        if (animator != null) animator.SetTrigger("Damage");
 
         Debug.Log("🩸 Don Quixote HASAR ALDI! Kalan Can: " + currentHealth);
 
@@ -901,14 +907,35 @@ public class DonMovement : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("💀 Don Öldü! Tüm fizik ve durumlar sıfırlanıyor...");
+        if (animator != null) animator.SetTrigger("Death");
+
+        // Işınlanma ve sıfırlama işlemlerini 2 saniye sonraya erteliyoruz
+        StartCoroutine(DonRespawnRoutine());
+    }
+
+    private IEnumerator DonRespawnRoutine()
+    {
+        isControlled = false;
+
+        Debug.Log("💀 Don Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
+
+        // === GÜNCELLENDİ: ARTIK SABİT SAYI DEĞİL, INSPECTOR'DAN GELEN DEĞERİ ALIYOR ===
+        controller.enabled = false;
+        transform.position = new Vector3(transform.position.x, transform.position.y + deathYOffset, transform.position.z);
+        controller.enabled = true;
+
+        // Animasyonun bitmesini bekle
+        yield return new WaitForSeconds(2f);
+
+        Debug.Log("🔄 2 saniye bitti, Don için checkpoint sıfırlamaları yapılıyor...");
 
         isDrinking = false;
         isLatched = false;
         isThrowing = false;
-
         isDashing = false;
         isDodging = false;
+
+        currentHealth = maxHealth;
 
         if (DualRealityManager.Instance != null)
         {
@@ -920,13 +947,19 @@ public class DonMovement : MonoBehaviour
         velocity = Vector3.zero;
 
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
-
         controller.enabled = false;
         transform.position = respawnPos;
         controller.Move(Vector3.zero);
         controller.enabled = true;
-
         velocity = Vector3.zero;
+
+        if (animator != null)
+        {
+            animator.Play("Locomotion", 0, 0f);
+            animator.SetBool("isWalking", false);
+        }
+
+        isControlled = true;
     }
 
     public void UseHealthPotion()
