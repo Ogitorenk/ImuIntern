@@ -3,7 +3,12 @@ guid: 384953d555e2aad40ace97456e133f4c
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: crossbow
+    second: {fileID: 2100000, guid: 04adfcc362badbe4781a034e6b3aeeb3, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
