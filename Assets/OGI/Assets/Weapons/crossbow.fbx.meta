@@ -1,9 +1,14 @@
 fileFormatVersion: 2
-guid: 33e7bcb31b53bde49a73329279f2650a
+guid: db4b522b8b16cda479d917dcc5d41dd1
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: crossbow
+    second: {fileID: 2100000, guid: 04adfcc362badbe4781a034e6b3aeeb3, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

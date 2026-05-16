@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 91d853ae332559d4498dedd8f5a46945
+guid: 33e7bcb31b53bde49a73329279f2650a
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -7,8 +7,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: weapon
-    second: {fileID: 2100000, guid: 518f023225c8d894aa67ccc33b2b2bfc, type: 2}
+      name: shield
+    second: {fileID: 2100000, guid: 04adfcc362badbe4781a034e6b3aeeb3, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
