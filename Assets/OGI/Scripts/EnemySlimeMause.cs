@@ -23,7 +23,8 @@ public class EnemySlimeMouse : MonoBehaviour, IDamageable
     public Vector3 mouseRotationOffset = Vector3.zero;
 
     [Header("Can Ayarları")]
-    public float maxHealth = 40f;
+    [Tooltip("Inspector'dan canı değiştirebilirsin kanka")]
+    public float maxHealth = 80f; // 40f olan canı sike sike 80 yaptık!
     private float currentHealth;
     private bool isDead = false;
     private bool isTakingDamage = false;

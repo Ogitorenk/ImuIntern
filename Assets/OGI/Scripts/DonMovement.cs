@@ -283,7 +283,8 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (iFrames > 0)
         {
-            iFrames -= Time.deltaTime;
+            // Zaman yavaşlatma iksiri içildiğinde iFrame'lerin gerçek zamana göre düzgün azalması için düzeltildi
+            iFrames -= Time.unscaledDeltaTime;
         }
 
         if (dashCooldownTimer > 0)
@@ -364,8 +365,10 @@ public class DonMovement : MonoBehaviour, IDamageable
             crouchCooldownTimer -= Time.deltaTime;
         }
 
-        // GÜNCELLENDİ: Vururken veya kalkanlıyken Dodge atamasın!
-        if (isControlled && !isDrinking && !isZiplining && !isLatched && !isDashing && !isDodging && !isCrouchToggled && !isAttacking && !isBlocking)
+        // ==============================================================================================
+        // --- 1. KRİTİK DEĞİŞİKLİK: COMBAT SIRASINDA EFEKTİF DODGE (VURURKEN BİLE KAÇABİLME KİLİDİ) ---
+        // ==============================================================================================
+        if (isControlled && !isDrinking && !isZiplining && !isLatched && !isDashing && !isDodging && !isCrouchToggled)
         {
             if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
             {
@@ -386,6 +389,13 @@ public class DonMovement : MonoBehaviour, IDamageable
                         isDodging = true;
                         dodgeTimer = dodgeDuration;
                         if (animator != null) animator.SetTrigger("Dodge");
+
+                        // Eğer kılıç sallarken (Atağın ortasında) dodge attıysak DonCombat'ın kilitlerini de açıyoruz kanka
+                        if (donCombat != null && donCombat.isAttacking)
+                        {
+                            donCombat.isAttacking = false;
+                            if (animator != null) animator.SetBool("isAttacking", false);
+                        }
                     }
                 }
             }
@@ -580,6 +590,9 @@ public class DonMovement : MonoBehaviour, IDamageable
                 if (controller.enabled) controller.Move(transform.forward * dashSpeed * Time.deltaTime);
             }
         }
+        // ==============================================================================================
+        // --- 2. GÜNCELLEME: KAMERA VE YÖNLÜ HASAR KAÇINMASI (WASD + SHIFT) ---
+        // ==============================================================================================
         else if (isDodging)
         {
             dodgeTimer -= Time.deltaTime;
@@ -589,7 +602,37 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
             else
             {
-                if (controller.enabled) controller.Move(transform.forward * dodgeSpeed * Time.deltaTime);
+                if (controller.enabled)
+                {
+                    // Anlık klavye girdilerini alıyoruz (A-D ve W-S)
+                    float hInput = Input.GetAxisRaw("Horizontal");
+                    float vInput = Input.GetAxisRaw("Vertical");
+                    Vector3 dodgeDir = new Vector3(hInput, 0f, vInput).normalized;
+
+                    // Eğer hiçbir tuşa basmıyorsan normal olarak karakterin baktığı ileri yöne dodge atsın
+                    if (dodgeDir.magnitude < 0.1f)
+                    {
+                        controller.Move(transform.forward * dodgeSpeed * Time.deltaTime);
+                    }
+                    else
+                    {
+                        // Kameranın açısına göre yönü hesaplayıp bastığın tuşa göre fırlatıyoruz!
+                        Vector3 camForward = Camera.main.transform.forward;
+                        Vector3 camRight = Camera.main.transform.right;
+                        camForward.y = 0f;
+                        camRight.y = 0f;
+                        camForward.Normalize();
+                        camRight.Normalize();
+
+                        Vector3 finalDodgeDir = (camForward * vInput + camRight * hInput).normalized;
+
+                        // Karakteri dodge attığı yöne doğru çıtırca döndürelim ki şık dursun
+                        transform.rotation = Quaternion.LookRotation(finalDodgeDir);
+
+                        // Ve şak diye o yöne fırlat!
+                        controller.Move(finalDodgeDir * dodgeSpeed * Time.deltaTime);
+                    }
+                }
             }
         }
         else if (isZiplining || isDrinking)
@@ -697,6 +740,7 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
+
     private System.Collections.IEnumerator ThrowRoutine()
     {
         isThrowing = true;
@@ -741,7 +785,6 @@ public class DonMovement : MonoBehaviour, IDamageable
 
     void SetAimMode(bool aiming)
     {
-        // --- YENİ EKLENDİ: Combat scriptinden atak yapıp yapmadığımızı öğreniyoruz ---
         bool isMelee = false;
         if (donCombat != null)
         {
@@ -760,8 +803,6 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             if (crosshairUI != null) crosshairUI.SetActive(false);
 
-            // --- GÜNCELLENDİ: SADECE YAKIN DÖVÜŞTE DEĞİLSEK MIZRAĞI GİZLE! ---
-            // isMelee true ise (yani kılıç/mızrak sallıyorsak) DonMovement mızrağı Kapatmaz.
             if (eldekiGorselMizrak != null && !isMelee) eldekiGorselMizrak.SetActive(false);
 
             if (!isTimePotionActive)
@@ -880,14 +921,15 @@ public class DonMovement : MonoBehaviour, IDamageable
         if (animator != null) animator.SetTrigger("Jump");
     }
 
+    // ==============================================================================================
+    // --- 3. KRİTİK DEĞİŞİKLİK: TAKE DAMAGE FONKSİYONUNA DODGE ÖLÜMSÜZLÜĞÜ (I-FRAME) EKLEME ---
+    // ==============================================================================================
     public void TakeDamage(float damageAmount)
     {
-        // === BUG ÇÖZÜMÜ: EĞER ZATEN ÖLMÜŞSEK VEYA iFRAME AKTİFSE HASAR HESAPLAMA ===
-        if (currentHealth <= 0 || iFrames > 0) return;
+        if (currentHealth <= 0 || iFrames > 0 || isDodging) return;
 
-        // Hasarı sadece TEK BİR KEZ düşüyoruz kanka (Çift hasar bug'ı çözüldü)
         currentHealth -= damageAmount;
-        iFrames = 1f; // Hasar yediğin an 1 saniye dokunulmaz oluyorsan
+        iFrames = 1f;
 
         isDashing = false;
         isDodging = false;
@@ -908,23 +950,18 @@ public class DonMovement : MonoBehaviour, IDamageable
     void Die()
     {
         if (animator != null) animator.SetTrigger("Death");
-
-        // Işınlanma ve sıfırlama işlemlerini 2 saniye sonraya erteliyoruz
         StartCoroutine(DonRespawnRoutine());
     }
 
     private IEnumerator DonRespawnRoutine()
     {
         isControlled = false;
-
         Debug.Log("💀 Don Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
 
-        // === GÜNCELLENDİ: ARTIK SABİT SAYI DEĞİL, INSPECTOR'DAN GELEN DEĞERİ ALIYOR ===
         controller.enabled = false;
         transform.position = new Vector3(transform.position.x, transform.position.y + deathYOffset, transform.position.z);
         controller.enabled = true;
 
-        // Animasyonun bitmesini bekle
         yield return new WaitForSeconds(2f);
 
         Debug.Log("🔄 2 saniye bitti, Don için checkpoint sıfırlamaları yapılıyor...");
@@ -943,7 +980,6 @@ public class DonMovement : MonoBehaviour, IDamageable
         }
 
         PushableBox.ResetAllBoxes();
-
         velocity = Vector3.zero;
 
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
@@ -1001,7 +1037,6 @@ public class DonMovement : MonoBehaviour, IDamageable
     private System.Collections.IEnumerator DrinkPotionRoutine(bool isHealthPotion)
     {
         isDrinking = true;
-
         velocity.x = 0f;
         velocity.z = 0f;
 
