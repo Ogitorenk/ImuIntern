@@ -3,7 +3,8 @@ using UnityEngine.AI; // Yürüme yapay zekasý için þart
 using System.Collections;
 
 [RequireComponent(typeof(NavMeshAgent))]
-public class EnemyMelee : MonoBehaviour
+// === GÜNCELLENDÝ: MIZRAÐIN HASAR VEREBÝLMESÝ ÝÇÝN IDAMAGEABLE KÝMLÝÐÝ EKLENDÝ ===
+public class EnemyMelee : MonoBehaviour, IDamageable
 {
     [Header("Saðlýk Ayarlarý")]
     public float maxHealth = 100f;
@@ -162,6 +163,9 @@ public class EnemyMelee : MonoBehaviour
 
         currentHealth -= damageAmount;
 
+        // Konsola kimin ne kadar hasar yediðini yazalým kanka takip etmesi kolay olsun
+        Debug.Log($"{gameObject.name} Hasar Yedi! Kalan Can: {currentHealth}");
+
         if (currentHealth <= 0)
         {
             Die();
@@ -204,5 +208,8 @@ public class EnemyMelee : MonoBehaviour
         if (animator != null) animator.SetTrigger("Death");
 
         Debug.Log(gameObject.name + " GEBERDÝ!");
+
+        // === GÜNCELLENDÝ: ÖLDÜKTEN 3 SANÝYE SONRA CESET SAHNEDEN SÝLÝNSÝN ===
+        Destroy(gameObject, 3f);
     }
 }

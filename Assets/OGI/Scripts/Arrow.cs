@@ -10,7 +10,8 @@ public class Arrow : MonoBehaviour
     private bool hasHit = false;
 
     [Header("Uçuş Fiziği")]
-    public float customGravity = 2f; // Unity'nin normali 9.81'dir. Bunu 2-3 yaparak süzülmesini sağlıyoruz.
+    [Tooltip("Crosshair'a dümdüz (lazer gibi) gitmesi için yerçekimini 0 yapıyoruz kanka!")]
+    public float customGravity = 0f; // Dümdüz gitmesi için burayı 0 yaptık!
 
     void Start()
     {
@@ -20,7 +21,6 @@ public class Arrow : MonoBehaviour
             rb.useGravity = false; // Unity'nin o ağır yerçekimini KAPATTIK!
         }
 
-        // ... (Diğer çarpışma yoksayma kodların burada kalsın) ...
         Destroy(gameObject, lifeTime);
     }
 
@@ -28,11 +28,14 @@ public class Arrow : MonoBehaviour
     {
         if (!hasHit)
         {
-            // Oku kendi özel hafif yerçekimimizle aşağı çekiyoruz
-            rb.AddForce(Vector3.down * customGravity, ForceMode.Acceleration);
+            // Eğer customGravity 0'dan büyükse aşağı çeker, 0 ise ok ip gibi dümdüz gider kanka!
+            if (customGravity > 0.01f)
+            {
+                rb.AddForce(Vector3.down * customGravity, ForceMode.Acceleration);
+            }
 
-            // Mızrak gibi dönme efekti
-            if (rb.velocity.sqrMagnitude > 0.1f)
+            // Okun havada giderken yönüne doğru bakması (Mızrak gibi dönme efekti)
+            if (rb != null && rb.velocity.sqrMagnitude > 0.1f)
             {
                 transform.rotation = Quaternion.LookRotation(rb.velocity);
             }
@@ -43,24 +46,32 @@ public class Arrow : MonoBehaviour
     {
         if (hasHit || other.CompareTag("Player")) return;
 
-        EnemyMelee enemy = other.GetComponent<EnemyMelee>();
-        if (enemy == null) enemy = other.GetComponentInParent<EnemyMelee>();
+        // ========================================================
+        // --- GÜNCELLENDİ: SLIME, FARE VE HAYDUTU BULMA GARANTİSİ ---
+        // ========================================================
+        IDamageable enemy = other.GetComponent<IDamageable>();
+        if (enemy == null) enemy = other.GetComponentInParent<IDamageable>();
+        if (enemy == null) enemy = other.GetComponentInChildren<IDamageable>();
 
         if (enemy != null)
         {
-            enemy.TakeDamage(damage);
-            Debug.Log("🎯 Ok düşmana saplandı! Hasar: " + damage);
-            Destroy(gameObject);
+            enemy.TakeDamage(damage); // Slime, Fare veya Hayduta hasarı yapıştır!
+            Debug.Log($"🎯 Ok {other.gameObject.name} düşmanına saplandı! Hasar: {damage}");
+
+            Destroy(gameObject); // Düşmana çarpınca ok yok olsun
             return;
         }
 
-        // Zemine veya duvara çarptıysa
-        if (other.gameObject.layer == LayerMask.NameToLayer("Ground") || other.CompareTag("Ground"))
+        // Zemine, duvara veya haritadaki diğer statik objelere çarptıysa saplanıp kalsın
+        if (other.gameObject.layer == LayerMask.NameToLayer("Ground") || other.CompareTag("Ground") || other.gameObject.CompareTag("Wall"))
         {
             hasHit = true;
-            rb.velocity = Vector3.zero;
-            rb.isKinematic = true;
-            Destroy(gameObject, 1f);
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
+            Destroy(gameObject, 1f); // Saplandıktan 1 saniye sonra sahnede kalabalık yapmasın, silinsin
         }
     }
 }

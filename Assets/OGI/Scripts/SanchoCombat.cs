@@ -1,30 +1,30 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
-using Cinemachine; // KAMERA İÇİN GEREKLİ KÜTÜPHANE
+using Cinemachine; // KAMERA Ä°Ã‡Ä°N GEREKLÄ° KÃœTÃœPHANE
 
 public class SanchoCombat : MonoBehaviour
 {
     private SanchoMovement sanchoMovement;
     private Animator animator;
 
-    [Header("Görsel Silahlar")]
+    [Header("GÃ¶rsel Silahlar")]
     public GameObject meleeWeaponPivot;
-    [Tooltip("Elde/Sırtta belirecek olan Quiver (Yay/Sadak) objesi")]
+    [Tooltip("Elde/SÄ±rtta belirecek olan Quiver (Yay/Sadak) objesi")]
     public GameObject bowPivot;
 
     // ==========================================
-    // DON STİLİ KAMERA AYARLARI (YENİ EKLENDİ)
+    // DON STÄ°LÄ° KAMERA AYARLARI (YENÄ° EKLENDÄ°)
     // ==========================================
-    [Header("Nişan Alma (Kamera Zoom & Kaydırma)")]
-    public CinemachineFreeLook normalCamera; // Sancho'nun kullandığı FreeLook Kamera
+    [Header("NiÅŸan Alma (Kamera Zoom & KaydÄ±rma)")]
+    public CinemachineFreeLook normalCamera; // Sancho'nun kullandÄ±ÄŸÄ± FreeLook Kamera
 
     public float normalFOV = 40f;
     public float aimFOV = 20f;
 
-    [Tooltip("Nişan alırken karakteri sağa almak için negatif (-1), sola almak için pozitif (1)")]
+    [Tooltip("NiÅŸan alÄ±rken karakteri saÄŸa almak iÃ§in negatif (-1), sola almak iÃ§in pozitif (1)")]
     public float aimOffsetX = -1f;
 
-    [Tooltip("Nişan alırken kamerayı ne kadar yukarı kaldıracağını belirler (Örn: 0.5 veya 1.2)")]
+    [Tooltip("NiÅŸan alÄ±rken kamerayÄ± ne kadar yukarÄ± kaldÄ±racaÄŸÄ±nÄ± belirler (Ã–rn: 0.5 veya 1.2)")]
     public float aimOffsetY = 0.8f;
 
     public float zoomSpeed = 10f;
@@ -34,7 +34,7 @@ public class SanchoCombat : MonoBehaviour
     private float[] baseOffsetX = new float[3];
     private float[] baseOffsetY = new float[3];
 
-    [Header("Yakın Dövüş Kombo Ayarları")]
+    [Header("YakÄ±n DÃ¶vÃ¼ÅŸ Kombo AyarlarÄ±")]
     public float comboResetTime = 1.0f;
     public float attack1Duration = 1.0f;
     public float attack2Duration = 1.0f;
@@ -44,7 +44,20 @@ public class SanchoCombat : MonoBehaviour
     [HideInInspector] public bool isAttacking = false;
     private Coroutine attackResetRoutine;
 
-    [Header("Okçuluk Ayarları")]
+    // ========================================================
+    // --- YENÄ° EKLENDÄ°: SANCHO YAKIN DÃ–VÃœÅ HASAR AYARLARI ---
+    // ========================================================
+    [Header("--- Sancho YakÄ±n DÃ¶vÃ¼ÅŸ Hasar AyarlarÄ± ---")]
+    [Tooltip("Sancho'nun Ã¶nÃ¼nde duracak ve vuruÅŸun merkez noktasÄ±nÄ± belirleyecek boÅŸ obje")]
+    public Transform attackPoint;
+    [Tooltip("VuruÅŸun menzili (Menzil kÃ¼resinin yarÄ±Ã§apÄ±)")]
+    public float attackRange = 1.3f; // Sancho biraz daha kÄ±sa boylu olduÄŸu iÃ§in menzili Ã§Ä±tÄ±rÄ±k kÃ¼Ã§Ã¼k tuttuk kanka
+    [Tooltip("KÄ±lÄ±Ã§/Topuz savurunca verilecek yakÄ±n dÃ¶vÃ¼ÅŸ hasarÄ±")]
+    public float meleeDamage = 20f; // SadÄ±k yaverimiz 20 vursun ÅŸimdilik
+    [Tooltip("Sol tÄ±k bastÄ±ktan kaÃ§ saniye sonra hasar dÃ¼ÅŸmana iÅŸlesin? (VuruÅŸ gecikmesi)")]
+    public float hitDelay = 0.2f;
+
+    [Header("OkÃ§uluk AyarlarÄ±")]
     public GameObject arrowPrefab;
     public Transform firePoint;
     public float arrowForce = 40f;
@@ -61,7 +74,7 @@ public class SanchoCombat : MonoBehaviour
         if (meleeWeaponPivot != null) meleeWeaponPivot.SetActive(false);
         if (bowPivot != null) bowPivot.SetActive(false);
 
-        // --- KAMERANIN ORİJİNAL RİG AYARLARINI KAYDET ---
+        // --- KAMERANIN ORÄ°JÄ°NAL RÄ°G AYARLARINI KAYDET ---
         if (normalCamera != null)
         {
             normalCamera.m_Lens.FieldOfView = normalFOV;
@@ -91,13 +104,13 @@ public class SanchoCombat : MonoBehaviour
             if (bowPivot != null) bowPivot.SetActive(false);
             if (sanchoMovement.crosshairUI != null) sanchoMovement.crosshairUI.SetActive(false);
 
-            HandleCameraZoomAndOffset(); // Güvenlik: Kamera merkeze dönsün
+            HandleCameraZoomAndOffset(); // GÃ¼venlik: Kamera merkeze dÃ¶nsÃ¼n
             return;
         }
 
         HandleAiming();
         HandleMeleeAttack();
-        HandleCameraZoomAndOffset(); // Her karede kameranın zoom'unu/kaymasını denetle
+        HandleCameraZoomAndOffset(); // Her karede kameranÄ±n zoom'unu/kaymasÄ±nÄ± denetle
     }
 
     void HandleAiming()
@@ -121,24 +134,18 @@ public class SanchoCombat : MonoBehaviour
         }
     }
 
-    // ==========================================
-    // DON STİLİ KAMERA KAYDIRMA FONKSİYONU
-    // ==========================================
     void HandleCameraZoomAndOffset()
     {
         if (normalCamera == null) return;
 
-        // Hedef değerleri belirle (Nişan alıyorsa zoomla ve sağa kaydır)
         float targetFOV = isAiming ? aimFOV : normalFOV;
         float targetOffsetX = isAiming ? aimOffsetX : 0f;
         float targetOffsetY = isAiming ? aimOffsetY : 0f;
 
-        // Yumuşak geçiş (Lerp)
         normalCamera.m_Lens.FieldOfView = Mathf.Lerp(normalCamera.m_Lens.FieldOfView, targetFOV, Time.deltaTime * zoomSpeed);
         currentOffsetX = Mathf.Lerp(currentOffsetX, targetOffsetX, Time.deltaTime * zoomSpeed);
         currentOffsetY = Mathf.Lerp(currentOffsetY, targetOffsetY, Time.deltaTime * zoomSpeed);
 
-        // Değerleri kameranın 3 rig'ine (Top, Middle, Bottom) uygula
         for (int i = 0; i < 3; i++)
         {
             var composer = normalCamera.GetRig(i).GetCinemachineComponent<CinemachineComposer>();
@@ -152,6 +159,9 @@ public class SanchoCombat : MonoBehaviour
         }
     }
 
+    // ==============================================================================================
+    // --- GÃœNCELLENDÄ°: KAMERA OFFSET HATASINI SIFIRLAYAN KESKÄ°N NÄ°ÅANCI ATIÅ SÄ°STEMÄ° ---
+    // ==============================================================================================
     void FireArrow()
     {
         lastFireTime = Time.time;
@@ -159,16 +169,14 @@ public class SanchoCombat : MonoBehaviour
 
         if (arrowPrefab != null && firePoint != null)
         {
-            // Kameranın ortasından ışın at
+            // 1. EkranÄ±n tam ortasÄ±ndan (Crosshair'dan) sonsuza giren bir Ä±ÅŸÄ±n atÄ±yoruz
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
             RaycastHit hit;
             Vector3 targetPoint;
 
-            // Karakterin kendisini, müttefikini ve okun doğan gövdesini (Default ve Player layer'larını) raycast'ten muaf tutmak en temizi.
-            // Sadece Ground (Zemin), Enemy (Düşman) gibi katmanları vursun istiyorsan bitwise maske kullanabiliriz.
-            // Şimdilik ok kendi collider'ına çarpmasın diye ışını Sancho'nun biraz ilerisinden başlatıyoruz ya da layer mask koyuyoruz:
-            int layerMask = ~LayerMask.GetMask("Player", "Ignore Raycast"); // Player ve Ignore Raycast layer'larını görmezden gel
+            int layerMask = ~LayerMask.GetMask("Player", "Ignore Raycast");
 
+            // IÅŸÄ±n bir yere Ã§arparsa hedef noktamÄ±z orasÄ±, Ã§arpmazsa kameranÄ±n 200 metre ilerisindeki hayali nokta
             if (Physics.Raycast(ray, out hit, 200f, layerMask))
             {
                 targetPoint = hit.point;
@@ -178,13 +186,12 @@ public class SanchoCombat : MonoBehaviour
                 targetPoint = ray.GetPoint(200f);
             }
 
-            // Atış yönünü belirle
+            // 2. KAMERA OFFSET Ã‡Ã–ZÃœMÃœ: YÃ¶nÃ¼ kamera aÃ§Ä±sÄ±na gÃ¶re deÄŸil, eldeki yayÄ±n ucundan (firePoint) hedef noktaya doÄŸru hesapla!
             Vector3 direction = (targetPoint - firePoint.position).normalized;
-            // Oku yapay olarak birazcık yukarı doğru büker (0.05f değerini test ederek büyütebilir veya küçültebilirsin)
-            direction.y += 0.04f;
-            direction = direction.normalized; // Yönü tekrar eşitle
 
-            // Oku fırlat
+            // BUG FIX: Oku sapÄ±tan o yapay "direction.y += 0.04f;" bÃ¼kme satÄ±rÄ±nÄ± sildik! Tam crosshair'Ä±n ortasÄ±na gitsin.
+
+            // 3. Oku fÄ±rlat ve yÃ¶nÃ¼nÃ¼ tam bu dÃ¼z Ã§izgiye kilitle kanka
             GameObject arrow = Instantiate(arrowPrefab, firePoint.position, Quaternion.LookRotation(direction));
             Rigidbody rb = arrow.GetComponent<Rigidbody>();
 
@@ -214,6 +221,9 @@ public class SanchoCombat : MonoBehaviour
                 animator.SetTrigger("Attack1");
                 isAttacking = true;
                 if (animator != null) animator.SetBool("isAttacking", true);
+
+                StartCoroutine(DealMeleeDamageWithDelay(hitDelay));
+
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack1Duration));
             }
             else if (comboStep >= 2)
@@ -223,7 +233,38 @@ public class SanchoCombat : MonoBehaviour
                 isAttacking = true;
                 if (animator != null) animator.SetBool("isAttacking", true);
                 comboStep = 0;
+
+                StartCoroutine(DealMeleeDamageWithDelay(hitDelay));
+
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack2Duration));
+            }
+        }
+    }
+
+    private IEnumerator DealMeleeDamageWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (attackPoint == null)
+        {
+            Debug.LogError("ğŸš¨ KANKA! SanchoCombat iÃ§indeki 'Attack Point' kutusu boÅŸ! Sancho'nun Ã¶nÃ¼ne boÅŸ bir obje aÃ§Ä±p baÄŸla!");
+            yield break;
+        }
+
+        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange);
+
+        foreach (Collider enemyCollider in hitEnemies)
+        {
+            if (enemyCollider.gameObject.CompareTag("Player")) continue;
+
+            IDamageable enemy = enemyCollider.GetComponent<IDamageable>();
+            if (enemy == null) enemy = enemyCollider.GetComponentInParent<IDamageable>();
+            if (enemy == null) enemy = enemyCollider.GetComponentInChildren<IDamageable>();
+
+            if (enemy != null)
+            {
+                enemy.TakeDamage(meleeDamage);
+                Debug.Log($"âš”ï¸ Sancho yakÄ±n dÃ¶vÃ¼ÅŸle {enemyCollider.name} objesine {meleeDamage} hasar verdi!");
             }
         }
     }
@@ -244,5 +285,12 @@ public class SanchoCombat : MonoBehaviour
 
         if (meleeWeaponPivot != null) meleeWeaponPivot.SetActive(false);
         comboStep = 0;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (attackPoint == null) return;
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
     }
 }
