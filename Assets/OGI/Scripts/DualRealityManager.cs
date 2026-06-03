@@ -115,6 +115,11 @@ public class DualRealityManager : MonoBehaviour
         UpdateAllJumpPads();
         UpdateAllBreakablePlatforms();
         UpdateAllMovingIllusionPlatforms();
+        //CEM EKLEDİ BU ALT KISMI
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.SwitchHUD(isDonActive);
+        }
     }
 
     // --- TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
