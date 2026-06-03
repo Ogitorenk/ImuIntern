@@ -6,12 +6,24 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/CEM/Scenes/Menus/MainMenu.unity
+    guid: e7cb944515f7cbc42a2cd6898235ab11
+  - enabled: 1
     path: Assets/CEM/Scenes/Castle_Entry.unity
     guid: 487417dcef52f9f4f856610c27cf94cc
   - enabled: 1
+    path: Assets/CEM/Scenes/Left Section/Left_Section2.unity
+    guid: 6434712889663c14eb38509a1918bcbd
+  - enabled: 0
     path: Assets/CEM/Scenes/Others/Left_Section.unity
     guid: d2ab4dbb311fc72408a6883573b4214d
   - enabled: 1
     path: Assets/CEM/Scenes/Left Section/LeverPuzzle.unity
     guid: c4d7308f73956a0438ad92f059d3dbab
+  - enabled: 1
+    path: Assets/CEM/Scenes/Right Section/Right_Section.unity
+    guid: 5fbbc431730dec8458ef261257959d80
+  - enabled: 1
+    path: Assets/CEM/Scenes/Right Section/Maze_Small_New.unity
+    guid: e2c016a48f373ee41b841943e7dc59cb
   m_configObjects: {}

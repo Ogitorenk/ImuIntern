@@ -81,7 +81,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2046783162624492635}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
@@ -216,7 +216,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7353720011571843609}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
@@ -303,13 +303,15 @@ MonoBehaviour:
   platformType: 1
   speed: 3
   waitTime: 1
-  invertedPerception: 0
+  detectionDelay: 0.5
+  visibilityMode: 0
   movingBody: {fileID: 5716622468291428319}
   solidGroup: {fileID: 2046783162624492635}
   illusionGroup: {fileID: 7353720011571843609}
   waypoints:
   - {fileID: 4811219980588419599}
   - {fileID: 1144330980408587639}
+  isPlayerOnPlatform: 0
 --- !u!65 &5709816454139032047
 BoxCollider:
   m_ObjectHideFlags: 0
