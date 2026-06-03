@@ -91,6 +91,13 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     private int jumpCount;
     private Vector3 velocity;
 
+    // --- YENİ EKLENDİ: PLATFORM MOMENTUM DEĞİŞKENLERİ ---
+    [Header("Düşüş Momentum Ayarları")]
+    [Tooltip("Düşerken yerçekimi normalin kaç katı etki etsin? (Daha sert ve gerçekçi düşüş)")]
+    public float fallMultiplier = 2.5f;
+    [Tooltip("Karakterin düşebileceği maksimum dikey hız sınırı")]
+    public float terminalVelocity = -30f;
+
     public Vector3 CurrentVelocity { get { return velocity; } set { velocity = value; } }
 
     [Header("Zemin Kontrolü")]
@@ -346,7 +353,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             if (isCrawling) currentSpeed = crawlSpeed;
             else if (isCrouching) currentSpeed = crouchSpeed;
             else if (isWalking) currentSpeed = walkSpeed;
-            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled) currentSpeed = sprintSpeed;
+            // --- GÜNCELLENDİ: Sancho da havadayken uçamasın (isGrounded şartı eklendi kanka) ---
+            else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled && isGrounded) currentSpeed = sprintSpeed;
             else currentSpeed = speed;
 
             if (DonMovement.isTimePotionActive)
@@ -531,14 +539,27 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (!isZiplining)
         {
-            velocity.y += gravity * Time.deltaTime;
+            // --- GÜNCELLENDİ: GERÇEKÇİ SANCHO MOMENTUMU ---
+            // Karakter havada aşağı doğru düşüyorsa (velocity.y < 0), yerçekimini fallMultiplier ile katlayarak sert düşüş veriyoruz kanka!
+            if (velocity.y < 0)
+            {
+                velocity.y += gravity * fallMultiplier * Time.deltaTime;
+            }
+            else
+            {
+                // Yukarı doğru zıplarken normal yerçekimi işlesin
+                velocity.y += gravity * Time.deltaTime;
+            }
+
+            // Terminal Hız Sınırı: Çok yüksekten düşerken hız sınırı aşılmasın kanka
+            if (velocity.y < terminalVelocity)
+            {
+                velocity.y = terminalVelocity;
+            }
         }
 
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
 
-        // ========================================================
-        // --- YENİ: NİŞAN ALIRKEN KAMERAYA ZOOM YAPTIR ---
-        // ========================================================
         if (normalCamera != null)
         {
             float targetFOV = isAiming ? aimFOV : normalFOV;
@@ -585,7 +606,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.y = 5f;
         isGrounded = false;
 
-        // --- GÜNCELLENDİ: ARTIK JUMP YERİNE DAMAGE ANİMASYONU TETİKLENİYOR ---
         if (animator != null) animator.SetTrigger("Damage");
 
         Debug.Log("🩸 Sancho HASAR ALDI! Kalan Can: " + currentHealth);
@@ -600,18 +620,15 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     {
         if (animator != null) animator.SetTrigger("Death");
 
-        // --- GÜNCELLENDİ: DonRespawnRoutine yerine SanchoRespawnRoutine çağrılıyor ---
         StartCoroutine(SanchoRespawnRoutine());
     }
 
     private IEnumerator SanchoRespawnRoutine()
     {
-        // === 1. KİLİT: ÖLDÜĞÜMÜZ AN SANCHO'NUN INPUTLARINI KAPATIYORUZ ===
         isControlled = false;
 
         Debug.Log("💀 Sancho Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
 
-        // 2 saniye boyunca animasyonun oynamasını bekle
         yield return new WaitForSeconds(2f);
 
         Debug.Log("🔄 2 saniye bitti, Sancho için checkpoint sıfırlamaları yapılıyor...");
@@ -626,8 +643,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             DualRealityManager.Instance.ResetAllHealth();
         }
 
-        // --- UYARIN ÜZERİNE KUTU SIFIRLAMA KODU BURADAN TAMAMEN SİLİNDİ! ---
-
         velocity = Vector3.zero;
 
         Vector3 respawnPos = CheckpointManager.Instance.GetLastCheckpoint();
@@ -639,14 +654,12 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         velocity = Vector3.zero;
 
-        // === BUG ÇÖZÜMÜ: SANCHO DA DOĞUNCA DİREKT IDLE BAŞLASIN ===
         if (animator != null)
         {
-            animator.Play("Locomotion", 0, 0f); // Animator'daki adı Locomotion değilse kendi adını yaz kanka
+            animator.Play("Locomotion", 0, 0f);
             animator.SetBool("isWalking", false);
         }
 
-        // === 2. KİLİT AÇMA: CHECKPOINT'TE DOĞUNCA KONTROLÜ SANCHO'YA GERİ VERİYORUZ ===
         isControlled = true;
     }
 

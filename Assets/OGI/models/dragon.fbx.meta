@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: a7978a8df51c5224cabd25340c103d24
+guid: b2a7b94ebbfe9d34d8afe750b5174674
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Material.001
-    second: {fileID: 2100000, guid: d51b4917348ab154f99111c575b6e37c, type: 2}
+    second: {fileID: 2100000, guid: 8903717dad541614cbcbc2c9dfc10588, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -38,6 +38,35 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
+      name: death
+      takeName: death
+      internalID: -6758483313513240000
+      firstFrame: 0
+      lastFrame: 27
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
       name: Armature|attack
       takeName: Armature|attack
       internalID: -251351218608039746
@@ -49,7 +78,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 1
+      loopTime: 0
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
@@ -71,7 +100,7 @@ ModelImporter:
       takeName: Armature|damage
       internalID: -1118377678393440193
       firstFrame: 0
-      lastFrame: 21
+      lastFrame: 30
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -100,7 +129,7 @@ ModelImporter:
       takeName: Armature|death
       internalID: 5866576275671282845
       firstFrame: 0
-      lastFrame: 30
+      lastFrame: 27
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -125,9 +154,9 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: Armature|float
-      takeName: Armature|float
-      internalID: 2673504662146784820
+      name: Armature|walk/idle
+      takeName: Armature|walk/idle
+      internalID: 8724953754352860179
       firstFrame: 0
       lastFrame: 30
       wrapMode: 0
@@ -220,7 +249,7 @@ ModelImporter:
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 0
+  avatarSetup: 2
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0

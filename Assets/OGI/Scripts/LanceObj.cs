@@ -24,6 +24,11 @@ public class LanceObj : MonoBehaviour
 
     private Coroutine destroyRoutine; // YENİ: Ölüm sayacını tutacağımız değişken
 
+    [Header("--- Düşman Hasar Ayarları ---")]
+    [Tooltip("Mızrak düşmana çarptığında ne kadar hasar verecek?")]
+    public float damageAmount = 40f;
+    private bool hasHitEnemy = false; // Çift vuruş bug'ını önlemek için emniyet kilidi
+
     // ========================================================
     // --- YENİ EKLENDİ: YENİ MIZRAK DOĞDUĞUNDA ESKİSİNİ YOK ET ---
     // ========================================================
@@ -48,6 +53,28 @@ public class LanceObj : MonoBehaviour
     {
         if (isStuck || collision.gameObject.CompareTag("Player")) return;
 
+        // ========================================================
+        // === HİÇBİR ŞEYİ BOZMADAN EKLENEN DÜŞMAN HASAR KONTROLÜ ===
+        // ========================================================
+        IDamageable enemy = collision.gameObject.GetComponent<IDamageable>();
+        if (enemy == null) enemy = collision.gameObject.GetComponentInParent<IDamageable>();
+
+        if (enemy != null)
+        {
+            if (!hasHitEnemy)
+            {
+                hasHitEnemy = true; // Kilit açıldı
+                enemy.TakeDamage(damageAmount); // Slime, Fare veya Bandit'e hasarı basıyoruz
+                Debug.Log($"🎯 Mızrak {collision.gameObject.name} düşmanına çarptı ve {damageAmount} hasar verdi!");
+
+                Destroy(gameObject); // Düşmana çarpan mızrak anında yok olsun, içinden geçmesin
+            }
+            return; // Düşmana çarptıysak alttaki duvar kodlarını çalıştırma, burada bitir
+        }
+
+        // ========================================================
+        // --- SENİN ORİJİNAL DUVARA SAPLANMA MANTIĞIN (DOKUNULMADI) ---
+        // ========================================================
         if (!collision.gameObject.CompareTag("Wall"))
         {
             CancelStick();
@@ -57,7 +84,6 @@ public class LanceObj : MonoBehaviour
         ContactPoint contact = collision.contacts[0];
 
         // --- KÖŞE BUG'I VE HIZ DÜZELTMESİ ---
-        // Unity'nin sekme yalanına kanmamak için gerçek çarpışma vektörünü alıyoruz (- relativeVelocity)
         Vector3 gercekCarpmaYonu = -collision.relativeVelocity.normalized;
 
         // Mızrağın geliş açısı ile duvarın yüzey açısını karşılaştır
@@ -83,7 +109,6 @@ public class LanceObj : MonoBehaviour
         wallNormal = contact.normal;
 
         // --- YENİ: ÖLÜM SAYACINI İPTAL ET ---
-        // Eğer sürtünüp silinme emri aldıysa, duvara saplandığı için o emri iptal ediyoruz!
         if (destroyRoutine != null)
         {
             StopCoroutine(destroyRoutine);

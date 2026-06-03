@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 805673835609600092}
   m_Layer: 0
   m_Name: "Ok_F\u0131rlayacak_Prefab"
-  m_TagString: Untagged
+  m_TagString: Arrow
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -76,6 +76,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damage: 20
   lifeTime: 5
+  customGravity: 2
 --- !u!65 &805673835609600092
 BoxCollider:
   m_ObjectHideFlags: 0
