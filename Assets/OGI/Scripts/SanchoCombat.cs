@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using Cinemachine; // KAMERA İÇİN GEREKLİ KÜTÜPHANE
+using TMPro; // TMPro KÜTÜPHANESİ YENİ EKLENDİ!
 
 public class SanchoCombat : MonoBehaviour
 {
@@ -67,13 +68,26 @@ public class SanchoCombat : MonoBehaviour
     private float lastFireTime = 0f;
 
     // ========================================================
-    // --- YENİ EKLENDİ: SANCHO OK ENVANTER SİSTEMİ ---
+    // --- GÜNCELLENDİ: SANCHO OK ENVANTER VE UI SİSTEMİ ---
     // ========================================================
     [Header("--- Sancho Ok Çantası ---")]
     [Tooltip("Sancho'nun şu an kaç oku var?")]
     public int currentArrowCount = 5;
     [Tooltip("Maksimum kaç ok biriktirebilir?")]
     public int maxArrowCount = 20;
+
+    [Header("--- UI ENTEGRASYONU ---")]
+    [Tooltip("Ok bittiğinde ekrana gelecek küçük uyarı UI nesnesi")]
+    [SerializeField] private GameObject noArrowWarningUI;
+    [Tooltip("Uyarının ekranda kaç saniye kalacağını belirler")]
+    [SerializeField] private float warningDuration = 2.0f;
+    private Coroutine warningRoutine;
+
+    // ========================================================
+    // --- YENİ EKLENDİ: OK SAYAÇ TEXTMESHPRO REFERANSI ---
+    // ========================================================
+    [Tooltip("Ekranda '5 / 20' yazacak olan TextMeshPro nesnesi")]
+    [SerializeField] private TextMeshProUGUI arrowCounterText;
 
     void Start()
     {
@@ -82,6 +96,12 @@ public class SanchoCombat : MonoBehaviour
 
         if (meleeWeaponPivot != null) meleeWeaponPivot.SetActive(false);
         if (bowPivot != null) bowPivot.SetActive(false);
+
+        // Oyun başında uyarı UI kapalı olsun garantiye alalım kanka
+        if (noArrowWarningUI != null) noArrowWarningUI.SetActive(false);
+
+        // --- YENİ EKLENDİ: OYUN BAŞLARKEN SAYACI İLK KEZ DOLDUR ---
+        UpdateArrowCounterUI();
 
         // --- KAMERANIN ORİJİNAL RİG AYARLARINI KAYDET ---
         if (normalCamera != null)
@@ -140,6 +160,9 @@ public class SanchoCombat : MonoBehaviour
                 else
                 {
                     Debug.LogWarning("🏹 Sancho'nun oku bitti! Kutuları kırıp ok toplaman lazım kanka!");
+                    
+                    // --- YENİ EKLENDİ: OK BİTTİ UYARISINI EKRA GÖSTER ---
+                    TriggerNoArrowWarning();
                 }
             }
         }
@@ -176,12 +199,13 @@ public class SanchoCombat : MonoBehaviour
         }
     }
 
-    // ==============================================================================================
-    // --- GÜNCELLENDİ: KAMERA OFFSET HATASINI SIFIRLAYAN KESKİN NİŞANCI ATIŞ SİSTEMİ ---
-    // ==============================================================================================
     void FireArrow()
     {
         currentArrowCount--; // OKU HARCADIK!
+        
+        // --- YENİ EKLENDİ: OK ATILINCA UI METNİNİ GÜNCELLE ---
+        UpdateArrowCounterUI();
+
         Debug.Log($"🏹 Ok atıldı! Kalan Ok: {currentArrowCount}/{maxArrowCount}");
 
         lastFireTime = Time.time;
@@ -189,14 +213,12 @@ public class SanchoCombat : MonoBehaviour
 
         if (arrowPrefab != null && firePoint != null)
         {
-            // 1. Ekranın tam ortasından (Crosshair'dan) sonsuza giren bir ışın atıyoruz
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
             RaycastHit hit;
             Vector3 targetPoint;
 
             int layerMask = ~LayerMask.GetMask("Player", "Ignore Raycast");
 
-            // Işın bir yere çarparsa hedef noktamız orası, çarpmazsa kameranın 200 metre ilerisindeki hayali nokta
             if (Physics.Raycast(ray, out hit, 200f, layerMask))
             {
                 targetPoint = hit.point;
@@ -206,12 +228,8 @@ public class SanchoCombat : MonoBehaviour
                 targetPoint = ray.GetPoint(200f);
             }
 
-            // 2. KAMERA OFFSET ÇÖZÜMÜ: Yönü kamera açısına göre değil, eldeki yayın ucundan (firePoint) hedef noktaya doğru hesapla!
             Vector3 direction = (targetPoint - firePoint.position).normalized;
 
-            // BUG FIX: Oku sapıtan o yapay "direction.y += 0.04f;" bükme satırını sildik! Tam crosshair'ın ortasına gitsin.
-
-            // 3. Oku fırlat ve yönünü tam bu düz çizgiye kilitle kanka
             GameObject arrow = Instantiate(arrowPrefab, firePoint.position, Quaternion.LookRotation(direction));
             Rigidbody rb = arrow.GetComponent<Rigidbody>();
 
@@ -220,6 +238,31 @@ public class SanchoCombat : MonoBehaviour
                 rb.velocity = direction * arrowForce;
             }
         }
+    }
+
+    // --- YENİ EKLENDİ: SAYACI GÜNCELLEYEN YARDIMCI FONKSİYON ---
+    private void UpdateArrowCounterUI()
+    {
+        if (arrowCounterText != null)
+        {
+            arrowCounterText.text = $"{currentArrowCount}/{maxArrowCount}";
+        }
+    }
+
+    private void TriggerNoArrowWarning()
+    {
+        if (noArrowWarningUI == null) return;
+
+        if (warningRoutine != null) StopCoroutine(warningRoutine);
+        
+        warningRoutine = StartCoroutine(ShowWarningRoutine());
+    }
+
+    private IEnumerator ShowWarningRoutine()
+    {
+        noArrowWarningUI.SetActive(true);
+        yield return new WaitForSeconds(warningDuration);
+        noArrowWarningUI.SetActive(false);
     }
 
     void HandleMeleeAttack()
@@ -277,13 +320,11 @@ public class SanchoCombat : MonoBehaviour
         {
             if (enemyCollider.gameObject.CompareTag("Player")) continue;
 
-            // --- YENİ EKLENDİ: KIRILABİLİR OBJE KONTROLÜ ---
-            // Eğer vurduğumuz şey kırılabilir bir kutu/vazo ise onun BreakIt fonksiyonunu tetikle kanka
             SharedBreakableObject breakable = enemyCollider.GetComponent<SharedBreakableObject>();
             if (breakable != null)
             {
                 breakable.BreakIt();
-                continue; // Kutuyu kırdıysak hasar mantığından çık, diğer objelere baksın
+                continue;
             }
 
             IDamageable enemy = enemyCollider.GetComponent<IDamageable>();
@@ -316,21 +357,22 @@ public class SanchoCombat : MonoBehaviour
         comboStep = 0;
     }
 
-    // ========================================================
-    // --- YENİ EKLENDİ: YERDEN OK ALINCA TETİKLENECEK FONKSİYON ---
-    // ========================================================
     public bool AddArrows(int amount)
     {
         if (currentArrowCount >= maxArrowCount)
         {
             Debug.Log("🏹 Sancho'nun ok çantası ağzına kadar dolu! (+20)");
-            return false; // Çanta doluysa oku yerden alma, yerde kalsın
+            return false;
         }
 
         currentArrowCount += amount;
-        currentArrowCount = Mathf.Clamp(currentArrowCount, 0, maxArrowCount); // 20'yi aşmasını engelle
+        currentArrowCount = Mathf.Clamp(currentArrowCount, 0, maxArrowCount);
+        
+        // --- YENİ EKLENDİ: YERDEN OK ALINDIĞINDA DA SAYACI GÜNCELLE ---
+        UpdateArrowCounterUI();
+
         Debug.Log($"🏹 Yerden Ok Alındı! Mevcut Ok Sayısı: {currentArrowCount}/{maxArrowCount}");
-        return true; // Başarıyla envantere eklendi
+        return true;
     }
 
     private void OnDrawGizmosSelected()

@@ -117,6 +117,11 @@ public class DualRealityManager : MonoBehaviour
         UpdateAllBreakablePlatforms();
         UpdateAllMovingIllusionPlatforms();
 
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.SwitchHUD(isDonActive);
+        }
+
         // --- YENİ EKLENDİ: ARI / EJDERHA GERÇEKLİK DEĞİŞİM TETİKLEYİCİSİ ---
         UpdateAllFlyingEnemiesPerception();
     }
