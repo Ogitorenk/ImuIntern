@@ -66,6 +66,15 @@ public class SanchoCombat : MonoBehaviour
     [HideInInspector] public bool isAiming = false;
     private float lastFireTime = 0f;
 
+    // ========================================================
+    // --- YENİ EKLENDİ: SANCHO OK ENVANTER SİSTEMİ ---
+    // ========================================================
+    [Header("--- Sancho Ok Çantası ---")]
+    [Tooltip("Sancho'nun şu an kaç oku var?")]
+    public int currentArrowCount = 5;
+    [Tooltip("Maksimum kaç ok biriktirebilir?")]
+    public int maxArrowCount = 20;
+
     void Start()
     {
         sanchoMovement = GetComponent<SanchoMovement>();
@@ -123,7 +132,15 @@ public class SanchoCombat : MonoBehaviour
 
             if (Input.GetMouseButtonDown(0) && Time.time >= lastFireTime + fireRate)
             {
-                FireArrow();
+                // BURADA ARTIK OK KONTROLÜ YAPIYORUZ
+                if (currentArrowCount > 0)
+                {
+                    FireArrow();
+                }
+                else
+                {
+                    Debug.LogWarning("🏹 Sancho'nun oku bitti! Kutuları kırıp ok toplaman lazım kanka!");
+                }
             }
         }
         else
@@ -164,6 +181,9 @@ public class SanchoCombat : MonoBehaviour
     // ==============================================================================================
     void FireArrow()
     {
+        currentArrowCount--; // OKU HARCADIK!
+        Debug.Log($"🏹 Ok atıldı! Kalan Ok: {currentArrowCount}/{maxArrowCount}");
+
         lastFireTime = Time.time;
         if (animator != null) animator.SetTrigger("FireArrow");
 
@@ -257,6 +277,15 @@ public class SanchoCombat : MonoBehaviour
         {
             if (enemyCollider.gameObject.CompareTag("Player")) continue;
 
+            // --- YENİ EKLENDİ: KIRILABİLİR OBJE KONTROLÜ ---
+            // Eğer vurduğumuz şey kırılabilir bir kutu/vazo ise onun BreakIt fonksiyonunu tetikle kanka
+            SharedBreakableObject breakable = enemyCollider.GetComponent<SharedBreakableObject>();
+            if (breakable != null)
+            {
+                breakable.BreakIt();
+                continue; // Kutuyu kırdıysak hasar mantığından çık, diğer objelere baksın
+            }
+
             IDamageable enemy = enemyCollider.GetComponent<IDamageable>();
             if (enemy == null) enemy = enemyCollider.GetComponentInParent<IDamageable>();
             if (enemy == null) enemy = enemyCollider.GetComponentInChildren<IDamageable>();
@@ -285,6 +314,23 @@ public class SanchoCombat : MonoBehaviour
 
         if (meleeWeaponPivot != null) meleeWeaponPivot.SetActive(false);
         comboStep = 0;
+    }
+
+    // ========================================================
+    // --- YENİ EKLENDİ: YERDEN OK ALINCA TETİKLENECEK FONKSİYON ---
+    // ========================================================
+    public bool AddArrows(int amount)
+    {
+        if (currentArrowCount >= maxArrowCount)
+        {
+            Debug.Log("🏹 Sancho'nun ok çantası ağzına kadar dolu! (+20)");
+            return false; // Çanta doluysa oku yerden alma, yerde kalsın
+        }
+
+        currentArrowCount += amount;
+        currentArrowCount = Mathf.Clamp(currentArrowCount, 0, maxArrowCount); // 20'yi aşmasını engelle
+        Debug.Log($"🏹 Yerden Ok Alındı! Mevcut Ok Sayısı: {currentArrowCount}/{maxArrowCount}");
+        return true; // Başarıyla envantere eklendi
     }
 
     private void OnDrawGizmosSelected()

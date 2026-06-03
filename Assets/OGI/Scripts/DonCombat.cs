@@ -15,6 +15,13 @@ public class DonCombat : MonoBehaviour
 
     [Tooltip("Kalkan açarken belirecek kalkan (Model gelince buraya atarsın)")]
     public GameObject shieldModel;
+
+    // ========================================================
+    // --- YENİ EKLENDİ: KALKAN SCRIPT BAĞLANTISI ---
+    // ========================================================
+    [Header("Kalkan Hesaplama Ayarları")]
+    [Tooltip("Kalkanın üzerine attığımız o Shield.cs scriptini buraya sürükle kanka")]
+    public Shield shieldScript;
     // ========================================================
 
     [Header("Yakın Dövüş Kombo Ayarları")]
@@ -63,8 +70,9 @@ public class DonCombat : MonoBehaviour
             isBlocking = false;
             if (animator != null) animator.SetBool("isBlocking", false);
 
-            // Kontrol bizde değilse kalkanı zorla kapat
+            // Kontrol bizde değilse kalkanı zorla kapat ve durumunu sıfırla
             if (shieldModel != null) shieldModel.SetActive(false);
+            if (shieldScript != null) shieldScript.SetShieldStatus(false);
             return;
         }
 
@@ -99,7 +107,6 @@ public class DonCombat : MonoBehaviour
                 isAttacking = true;
                 if (animator != null) animator.SetBool("isAttacking", true);
 
-                // --- GÜNCELLENDİ: Atak 1 başladığı an hasar verme coroutine'ini de çağırıyoruz ---
                 StartCoroutine(DealDamageWithDelay(hitDelay));
 
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack1Duration));
@@ -114,7 +121,6 @@ public class DonCombat : MonoBehaviour
 
                 comboStep = 0;
 
-                // --- GÜNCELLENDİ: Atak 2 başladığı an hasar verme coroutine'ini de çağırıyoruz ---
                 StartCoroutine(DealDamageWithDelay(hitDelay));
 
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack2Duration));
@@ -122,10 +128,11 @@ public class DonCombat : MonoBehaviour
         }
     }
 
-    // === YENİ EKLENEN COROUTINE: ANIMASYONLA HASARI EŞİTLEMEK İÇİN GECİKMELİ VURUŞ ===
+    // ==============================================================================================
+    // --- GÜNCELLENDİ: KUTULARI VE VAZOLARI PARÇALAYAN HASAR SİSTEMİ ---
+    // ==============================================================================================
     private IEnumerator DealDamageWithDelay(float delay)
     {
-        // Don silahı sallarken tam vuruş anına denk gelmesi için ufak bir bekleme süresi
         yield return new WaitForSeconds(delay);
 
         if (attackPoint == null)
@@ -134,22 +141,27 @@ public class DonCombat : MonoBehaviour
             yield break;
         }
 
-        // Don'un önündeki attackPoint merkezli bir görünmez küre fırlatıp içindeki collider'ları tarıyoruz
         Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange);
 
         foreach (Collider enemyCollider in hitEnemies)
         {
-            // Kendimize hasar vurmamak için oyuncu tag'ini es geçiyoruz
             if (enemyCollider.gameObject.CompareTag("Player")) continue;
 
-            // Çarptığımız şey bir düşman mı ve canı var mı kontrolü (Parent/Child korumalı)
+            // --- YENİ KONTROL: KIRILABİLİR KUTU KONTROLÜ ---
+            // Don mızrağı savurduğunda alan içinde kırılabilir kutu varsa direkt patlatsın kanka!
+            SharedBreakableObject breakable = enemyCollider.GetComponent<SharedBreakableObject>();
+            if (breakable != null)
+            {
+                breakable.BreakIt();
+                continue; // Kutuyu kırdık, düşman hasar kontrolüne girmeden sıradaki collider'a geç kanka
+            }
+
             IDamageable enemy = enemyCollider.GetComponent<IDamageable>();
             if (enemy == null) enemy = enemyCollider.GetComponentInParent<IDamageable>();
             if (enemy == null) enemy = enemyCollider.GetComponentInChildren<IDamageable>();
 
             if (enemy != null)
             {
-                // Düşmanın canını saniyede indiriyoruz!
                 enemy.TakeDamage(meleeDamage);
                 Debug.Log($"⚔️ Don yakın dövüşle {enemyCollider.name} objesine {meleeDamage} hasar verdi!");
             }
@@ -165,16 +177,16 @@ public class DonCombat : MonoBehaviour
             isBlocking = true;
             if (animator != null) animator.SetBool("isBlocking", true);
 
-            // --- BLOK BAŞLADI: KALKANI GÖSTER ---
             if (shieldModel != null) shieldModel.SetActive(true);
+            if (shieldScript != null) shieldScript.SetShieldStatus(true); // Kalkanı aktif et
         }
         else
         {
             isBlocking = false;
             if (animator != null) animator.SetBool("isBlocking", false);
 
-            // --- BLOK BİTTİ: KALKANI GİZLE ---
             if (shieldModel != null) shieldModel.SetActive(false);
+            if (shieldScript != null) shieldScript.SetShieldStatus(false); // Kalkanı kapat
         }
     }
 
@@ -193,13 +205,11 @@ public class DonCombat : MonoBehaviour
             animator.ResetTrigger("Attack2");
         }
 
-        // --- ATAK BİTTİ: MIZRAK PİVOTUNU GİZLE ---
         if (meleeLancePivot != null) meleeLancePivot.SetActive(false);
 
         comboStep = 0;
     }
 
-    // === YENİ EKLENDİ: HITBOX ALANINI UNITY EKRANINDA KIRMIZI BİR KÜRE OLARAK GÖRME HİLESİ ===
     private void OnDrawGizmosSelected()
     {
         if (attackPoint == null) return;

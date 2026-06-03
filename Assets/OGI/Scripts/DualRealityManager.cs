@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class DualRealityManager : MonoBehaviour
 {
@@ -20,7 +21,7 @@ public class DualRealityManager : MonoBehaviour
 
     void Start()
     {
-        // Oyun başlarken Don'u aç, Sancho'vu kapat
+        // Oyun başlarken Don'u aç, Sancho'yu kapat
         SwitchCharacter(true);
     }
 
@@ -115,12 +116,14 @@ public class DualRealityManager : MonoBehaviour
         UpdateAllJumpPads();
         UpdateAllBreakablePlatforms();
         UpdateAllMovingIllusionPlatforms();
+
+        // --- YENİ EKLENDİ: ARI / EJDERHA GERÇEKLİK DEĞİŞİM TETİKLEYİCİSİ ---
+        UpdateAllFlyingEnemiesPerception();
     }
 
     // --- TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
     public void ResetAllHealth()
     {
-        // 'true' parametresi, karakter o an inaktif (gizli) olsa bile onu bulmasını sağlar!
         DonMovement don = FindObjectOfType<DonMovement>(true);
         if (don != null)
         {
@@ -163,6 +166,19 @@ public class DualRealityManager : MonoBehaviour
         foreach (MovingIllusionPlatform platform in movingPlatforms)
         {
             platform.UpdatePerception(isDonActive);
+        }
+    }
+
+    // ==============================================================================================
+    // --- GÜNCELLENDİ: ARI VEYA EJDERHA MODELLERİNİN ÜST ÜSTE BİNMESİNİ ÖNLEYEN NET GEÇİŞ ---
+    // ==============================================================================================
+    void UpdateAllFlyingEnemiesPerception()
+    {
+        EnemyFlying[] flyingEnemies = FindObjectsOfType<EnemyFlying>(true);
+        foreach (EnemyFlying enemy in flyingEnemies)
+        {
+            // Sadece animatorü değil, modelin doğrudan kendisini açıp kapatan metodu tetikliyoruz kanka!
+            enemy.UpdateModelVisibility(isDonActive);
         }
     }
 }

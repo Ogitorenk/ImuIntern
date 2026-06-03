@@ -11,6 +11,10 @@ TagManager:
   - MovingPlatform
   - Pushable
   - Zipline
+  - Enemy
+  - Sword
+  - Spear
+  - Arrow
   layers:
   - Default
   - TransparentFX
