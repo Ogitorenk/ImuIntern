@@ -1,30 +1,33 @@
-using UnityEngine;
-using UnityEngine.AI; // Yürüme yapay zekası için şart
+ï»¿using UnityEngine;
+using UnityEngine.AI; // YÃ¼rÃ¼me yapay zekasÄ± iÃ§in ÅŸart
 using System.Collections;
 
 [RequireComponent(typeof(NavMeshAgent))]
-// === GÜNCELLENDİ: MIZRAĞIN HASAR VEREBİLMESİ İÇİN IDAMAGEABLE KİMLİĞİ EKLENDİ ===
 public class EnemyMelee : MonoBehaviour, IDamageable
 {
-    [Header("Sağlık Ayarları")]
+    [Header("--- MOD SEÃ‡Ä°MÄ° (HÄ°BRÄ°T) ---")]
+    [Tooltip("EÄŸer bunu tiklersen kanka, bu haydut dibe koÅŸmaz, uzaktan mermi/ok fÄ±rlatÄ±r!")]
+    public bool isRanged = false;
+
+    [Header("SaÄŸlÄ±k AyarlarÄ±")]
     public float maxHealth = 100f;
     private float currentHealth;
     private bool isDead = false;
-    private bool isTakingDamage = false; // Hasar yerken hareket etmemesi için
+    private bool isTakingDamage = false; // Hasar yerken movement kesilsin diye
 
     [Header("Hareket ve Hedef")]
     public Transform player;
-    [Tooltip("Düşman seni kaç metreden fark edip koşmaya başlasın?")]
+    [Tooltip("DÃ¼ÅŸman seni kaÃ§ metreden fark edip koÅŸmaya baÅŸlasÄ±n?")]
     public float chaseRange = 15f;
     private NavMeshAgent agent;
 
-    [Header("Saldırı Ayarları")]
-    [Tooltip("Vurmak için ne kadar yaklaşmalı?")]
+    [Header("SaldÄ±rÄ± AyarlarÄ±")]
+    [Tooltip("DÃ¼ÅŸmanÄ±n vurma/sÄ±kma menzili. (HÄ°LE: EÄŸer UzakÃ§Ä±ysa Start'ta otomatik 10f olur kanka, burayÄ± yakÄ±ncÄ±ya gÃ¶re ayarlayabilirsin)")]
     public float attackRange = 2f;
     public float attackDamage = 15f;
-    [Tooltip("İki saldırı arası kaç saniye beklesin?")]
+    [Tooltip("Ä°ki saldÄ±rÄ± arasÄ± kaÃ§ saniye beklesin?")]
     public float attackCooldown = 2f;
-    [Tooltip("Animasyon başladıktan kaç saniye sonra hasar oyuncuya işlesin? (Kılıcın inme anı)")]
+    [Tooltip("Animasyon baÅŸladÄ±ktan kaÃ§ saniye sonra hasar iÅŸlesin veya ok elden Ã§Ä±ksÄ±n?")]
     public float attackHitDelay = 0.5f;
 
     private bool isAttacking = false;
@@ -32,41 +35,71 @@ public class EnemyMelee : MonoBehaviour, IDamageable
 
     [HideInInspector] public Animator animator;
 
+    [Header("--- MELEE (YakÄ±n DÃ¶vÃ¼ÅŸ) Silah AyarlarÄ± ---")]
+    [Tooltip("DÃ¼ÅŸmanÄ±n elinde duran fiziksel Balta GameObject'i. BaÅŸlangÄ±Ã§ta kapalÄ± olacak kanka.")]
+    public GameObject visualAxe;
+
+    [Header("--- RANGED (UzakÃ§Ä±) Silah AyarlarÄ± ---")]
+    [Tooltip("UzakÃ§Ä± modu aÃ§Ä±kken dÃ¼ÅŸmanÄ±n elinde belirecek gÃ¶rsel Yay (Bow) objesi kanka.")]
+    public GameObject visualBow;
+    [Tooltip("UzakÃ§Ä±nÄ±n elinden fÄ±rlatacaÄŸÄ± ok, mÄ±zrak veya mermi prefab'Ä±.")]
+    public GameObject projectilePrefab;
+    [Tooltip("Okun elinden Ã§Ä±kmasÄ± iÃ§in yayÄ±n Ã¶nÃ¼ne veya el kemiÄŸine koyduÄŸun boÅŸ obje (Spawn Point).")]
+    public Transform shootSpawnPoint;
+    [Tooltip("FÄ±rlatÄ±lan okun uÃ§uÅŸ hÄ±zÄ± kanka.")]
+    public float projectileSpeed = 15f;
+
     void Start()
     {
         currentHealth = maxHealth;
         animator = GetComponentInChildren<Animator>();
         agent = GetComponent<NavMeshAgent>();
 
-        // Her ihtiyaca karşı ilk başta da aktif olanı bulalım
         FindActivePlayer();
 
-        // Düşman hızını buradan da ayarlayabilirsin
+        // Oyun baÅŸlarken iki silah da elinde gizlensin, saÃ§malamasÄ±nlar
+        if (visualAxe != null) visualAxe.SetActive(false);
+        if (visualBow != null) visualBow.SetActive(false);
+
         agent.speed = 3.5f;
-        agent.stoppingDistance = attackRange - 0.2f; // Oyuncunun içine girmemesi için
+
+        // ==============================================================================================
+        // --- BUG FIX 2: MENZÄ°L KARIÅIKLIÄINI KÃ–KTEN Ã‡Ã–ZME HÄ°LESÄ° ---
+        // ==============================================================================================
+        if (isRanged)
+        {
+            // EÄŸer uzakÃ§Ä±ysa ve yanlÄ±ÅŸlÄ±kla Inspector'da menzili kÃ¼Ã§Ã¼k bÄ±raktÄ±ysan emniyet olarak 10 metreye Ã§ekiyoruz kanka!
+            if (attackRange <= 3f) attackRange = 10f;
+
+            agent.stoppingDistance = attackRange; // Tam atÄ±ÅŸ sÄ±nÄ±rÄ±nda zÄ±nk diye dursun
+        }
+        else
+        {
+            agent.stoppingDistance = attackRange - 0.2f; // YakÄ±ncÄ±ysa dibine girsin
+        }
     }
 
     void Update()
     {
         if (isDead) return;
 
-        // ========================================================
-        // SAHNEDEKİ AKTİF PLAYER'I HER KAREDE DİNAMİK OLARAK BUL
-        // ========================================================
         FindActivePlayer();
 
-        // Eğer o an sahnede hiç aktif player yoksa hata vermemesi için bekle
-        if (player == null)
+        // PLAYER YOKSA VEYA PLAYER Ã–LDÃœYSE HAYDUTU DURDURAN KONTROL
+        if (player == null || !isPlayerAlive())
         {
             agent.isStopped = true;
             if (animator != null) animator.SetBool("isWalking", false);
+
+            if (visualAxe != null && visualAxe.activeInHierarchy) visualAxe.SetActive(false);
+            if (visualBow != null && visualBow.activeInHierarchy) visualBow.SetActive(false);
+
+            isAttacking = false;
             return;
         }
-        // ========================================================
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // Hasar alırken veya saldırırken ayakları yere çivilensin
         if (isTakingDamage || isAttacking)
         {
             agent.isStopped = true;
@@ -74,31 +107,29 @@ public class EnemyMelee : MonoBehaviour, IDamageable
             return;
         }
 
-        // SALDIRI MENZİLİNDEYSE
+        // SALDIRI MENZÄ°LÄ°NDEYSE
         if (distanceToPlayer <= attackRange)
         {
             agent.isStopped = true;
             if (animator != null) animator.SetBool("isWalking", false);
 
-            // Oyuncuya doğru dön
             Vector3 direction = (player.position - transform.position).normalized;
             direction.y = 0;
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 0.1f);
+            if (direction != Vector3.zero) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 0.1f);
 
-            // Bekleme süresi bittiyse VUR!
             if (Time.time >= lastAttackTime + attackCooldown)
             {
                 StartCoroutine(AttackRoutine());
             }
         }
-        // TAKİP MENZİLİNDEYSE
+        // TAKÄ°P MENZÄ°LÄ°NDEYSE
         else if (distanceToPlayer <= chaseRange)
         {
             agent.isStopped = false;
             agent.SetDestination(player.position);
             if (animator != null) animator.SetBool("isWalking", true);
         }
-        // MENZİL DIŞINDAYSA (BEKLE)
+        // MENZÄ°L DIÅINDAYSA (BEKLE)
         else
         {
             agent.isStopped = true;
@@ -106,9 +137,6 @@ public class EnemyMelee : MonoBehaviour, IDamageable
         }
     }
 
-    // ========================================================
-    // SAHNEDE O AN AKTİF OLAN "PLAYER" ETİKETLİ OBJEYİ BULUR
-    // ========================================================
     void FindActivePlayer()
     {
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
@@ -118,9 +146,16 @@ public class EnemyMelee : MonoBehaviour, IDamageable
             if (p.activeInHierarchy)
             {
                 player = p.transform;
-                return; // Aktif olanı bulduğumuz an fonksiyondan çık
+                return;
             }
         }
+    }
+
+    private bool isPlayerAlive()
+    {
+        if (player == null) return false;
+        var targetHealth = player.GetComponent<IDamageable>();
+        return targetHealth != null;
     }
 
     private IEnumerator AttackRoutine()
@@ -128,42 +163,85 @@ public class EnemyMelee : MonoBehaviour, IDamageable
         isAttacking = true;
         lastAttackTime = Time.time;
 
-        if (animator != null) animator.SetTrigger("Attack");
+        if (isRanged)
+        {
+            if (visualBow != null) visualBow.SetActive(true);
+            if (animator != null) animator.SetTrigger("RangedAttack");
+        }
+        else
+        {
+            if (visualAxe != null) visualAxe.SetActive(true);
+            if (animator != null) animator.SetTrigger("Attack");
+        }
 
-        // Kılıcın oyuncuya değme anına kadar bekle (Animasyonun ortası)
         yield return new WaitForSeconds(attackHitDelay);
 
-        // Vuruş anında oyuncu hala menzilde mi ve ölmediysek hasar ver!
-        if (!isDead && !isTakingDamage && player != null)
+        if (!isDead && !isTakingDamage && player != null && isPlayerAlive())
         {
-            float distance = Vector3.Distance(transform.position, player.position);
-            if (distance <= attackRange + 0.5f) // Ufak bir kaçma payı toleransı
+            if (isRanged)
             {
-                // ========================================================
-                // --- GÜNCELLENDİ: ARTIK IDAMAGEABLE KİMLİĞİNE VURUYORUZ ---
-                // ========================================================
-                IDamageable damageableTarget = player.GetComponent<IDamageable>();
-                if (damageableTarget != null)
+                // ==================================================================
+                // RANGED (UZAKÃ‡I - YAY) MODU
+                // ==================================================================
+                if (projectilePrefab != null && shootSpawnPoint != null)
                 {
-                    damageableTarget.TakeDamage(attackDamage); // Don mu Sancho mu bakmıyor, hasarı basıyor!
+                    // Oyuncunun tam gÃ¶ÄŸÃ¼s hizasÄ±na doÄŸru kusursuz yÃ¶n vektÃ¶rÃ¼ hesapla kanka
+                    Vector3 targetDir = ((player.position + Vector3.up * 1f) - shootSpawnPoint.position).normalized;
+
+                    // --- BUG FIX 1: OKU DOÄRU ROTASYONLA YARATMA ---
+                    // Oku fÄ±rlatÄ±rken yayÄ±n duruÅŸuna gÃ¶re deÄŸil, direkt bakacaÄŸÄ± hedefe doÄŸru dÃ¶ndÃ¼rerek doÄŸuruyoruz!
+                    Quaternion projectileRotation = Quaternion.LookRotation(targetDir);
+                    GameObject bullet = Instantiate(projectilePrefab, shootSpawnPoint.position, projectileRotation);
+
+                    Rigidbody rb = bullet.GetComponentInChildren<Rigidbody>();
+                    if (rb != null)
+                    {
+                        rb.isKinematic = false;
+                        rb.velocity = Vector3.zero; // Ã–nceki olasÄ± fiziki artÄ±klarÄ± sÄ±fÄ±rla kanka
+
+                        // Oku tam hedeflenen yÃ¶ne doÄŸru mÄ±zrak gibi fÄ±rlat!
+                        rb.velocity = targetDir * projectileSpeed;
+                    }
+
+                    var bulletScript = bullet.GetComponent<SpitBullet>();
+                    if (bulletScript != null)
+                    {
+                        bulletScript.SetupBullet(attackDamage);
+                    }
+                    Debug.Log($"ğŸ¯ UzakÃ§Ä± Haydut oku tam hedefe doÄŸrultup fÄ±rlattÄ±!");
                 }
-                // ========================================================
+            }
+            else
+            {
+                // ==================================================================
+                // MELEE (YAKIN DÃ–VÃœÅ - BALTA) MODU
+                // ==================================================================
+                float distance = Vector3.Distance(transform.position, player.position);
+                if (distance <= attackRange + 0.5f)
+                {
+                    IDamageable damageableTarget = player.GetComponent<IDamageable>();
+                    if (damageableTarget != null)
+                    {
+                        damageableTarget.TakeDamage(attackDamage);
+                        Debug.Log($"ğŸª“ Haydut anlÄ±k beliren baltasÄ±yla oyuncuya {attackDamage} hasar vurdu!");
+                    }
+                }
             }
         }
 
-        // Animasyonun geri kalanının bitmesini bekle
         yield return new WaitForSeconds(1f - attackHitDelay);
+
+        if (visualAxe != null) visualAxe.SetActive(false);
+        if (visualBow != null) visualBow.SetActive(false);
+
         isAttacking = false;
     }
 
-    // Bizim Don veya Sancho bu metoda hasar gönderecek
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
 
         currentHealth -= damageAmount;
-
-        // Konsola kimin ne kadar hasar yediğini yazalım kanka takip etmesi kolay olsun
         Debug.Log($"{gameObject.name} Hasar Yedi! Kalan Can: {currentHealth}");
 
         if (currentHealth <= 0)
@@ -183,10 +261,11 @@ public class EnemyMelee : MonoBehaviour, IDamageable
 
         if (animator != null) animator.SetTrigger("Damage");
 
-        // Eğer o sırada bize vurmaya çalışıyorsa atağı iptal et (Stun yedi)
+        if (visualAxe != null) visualAxe.SetActive(false);
+        if (visualBow != null) visualBow.SetActive(false);
+
         isAttacking = false;
 
-        // Sersemleme süresi (Hasar yeme animasyonu uzunluğu)
         yield return new WaitForSeconds(0.6f);
 
         if (!isDead)
@@ -199,17 +278,17 @@ public class EnemyMelee : MonoBehaviour, IDamageable
     {
         isDead = true;
         agent.isStopped = true;
-        agent.enabled = false; // Ölü adam yürümez
+        agent.enabled = false;
 
-        // Don Kişot cesede takılıp bug'a girmesin diye collider'ı kapat
+        if (visualAxe != null) visualAxe.SetActive(false);
+        if (visualBow != null) visualBow.SetActive(false);
+
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
 
         if (animator != null) animator.SetTrigger("Death");
 
-        Debug.Log(gameObject.name + " GEBERDİ!");
-
-        // === GÜNCELLENDİ: ÖLDÜKTEN 3 SANİYE SONRA CESET SAHNEDEN SİLİNSİN ===
+        Debug.Log(gameObject.name + " GEBERDÄ°!");
         Destroy(gameObject, 3f);
     }
 }

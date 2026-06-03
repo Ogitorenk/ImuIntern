@@ -13,10 +13,12 @@ public class SharedBreakableObject : MonoBehaviour
     [Tooltip("Kýrýlma anýnda patlayacak Particle System")]
     public ParticleSystem breakParticles;
 
-    // --- YENÝ EKLENEN: ÝÇÝNDEN ÇIKACAK EÞYA ---
     [Header("--- Düþecek Eþyalar (Loot) ---")]
-    [Tooltip("Kutu kýrýlýnca içinden ne çýksýn? (Boþ býrakýrsan sadece kýrýlýr)")]
-    public GameObject itemToDrop;
+    [Tooltip("Ýçinden çýkabilecek eþyalarýn listesi (Arrow_Loot_Prefab, Can, Zaman Potu)")]
+    public GameObject[] itemsToDrop;
+    [Range(0f, 100f)]
+    [Tooltip("Eþya düþme þansý % kaç?")]
+    public float dropChance = 80f;
 
     [Header("--- Yeniden Doðma Ayarlarý ---")]
     [Tooltip("Kýrýldýktan bir süre sonra geri gelsin mi?")]
@@ -25,13 +27,13 @@ public class SharedBreakableObject : MonoBehaviour
 
     private bool isBroken = false;
 
-    // Bu fonksiyonu karakterin saldýrý (Attack) kodundan çaðýracaðýz
+    // Kýlýç, Mýzrak veya Ok bu fonksiyonu tetikleyecek
     public void BreakIt()
     {
         if (isBroken) return;
         isBroken = true;
 
-        // 1. Modeli ve çarpýþmayý kapat (Karakter içinden geçebilsin diye)
+        // 1. Modeli ve çarpýþmayý kapat
         if (visualModel != null) visualModel.SetActive(false);
         if (objectCollider != null) objectCollider.enabled = false;
 
@@ -41,25 +43,47 @@ public class SharedBreakableObject : MonoBehaviour
             breakParticles.Play();
         }
 
-        // --- YENÝ EKLENEN: EÞYAYI YARAT (SPAWN) ---
-        // Eðer Inspector'dan içine bir iksir/eþya koyduysan, tam o an ortaya çýksýn
-        if (itemToDrop != null)
-        {
-            // Yere saplanmasýn diye kutunun merkezinden biraz yukarýda çýkartýyoruz
-            Vector3 dropPos = transform.position + Vector3.up * 0.5f;
-            Instantiate(itemToDrop, dropPos, Quaternion.identity);
-        }
+        // 3. Eþya Düþürme (Loot) Mantýðý
+        HandleLootDrop();
 
-        // 3. Yeniden doðacaksa sayacý baþlat, yoksa objeyi tamamen yok et
+        // 4. Yeniden doðma kontrolü
         if (respawnable)
         {
             StartCoroutine(RespawnRoutine());
         }
         else
         {
-            // Partikülün bitme süresini hesapla ve sonra objeyi sahneden tamamen sil
             float destroyDelay = breakParticles != null ? breakParticles.main.duration : 0.1f;
             Destroy(gameObject, destroyDelay);
+        }
+    }
+
+    private void HandleLootDrop()
+    {
+        if (itemsToDrop == null || itemsToDrop.Length == 0) return;
+
+        // Þans kontrolü
+        if (Random.Range(0f, 100f) <= dropChance)
+        {
+            // Listeden rastgele bir item seç (Can, Zaman Potu veya Ok)
+            int randomIndex = Random.Range(0, itemsToDrop.Length);
+            GameObject selectedItem = itemsToDrop[randomIndex];
+
+            if (selectedItem != null)
+            {
+                // --- GÜNCELLENDÝ: BUG FIX ---
+                // Eþyayý 0.5f yerine 1.2f yüksekliðinde doðuruyoruz ki zeminin/kutunun dibine batmasýn kanka
+                Vector3 dropPos = transform.position + Vector3.up * 1.2f;
+                GameObject droppedObj = Instantiate(selectedItem, dropPos, Quaternion.identity);
+
+                // Eðer doðan eþyada Rigidbody varsa, ilk doðma anýnda fýrlayýp gitmesin diye hýzýný sýfýrlýyoruz
+                Rigidbody rb = droppedObj.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.velocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                }
+            }
         }
     }
 
@@ -67,23 +91,24 @@ public class SharedBreakableObject : MonoBehaviour
     {
         yield return new WaitForSeconds(respawnTime);
 
-        // Obje geri dönüyor!
         isBroken = false;
         if (visualModel != null) visualModel.SetActive(true);
         if (objectCollider != null) objectCollider.enabled = true;
     }
 
-    // --- TEST ÝÇÝN GEÇÝCÝ KOD ---
-    // Karakterin kýlýç sallama/vurma mekaniði henüz yoksa, þimdilik üstüne zýplayýnca veya çarpýnca kýrýlsýn.
-    // Eðer Rigidbody ile çarpýþýrsa (Ýleride kullanýþlý olur)
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Player")) BreakIt();
-    }
-
-    // Eðer Trigger alanýna girerse (CharacterController için en garantisi)
+    // Tetikleyicilerle kýrýlma kontrolü (Kýlýç/Mýzrak Collider'ý veya Ok gelirse)
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player")) BreakIt();
+        // Vuran þey Kýlýç, Mýzrak veya Sancho'nun fýrlattýðý Ok ise kýrýlacak
+        if (other.CompareTag("Sword") || other.CompareTag("Spear") || other.CompareTag("Arrow"))
+        {
+            BreakIt();
+
+            // Eðer vuran þey ok ise, ok saplanýp kalmasýn diye oku yok edebiliriz
+            if (other.CompareTag("Arrow"))
+            {
+                Destroy(other.gameObject);
+            }
+        }
     }
 }
