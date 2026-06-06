@@ -1,0 +1,9 @@
+newmtl zemin1
+map_Kd zemin1.png
+Kd 1 1 1
+d 1
+
+newmtl Stone_1
+Kd 0.4509804 0.4745098 0.5254902
+d 1
+
