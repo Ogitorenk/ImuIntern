@@ -16,7 +16,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 16
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &6307336413065602455
 Transform:
@@ -48,7 +48,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   accessibility: 1
-  breakTime: 0.5
+  breakTime: 0.8
   respawnAfterBreak: 1
   respawnTime: 3
   solidModel: {fileID: 7741079851655321407}
@@ -153,6 +153,10 @@ PrefabInstance:
     - target: {fileID: 33479140564652885, guid: d41edead71b4c324ea7a722487453bb9, type: 3}
       propertyPath: m_Name
       value: BranchD 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 33479140564652885, guid: d41edead71b4c324ea7a722487453bb9, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 809840570377538031, guid: d41edead71b4c324ea7a722487453bb9, type: 3}
       propertyPath: m_LocalScale.x

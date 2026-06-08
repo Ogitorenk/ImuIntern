@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 7493785169708482263}
   - component: {fileID: 5082224375644139282}
   - component: {fileID: 1068594032869300567}
-  m_Layer: 0
+  - component: {fileID: -3974323465555531833}
+  m_Layer: 3
   m_Name: Broken_Platform
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -84,3 +85,24 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &-3974323465555531833
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4598701780944981178}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.000003, y: 4.0000052, z: 2.2125716}
+  m_Center: {x: 0.02008748, y: -0.0000023841858, z: -0.1869533}

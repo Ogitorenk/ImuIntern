@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7369748709192993064}
   - component: {fileID: 5902320198015813261}
   - component: {fileID: 8506657285685670471}
-  - component: {fileID: 7880255092682707942}
+  - component: {fileID: 2957673243025785544}
   m_Layer: 3
   m_Name: Jump-pad
   m_TagString: Untagged
@@ -84,8 +84,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &7880255092682707942
-SphereCollider:
+--- !u!65 &2957673243025785544
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -103,5 +103,5 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1.3281894
+  m_Size: {x: 2.2175174, y: 1.8486848, z: 2.3088531}
   m_Center: {x: 0.033705592, y: 0.036089987, z: -0.0022796988}
