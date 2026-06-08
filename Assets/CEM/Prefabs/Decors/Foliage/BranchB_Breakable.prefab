@@ -226,6 +226,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: BranchB
       objectReference: {fileID: 0}
+    - target: {fileID: 9165274002082397559, guid: b1c854bf3b5ac434e9d83f591fdf5e32, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
