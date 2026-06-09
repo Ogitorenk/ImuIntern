@@ -127,7 +127,7 @@ public class DonMovement : MonoBehaviour, IDamageable
     [Tooltip("Karakterin kendi Z ekseninde (ileri/geri) mızrağa göre konumu. Elleri hizalamak için kullan.")]
     public float lanceForwardOffset = 0f;
 
-    [Tooltip("Zıplamadan hemen önce çarpışmayı yoksayarak mızrağın ne kadar ilerisine ışınlanacak?")]
+    [Tooltip("Zıplamadan hemen önce çarpışmayı yoksayarak mızrak fırlatılınca karakterin ne kadar ilerisine ışınlanacak?")]
     public float lanceGhostForwardOffset = 1.0f;
 
     [HideInInspector] public bool isLatched = false;
@@ -460,7 +460,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             if (isCrawling) currentSpeed = crawlSpeed;
             else if (isCrouching) currentSpeed = crouchSpeed;
             else if (isWalking) currentSpeed = walkSpeed;
-            // --- GÜNCELLENDİ: Havadayken Shift'e basılsa bile depar atamasın (isGrounded şartı eklendi kanka) ---
+            // --- GÜNCELLENDİ: Havadayken Shift'e basılsa bile depar atamasın (isGrounded şartı eklendi) ---
             else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled && isGrounded) currentSpeed = sprintSpeed;
             else currentSpeed = speed;
 
@@ -593,7 +593,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         else if (isDodging)
         {
             dodgeTimer -= Time.deltaTime;
-            if (dashTimer <= 0) // Orijinal mantık aynen korundu kanka
+            if (dodgeTimer <= 0)
             {
                 isDodging = false;
             }
@@ -684,7 +684,7 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (animator != null)
         {
-            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime); // Etiket yapısı korundu
+            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime); // flat: etiketi uyarı vermesin diye temizlendi kanka
             animator.SetBool("isGrounded", isGrounded);
             animator.SetBool("isNearGround", isNearGround);
             animator.SetFloat("VerticalVelocity", velocity.y);
@@ -717,18 +717,15 @@ public class DonMovement : MonoBehaviour, IDamageable
         if (!isZiplining)
         {
             // --- GÜNCELLENDİ: GERÇEKÇİ PLATFORM MOMENTUMU ---
-            // Karakter havada aşağı doğru düşüyorsa (velocity.y < 0), yerçekimini fallMultiplier ile çarparak katlıyoruz kanka!
             if (velocity.y < 0)
             {
                 velocity.y += gravity * fallMultiplier * Time.deltaTime;
             }
             else
             {
-                // Karakter yukarı doğru zıplıyorsa veya yükseliyorsa normal yerçekimi işlesin
                 velocity.y += gravity * Time.deltaTime;
             }
 
-            // Güvenlik sınırı: Karakter çok yüksekten düşerken hızı terminalVelocity sınırını aşmasın, haritayı delmesin
             if (velocity.y < terminalVelocity)
             {
                 velocity.y = terminalVelocity;
@@ -815,22 +812,47 @@ public class DonMovement : MonoBehaviour, IDamageable
         }
     }
 
+    // ==============================================================================================
+    // --- GÜNCELLENDİ: CROSSHAIR ODAKLI NOKTA ATIŞI MIZRAK FIRLATMA MANTIĞI ---
+    // ==============================================================================================
     void ThrowLance()
     {
+        // 1. Ekranın tam ortasından (Crosshair'ın olduğu yer) sonsuza giren kusursuz bir ray fırlatıyoruz kanka
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         RaycastHit hit;
-        Vector3 targetPoint = Physics.Raycast(ray, out hit, 300f, groundMask) ? hit.point : ray.GetPoint(300f);
+        Vector3 targetPoint;
 
+        // Player collider'larını es geçsin ki mızrak Don'un kafasına çarparak doğmasın aq
+        int layerMask = ~LayerMask.GetMask("Player", "Ignore Raycast");
+
+        // Işın haritada zemin, duvar veya herhangi bir objeye çarparsa nişan aldığımız yer orasıdır.
+        // Eğer hiçbir yere çarpmazsa gökyüzüne doğru 300 metre ilerideki hayali noktaya gitsin.
+        if (Physics.Raycast(ray, out hit, 300f, layerMask))
+        {
+            targetPoint = hit.point;
+        }
+        else
+        {
+            targetPoint = ray.GetPoint(300f);
+        }
+
+        // 2. Mızrağın doğacağı ilk konumu hesaplıyoruz
         Vector3 spawnPos = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
         GameObject newLance = Instantiate(lancePrefab, spawnPos, Quaternion.identity);
         newLance.tag = "Lance";
 
+        // 3. KRİTİK ÇÖZÜM: Kamera açısına göre değil, mızrağın elden çıktığı noktadan tam crosshair'ın çarptığı targetPoint'e doğru yön vektörü çıkarıyoruz!
         Vector3 flightDirection = (targetPoint - spawnPos).normalized;
 
+        // Mızrağın yönünü tam bu çizgiye kilitleyip ekstra rotasyon kaymasını çakıyoruz kanka
         newLance.transform.rotation = Quaternion.LookRotation(flightDirection) * Quaternion.Euler(lanceRotationOffset);
 
         Rigidbody lanceRb = newLance.GetComponent<Rigidbody>();
-        if (lanceRb != null) lanceRb.velocity = flightDirection * throwForce;
+        if (lanceRb != null)
+        {
+            // Mızrağa tam crosshair doğrultusunda kusursuz hız ivmesini veriyoruz
+            lanceRb.velocity = flightDirection * throwForce;
+        }
     }
 
     public void LatchOntoLance(Transform lance)
@@ -908,7 +930,6 @@ public class DonMovement : MonoBehaviour, IDamageable
 
     void OnDisable()
     {
-
     }
 
     public void TakeDamage(float damageAmount)
