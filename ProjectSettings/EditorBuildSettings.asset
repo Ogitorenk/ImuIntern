@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/CEM/Scenes/Menus/MainMenu.unity
     guid: e7cb944515f7cbc42a2cd6898235ab11
   - enabled: 1
-    path: Assets/CEM/Scenes/Castle_Entry.unity
+    path: Assets/CEM/Scenes/Others/Castle_EntryOLD.unity
     guid: 487417dcef52f9f4f856610c27cf94cc
   - enabled: 1
     path: Assets/CEM/Scenes/Left Section/Left_Section2.unity
