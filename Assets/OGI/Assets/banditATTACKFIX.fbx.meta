@@ -3,7 +3,12 @@ guid: 015945c9e0473a84c98934e3ea0a022a
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: bandit
+    second: {fileID: 2100000, guid: 85664913ce5478b46ac4efc1205916f3, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
