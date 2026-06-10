@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: e00b2594c63b0ee4ba706c3b2df6a0bf, type: 3}
       propertyPath: m_Name
-      value: samdan
+      value: Candlestick
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

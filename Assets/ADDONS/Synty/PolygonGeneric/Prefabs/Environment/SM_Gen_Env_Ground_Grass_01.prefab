@@ -12,12 +12,12 @@ GameObject:
   - component: {fileID: 13716244031209384}
   - component: {fileID: 2870004143533132642}
   - component: {fileID: -4757122257990924441}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SM_Gen_Env_Ground_Grass_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 125
   m_IsActive: 1
 --- !u!4 &4008029175300419597
 Transform:

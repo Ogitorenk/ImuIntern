@@ -152,6 +152,11 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         baseCenter = controller.center;
         baseBottom = baseCenter.y - (controller.height / 2f);
 
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+        }
+
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
         if (normalCamera != null)
@@ -599,6 +604,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         if (iFrames > 0) return;
 
         currentHealth -= damageAmount;
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+        }
         iFrames = 1f;
 
         isDodging = false;
@@ -715,6 +724,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             healthPotionCount--;
             currentHealth += healthPotionHealAmount;
             if (currentHealth > maxHealth) currentHealth = maxHealth;
+            if (HUDManager.Instance != null)
+            {
+                HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+            }
             Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
         }
         else
