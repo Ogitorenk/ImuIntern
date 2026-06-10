@@ -5,6 +5,12 @@ using System.Collections;
 [RequireComponent(typeof(NavMeshAgent))]
 public class BossSlimeMouse : MonoBehaviour, IDamageable
 {
+    [Header("Boss Evre Ayarları (Bölünme)")]
+    [Tooltip("Bu objenin bir klon (yavru) olup olmadığını belirler.")]
+    public bool isClone = false;
+    [Tooltip("Boss bölündüğünde fırlayacak yavruların ne kadar uzağa saçılacağını ayarlar.")]
+    public float splitSpreadRadius = 3f;
+
     [Header("Görsel Modeller (Dual Reality)")]
     [Tooltip("Don Kişot aktifken görünecek Slime modeli")]
     public GameObject slimeModel;
@@ -19,7 +25,6 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
     public Vector3 mouseRotationOffset = Vector3.zero;
 
     [Header("Boss Can Ayarları")]
-    [Tooltip("Boss'un canı babalar gibi yüksek olur kanka")]
     public float maxHealth = 500f;
     private float currentHealth;
     private bool isDead = false;
@@ -31,30 +36,26 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
     private NavMeshAgent agent;
 
     [Header("Saldırı Ayarları (Normal)")]
-    [Tooltip("Boss devasa (Scale 4) olduğu için normal yakın dövüş menzili")]
     public float attackRange = 5.0f;
     public float attackDamage = 15f;
     public float attackCooldown = 2f;
     public float attackHitDelay = 0.3f;
 
     [Header("Boss Özel Saldırı Ayarları (Heavy Attack)")]
-    [Range(0f, 100f)]
-    [Tooltip("Boss'un her cooldown bittiğinde ağır saldırı yapma yüzdesi (Örn: 35 kanka)")]
-    public float heavyAttackChance = 35f;
-
-    [Tooltip("YENİ: Heavy Attack tetiklemek için gereken maksimum uzaklık. İlla dibine girmesine gerek yok kanka!")]
     public float heavyAttackRange = 12.0f;
-
-    [Tooltip("Heavy Attack tetiklendiğinde Duplicate ettiğin yeni Animator'ı tetikleyecek trigger adı")]
     public string heavyAttackTrigger = "HeavyAttack";
-
     public float heavyAttackDamage = 35f;
-    [Tooltip("Boss havaya yükselirken çıkacağı maksimum yükseklik")]
+    [Tooltip("Boss havaya yükserken çıkacağı maksimum yükseklik")]
     public float heavyAttackHeight = 6f;
     [Tooltip("Yere çakıldığında hasar vereceği alanın yarıçapı")]
     public float heavyAttackRadius = 8f;
+    [Tooltip("Boss havada oyuncunun üzerine doğru ne kadar hızlı kaysın?")]
+    public float heavyAttackLeapSpeed = 15f;
 
-    [Tooltip("YENİ: Yere çakılınca doğacak o yeşil particle prefabını buraya at kanka")]
+    [Tooltip("Tam kafaya atlamasın diye hedeften ne kadar sapacağını ayarlar (Metre).")]
+    public float targetLeapOffset = 2.0f;
+
+    [Tooltip("Yere çakılınca doğacak o yeşil particle prefabını buraya at kanka")]
     public GameObject heavyAttackEffect;
 
     private bool isAttacking = false;
@@ -81,13 +82,16 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         currentHealth = maxHealth;
         agent = GetComponent<NavMeshAgent>();
 
-        // === BOSS SCALE 4 AYARI ===
-        transform.localScale = new Vector3(4f, 4f, 4f);
+        // === BOSS SCALE AYARI ===
+        if (!isClone)
+        {
+            transform.localScale = new Vector3(4f, 4f, 4f);
+        }
 
         FindActivePlayer();
         CheckRealityVisibility();
 
-        agent.speed = 3.5f;
+        agent.speed = isClone ? 4.5f : 3.5f;
         agent.stoppingDistance = attackRange - 0.5f;
     }
 
@@ -108,14 +112,14 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         Vector3 enemyPos = new Vector3(transform.position.x, 0f, transform.position.z);
         Vector3 playerPos = new Vector3(targetPlayer.position.x, 0f, targetPlayer.position.z);
         float distanceToPlayer = Vector3.Distance(enemyPos, playerPos);
-
         float heightDifference = targetPlayer.position.y - transform.position.y;
 
-        if (distanceToPlayer <= 3.0f && heightDifference > 2.0f && heightDifference < 6f)
+        // Oyuncu boss'un kafasındaysa ezme mantığı
+        if (distanceToPlayer <= (attackRange * 0.6f) && heightDifference > (transform.localScale.y * 0.5f))
         {
             if (Time.time >= lastAttackTime + attackCooldown && !isTakingDamage && !isAttacking)
             {
-                StartCoroutine(SelectAttackPatternRoutine(distanceToPlayer));
+                StartCoroutine(TriggerSpecificAttack(true));
                 return;
             }
         }
@@ -127,12 +131,14 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
             return;
         }
 
+        // --- DINAMIK IHTIMAL MATRISI ---
         if (Time.time >= lastAttackTime + attackCooldown)
         {
-            if (distanceToPlayer <= heavyAttackRange)
+            float randomRoll = Random.Range(0f, 100f);
+
+            if (distanceToPlayer >= heavyAttackRange && distanceToPlayer <= chaseRange)
             {
-                float randomRoll = Random.Range(0f, 100f);
-                if (randomRoll <= heavyAttackChance)
+                if (randomRoll <= 50f)
                 {
                     agent.isStopped = true;
                     SetMovingAnimation(false);
@@ -140,14 +146,27 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
                     StartCoroutine(TriggerSpecificAttack(true));
                     return;
                 }
-                else if (distanceToPlayer <= attackRange)
+            }
+            else if (distanceToPlayer > attackRange && distanceToPlayer < heavyAttackRange)
+            {
+                if (randomRoll <= 30f)
                 {
                     agent.isStopped = true;
                     SetMovingAnimation(false);
                     LookAtPlayer();
-                    StartCoroutine(TriggerSpecificAttack(false));
+                    StartCoroutine(TriggerSpecificAttack(true));
                     return;
                 }
+            }
+            else if (distanceToPlayer <= attackRange)
+            {
+                agent.isStopped = true;
+                SetMovingAnimation(false);
+                LookAtPlayer();
+
+                if (randomRoll <= 10f) StartCoroutine(TriggerSpecificAttack(true));
+                else StartCoroutine(TriggerSpecificAttack(false));
+                return;
             }
         }
 
@@ -176,7 +195,7 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         direction.y = 0;
         if (direction != Vector3.zero)
         {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 0.15f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 0.25f);
         }
     }
 
@@ -192,28 +211,10 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         isAttacking = false;
     }
 
-    private IEnumerator SelectAttackPatternRoutine(float distance)
-    {
-        isAttacking = true;
-        agent.isStopped = true;
-
-        float randomRoll = Random.Range(0f, 100f);
-
-        if (randomRoll <= heavyAttackChance)
-        {
-            yield return StartCoroutine(HeavyAttackRoutine());
-        }
-        else if (distance <= attackRange)
-        {
-            yield return StartCoroutine(NormalAttackRoutine());
-        }
-
-        lastAttackTime = Time.time;
-        isAttacking = false;
-    }
-
     private IEnumerator NormalAttackRoutine()
     {
+        LookAtPlayer();
+
         if (isDonActive && slimeAnimator != null) slimeAnimator.SetTrigger(slimeAttackTrigger);
         else if (!isDonActive && mouseAnimator != null) mouseAnimator.SetTrigger(mouseAttackTrigger);
 
@@ -226,7 +227,7 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
             Vector3 playerPos = new Vector3(targetPlayer.position.x, 0f, targetPlayer.position.z);
             float horizontalDistance = Vector3.Distance(enemyPos, playerPos);
 
-            if (horizontalDistance <= attackRange + 1.0f || (horizontalDistance <= 3.0f && heightDifference > 2.0f))
+            if (horizontalDistance <= attackRange + 1.0f || (horizontalDistance <= (attackRange * 0.6f) && heightDifference > 2.0f))
             {
                 IDamageable damageableTarget = targetPlayer.GetComponent<IDamageable>();
                 if (damageableTarget != null) damageableTarget.TakeDamage(attackDamage);
@@ -234,10 +235,20 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         }
 
         yield return new WaitForSeconds(0.5f);
+        ForceResetModelPosition();
     }
 
     private IEnumerator HeavyAttackRoutine()
     {
+        LookAtPlayer();
+
+        Vector2 randomOffsetCircle = Random.insideUnitCircle.normalized * targetLeapOffset;
+        Vector3 targetLandingPoint = new Vector3(
+            targetPlayer.position.x + randomOffsetCircle.x,
+            transform.position.y,
+            targetPlayer.position.z + randomOffsetCircle.y
+        );
+
         if (isDonActive && slimeAnimator != null) slimeAnimator.SetTrigger(heavyAttackTrigger);
         else if (!isDonActive && mouseAnimator != null) mouseAnimator.SetTrigger(heavyAttackTrigger);
 
@@ -247,7 +258,7 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         float duration = 0.5f;
         float elapsed = 0f;
 
-        // --- HAVAYA YÜKSELİŞ ---
+        // --- HAVAYA YÜKSELİŞ VE KAYMA ---
         while (elapsed < duration)
         {
             if (isDead || isTakingDamage) yield break;
@@ -256,10 +267,19 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
 
             float currentY = Mathf.Lerp(baseOffset.y, baseOffset.y + heavyAttackHeight, t);
             activeModelTransform.localPosition = new Vector3(baseOffset.x, currentY, baseOffset.z);
+
+            transform.position = Vector3.MoveTowards(transform.position, targetLandingPoint, heavyAttackLeapSpeed * Time.deltaTime);
             yield return null;
         }
 
-        yield return new WaitForSeconds(0.15f);
+        float hangTime = 0.15f;
+        float hangElapsed = 0f;
+        while (hangElapsed < hangTime)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, targetLandingPoint, heavyAttackLeapSpeed * Time.deltaTime);
+            hangElapsed += Time.deltaTime;
+            yield return null;
+        }
 
         // --- ZEMİNE ÇAKILMA ---
         elapsed = 0f;
@@ -273,34 +293,31 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
 
             float currentY = Mathf.Lerp(baseOffset.y + heavyAttackHeight, baseOffset.y, t);
             activeModelTransform.localPosition = new Vector3(baseOffset.x, currentY, baseOffset.z);
+
+            transform.position = Vector3.MoveTowards(transform.position, targetLandingPoint, heavyAttackLeapSpeed * 2f * Time.deltaTime);
             yield return null;
         }
 
+        transform.position = targetLandingPoint;
         activeModelTransform.localPosition = baseOffset;
 
-        // --- ALAN HASARI VE YEŞİL PARTICLE TETİKLENME ANI ---
+        // --- SARSINTI DALGASI VE HASAR ANI ---
         if (!isDead && !isTakingDamage)
         {
-            Debug.Log("💥 BOOOM! Devasa Boss yere çakıldı, şok dalgası yayılıyor!");
-
             if (heavyAttackEffect != null)
             {
                 Vector3 spawnEffectPos = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z);
                 GameObject goEffect = Instantiate(heavyAttackEffect, spawnEffectPos, Quaternion.identity);
 
-                // === DÜZELTİLDİ: SAHNEDEKİ BAĞIMSIZ EFECT SCALE ORANINI RADIUS İLE BİREBİR SENKRONİZE EDİYORUZ ===
-                // Prefab dışarıda 1 ölçekte doğduğu için, onu tam hasar yarıçapının kaplayacağı matematiksel boyuta sike sike çekiyoruz kanka!
-                float finalScale = heavyAttackRadius * 2f; // Çap hesabı (Yarıçapın 2 katı kaplasın diye)
+                float finalScale = heavyAttackRadius * 2f;
                 goEffect.transform.localScale = new Vector3(finalScale, 1f, finalScale);
 
-                // Shuriken Shaper koruması: Eğer sistem particle componentine sahipse onun da iç yarıçapını zorla genişletelim
                 ParticleSystem ps = goEffect.GetComponent<ParticleSystem>();
                 if (ps != null)
                 {
                     var shape = ps.shape;
                     shape.radius = heavyAttackRadius;
                 }
-
                 Destroy(goEffect, 3.5f);
             }
 
@@ -309,16 +326,56 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
             {
                 if (hitCollider.CompareTag("Player"))
                 {
-                    IDamageable playerDamage = hitCollider.GetComponent<IDamageable>();
-                    if (playerDamage != null)
+                    // === GÜNCELLENDİ: DON VE SANCHO ZEMİN DURUMU KONTROLLERİ ===
+                    bool playerIsGrounded = true;
+
+                    DonMovement donMove = hitCollider.GetComponent<DonMovement>();
+                    SanchoMovement sanchoMove = hitCollider.GetComponent<SanchoMovement>();
+
+                    if (donMove != null)
                     {
-                        playerDamage.TakeDamage(heavyAttackDamage);
+                        playerIsGrounded = donMove.isGrounded;
+                    }
+                    else if (sanchoMove != null)
+                    {
+                        playerIsGrounded = sanchoMove.isGrounded; // Sancho'nun zemin kontrolü buraya kilitlendi kanka!
+                    }
+                    else
+                    {
+                        CharacterController cc = hitCollider.GetComponent<CharacterController>();
+                        if (cc != null) playerIsGrounded = cc.isGrounded;
+                    }
+
+                    if (playerIsGrounded)
+                    {
+                        IDamageable playerDamage = hitCollider.GetComponent<IDamageable>();
+                        if (playerDamage != null) playerDamage.TakeDamage(heavyAttackDamage);
+                    }
+                    else
+                    {
+                        Debug.Log("🛡️ Sarsıntı anında havadasın! Hasar savuşturuldu kanka!");
                     }
                 }
             }
         }
 
         yield return new WaitForSeconds(0.6f);
+        ForceResetModelPosition();
+        if (agent.enabled) agent.Warp(transform.position);
+    }
+
+    void ForceResetModelPosition()
+    {
+        if (slimeModel != null && isDonActive)
+        {
+            slimeModel.transform.localPosition = slimePositionOffset;
+            slimeModel.transform.localRotation = Quaternion.Euler(slimeRotationOffset);
+        }
+        if (mouseModel != null && !isDonActive)
+        {
+            mouseModel.transform.localPosition = mousePositionOffset;
+            mouseModel.transform.localRotation = Quaternion.Euler(mouseRotationOffset);
+        }
     }
 
     void FindActivePlayer()
@@ -359,7 +416,7 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
 
         if (agent != null)
         {
-            agent.speed = isDonActive ? 3.5f : 4.8f;
+            agent.speed = isDonActive ? (isClone ? 4.5f : 3.5f) : (isClone ? 5.8f : 4.8f);
         }
     }
 
@@ -368,7 +425,7 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         if (isDead) return;
 
         currentHealth -= damageAmount;
-        Debug.Log("👑 BOSS CANI: " + currentHealth + " / " + maxHealth);
+        Debug.Log(gameObject.name + " Canı: " + currentHealth + " / " + maxHealth);
 
         if (currentHealth <= 0) Die();
         else StartCoroutine(DamageRoutine());
@@ -385,6 +442,7 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         yield return new WaitForSeconds(0.4f);
 
         if (!isDead) isTakingDamage = false;
+        ForceResetModelPosition();
     }
 
     private void Die()
@@ -399,8 +457,53 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         if (isDonActive && slimeAnimator != null) slimeAnimator.SetTrigger(slimeDeathTrigger);
         else if (!isDonActive && mouseAnimator != null) mouseAnimator.SetTrigger(mouseDeathTrigger);
 
-        Debug.Log("🏆 BOSS İNDİRİLDİ! Bölüm tamamlanıyor kanka!");
-        Destroy(gameObject, 4f);
+        Debug.Log("💀 " + gameObject.name + " öldü!");
+
+        if (!isClone)
+        {
+            SplitBossIntoClones();
+        }
+
+        Destroy(gameObject, 2.5f);
+    }
+
+    void SplitBossIntoClones()
+    {
+        Debug.Log("🔄 👑 ANA BOSS BÖLÜNÜYOR! Yavrular fırlatılıyor kanka!");
+
+        for (int i = 0; i < 2; i++)
+        {
+            Vector2 randomSpread = Random.insideUnitCircle.normalized * splitSpreadRadius;
+            Vector3 spawnPos = new Vector3(transform.position.x + randomSpread.x, transform.position.y, transform.position.z + randomSpread.y);
+
+            GameObject cloneGo = Instantiate(gameObject, spawnPos, transform.rotation);
+
+            BossSlimeMouse cloneScript = cloneGo.GetComponent<BossSlimeMouse>();
+            if (cloneScript != null)
+            {
+                cloneScript.isClone = true;
+
+                cloneScript.maxHealth = maxHealth / 2f;
+                cloneScript.attackDamage = attackDamage / 2f;
+                cloneScript.heavyAttackDamage = heavyAttackDamage / 2f;
+                cloneScript.attackRange = attackRange / 2f;
+                cloneScript.heavyAttackRange = heavyAttackRange / 1.5f;
+                cloneScript.heavyAttackRadius = heavyAttackRadius / 2f;
+
+                cloneGo.transform.localScale = new Vector3(2f, 2f, 2f);
+                cloneScript.isDead = false;
+
+                Collider cloneCol = cloneGo.GetComponent<Collider>();
+                if (cloneCol != null) cloneCol.enabled = true;
+
+                NavMeshAgent cloneAgent = cloneGo.GetComponent<NavMeshAgent>();
+                if (cloneAgent != null)
+                {
+                    cloneAgent.enabled = true;
+                    cloneAgent.isStopped = false;
+                }
+            }
+        }
     }
 
     void SetMovingAnimation(bool isMoving)
