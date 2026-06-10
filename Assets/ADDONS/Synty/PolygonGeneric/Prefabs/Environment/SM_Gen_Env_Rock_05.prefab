@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7352168017748266424}
   - component: {fileID: 4750403232429209970}
   - component: {fileID: 7882431159178597744}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SM_Gen_Env_Rock_05
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3161779178937702025}
   - component: {fileID: 4352077110875120056}
   m_Layer: 0
-  m_Name: Intraction_Trigger
+  m_Name: Interaction_Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

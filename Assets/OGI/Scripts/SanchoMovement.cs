@@ -152,6 +152,11 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         baseCenter = controller.center;
         baseBottom = baseCenter.y - (controller.height / 2f);
 
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+        }
+
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
         // --- HUD BAŞLANGIÇ EŞİTLEMESİ ---
