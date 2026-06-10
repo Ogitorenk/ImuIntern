@@ -460,7 +460,6 @@ public class DonMovement : MonoBehaviour, IDamageable
             if (isCrawling) currentSpeed = crawlSpeed;
             else if (isCrouching) currentSpeed = crouchSpeed;
             else if (isWalking) currentSpeed = walkSpeed;
-            // --- GÜNCELLENDİ: Havadayken Shift'e basılsa bile depar atamasın (isGrounded şartı eklendi) ---
             else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled && isGrounded) currentSpeed = sprintSpeed;
             else currentSpeed = speed;
 
@@ -643,6 +642,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             if (!isAiming && !isBlocking)
             {
+                // NORMAL MOD: Sorunsuz Çalışan Bölge
                 if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
                 {
                     referenceYaw = cam.eulerAngles.y;
@@ -668,16 +668,29 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
             else
             {
-                float yawCamera = cam.eulerAngles.y;
-                transform.rotation = Quaternion.Euler(0, yawCamera, 0);
+                // --- AIM MODU: Sola Çekme ve Daire Çizme BUG'ı Kesin Çözümü ---
+                // Kameranın 'LookAt' ofsetinden (aimOffsetX) dolayı sola bakan yanlış açısını (cam.eulerAngles.y) siliyoruz!
+                // Onun yerine, kameranın yörüngesinden karaktere gelen saf "İleri" çizgisini buluyoruz:
+                Vector3 camToPlayer = transform.position - cam.position;
+                camToPlayer.y = 0f;
+                camToPlayer.Normalize();
 
-                referenceYaw = yawCamera;
+                // Bu bize ofsetlerden etkilenmeyen, ekranın tam orta derinliğine giden gerçek açıyı verir
+                float trueYaw = Mathf.Atan2(camToPlayer.x, camToPlayer.z) * Mathf.Rad2Deg;
+
+                // Karakteri ofsetten bağımsız, saf açıya kilitliyoruz
+                transform.rotation = Quaternion.Euler(0, trueYaw, 0);
+                referenceYaw = trueYaw;
 
                 if (inputDir.magnitude >= 0.1f && landStunTimer <= 0 && !isBlocking)
                 {
                     animSpeed = currentSpeed * 0.6f;
-                    Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-                    if (controller.enabled) controller.Move(moveDir * (currentSpeed * 0.6f) * Time.deltaTime);
+
+                    // Normal gezinme modundaki o mermi gibi çalışan W-A-S-D rotasyon matematiğini aim'e entegre ediyoruz
+                    float targetAngle = Mathf.Atan2(horizontal, vertical) * Mathf.Rad2Deg + trueYaw;
+                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+
+                    if (controller.enabled) controller.Move(moveDir.normalized * (currentSpeed * 0.6f) * Time.deltaTime);
                 }
             }
         }
