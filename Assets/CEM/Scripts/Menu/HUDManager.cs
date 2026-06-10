@@ -12,6 +12,12 @@ public class HUDManager : MonoBehaviour
         public Image activeHealthImage;
         [Tooltip("Seçili silahın görüneceği slot")]
         public Image weaponSlotImage;
+
+        // --- YENİ EKLENDİ: İKSİR UI ELEMENTLERİ ---
+        [Tooltip("Can İksiri sayısını gösterecek Text component'i")]
+        public Text healthPotionText;
+        [Tooltip("Zaman İksiri sayısını gösterecek Text component'i")]
+        public Text slowPotionText;
     }
 
     [System.Serializable]
@@ -38,7 +44,6 @@ public class HUDManager : MonoBehaviour
 
     [Header("--- SANCHO PANZA ELEMENTS ---")]
     [SerializeField] private CharacterHUDComponents sanchoUI;
-    // Sancho'nun silahları farklıysa buraya ayrı WeaponSprites eklenebilir.
 
     [Header("--- CONFIGURATION ---")]
     [SerializeField] private HUDSettings hudSettings = new HUDSettings { snapToHearts = true, totalBoxes = 13f };
@@ -53,8 +58,8 @@ public class HUDManager : MonoBehaviour
 
     public void SwitchHUD(bool isDonActive)
     {
-        donHUDGroup.SetActive(isDonActive);
-        sanchoHUDGroup.SetActive(!isDonActive);
+        if (donHUDGroup != null) donHUDGroup.SetActive(isDonActive);
+        if (sanchoHUDGroup != null) sanchoHUDGroup.SetActive(!isDonActive);
     }
 
     // --- DON KİŞOT İÇİN FONKSİYONLAR ---
@@ -70,6 +75,16 @@ public class HUDManager : MonoBehaviour
         donQuixoteUI.weaponSlotImage.sprite = isWeaponShield ? donWeaponSprites.shieldSprite : donWeaponSprites.spearSprite;
     }
 
+    // --- YENİ FONKSİYONLAR: DON İKSİR SAYILARINI GÜNCELLEME ---
+    public void UpdateDonQuixotePotions(int healthCount, int slowCount)
+    {
+        if (donQuixoteUI.healthPotionText != null)
+            donQuixoteUI.healthPotionText.text = healthCount.ToString();
+
+        if (donQuixoteUI.slowPotionText != null)
+            donQuixoteUI.slowPotionText.text = slowCount.ToString();
+    }
+
     // --- SANCHO İÇİN FONKSİYONLAR ---
 
     public void UpdateSanchoHealth(float currentHealth, float maxHealth)
@@ -77,12 +92,23 @@ public class HUDManager : MonoBehaviour
         UpdateHealthBar(sanchoUI.activeHealthImage, currentHealth, maxHealth);
     }
 
+    // --- YENİ FONKSİYONLAR: SANCHO İKSİR SAYILARINI GÜNCELLEME ---
+    // (Sancho'nun iksir mantığı da Don gibiyse bunu tetiklersin kanka)
+    public void UpdateSanchoPotions(int healthCount, int slowCount)
+    {
+        if (sanchoUI.healthPotionText != null)
+            sanchoUI.healthPotionText.text = healthCount.ToString();
+
+        if (sanchoUI.slowPotionText != null)
+            sanchoUI.slowPotionText.text = slowCount.ToString();
+    }
+
     // --- ORTAK YARDIMCI METOT ---
 
     private void UpdateHealthBar(Image healthImage, float current, float max)
     {
         if (healthImage == null) return;
-        float ratio = current / max;
+        float ratio = Mathf.Clamp01(current / max); // Güvence amacıyla 0-1 arasına kilitledim kanka
 
         if (hudSettings.snapToHearts && hudSettings.totalBoxes > 0)
         {
