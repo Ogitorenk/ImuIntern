@@ -202,6 +202,12 @@ public class DonMovement : MonoBehaviour, IDamageable
         baseCenter = controller.center;
         baseBottom = baseCenter.y - (controller.height / 2f);
 
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+            HUDManager.Instance.UpdateDonQuixotePotions(healthPotionCount, slowPotionCount);
+        }
+
         if (normalCamera != null)
         {
             normalCamera.Priority = 10;
@@ -227,6 +233,9 @@ public class DonMovement : MonoBehaviour, IDamageable
 
     void Update()
     {
+        // === KRİTİK GÜNCELLEME: PAUSE PANEL AÇIKKEN HAREKETİ TAMAMEN KESER ===
+        if (Time.timeScale == 0f) return;
+
         // --- YENİ: COMBAT DURUMLARINI ÇEK ---
         bool isAttacking = false;
         bool isBlocking = false;
@@ -460,7 +469,6 @@ public class DonMovement : MonoBehaviour, IDamageable
             if (isCrawling) currentSpeed = crawlSpeed;
             else if (isCrouching) currentSpeed = crouchSpeed;
             else if (isWalking) currentSpeed = walkSpeed;
-            // --- GÜNCELLENDİ: Havadayken Shift'e basılsa bile depar atamasın (isGrounded şartı eklendi) ---
             else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled && isGrounded) currentSpeed = sprintSpeed;
             else currentSpeed = speed;
 
@@ -485,6 +493,18 @@ public class DonMovement : MonoBehaviour, IDamageable
         float targetFOV = normalFOV;
         float targetOffsetX = 0f;
         float targetOffsetY = 0f;
+
+        // === KRİTİK GÜNCELLEME: NİŞAN ALIRKEN INPUT KONTROLÜ (A-D DEVRE DIŞI BIRAKILDI) ===
+        float horizontal = 0f;
+        if (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking)
+        {
+            if (!isAiming) // Eğer nişan almıyorsak A-D tuşlarını oku kanka
+            {
+                horizontal = Input.GetAxisRaw("Horizontal");
+            }
+        }
+        float vertical = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking) ? Input.GetAxisRaw("Vertical") : 0f;
+        Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
         if (isLanceEquipped && !isDashing && !isDodging && !isZiplining && !isDrinking)
         {
@@ -572,10 +592,6 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
         }
 
-        float horizontal = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking) ? Input.GetAxisRaw("Horizontal") : 0f;
-        float vertical = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking) ? Input.GetAxisRaw("Vertical") : 0f;
-        Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
-
         float animSpeed = 0f;
 
         if (isDashing)
@@ -643,6 +659,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             if (!isAiming && !isBlocking)
             {
+                // NORMAL MOD: Sorunsuz Çalışan Bölge
                 if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
                 {
                     referenceYaw = cam.eulerAngles.y;
@@ -668,23 +685,32 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
             else
             {
-                float yawCamera = cam.eulerAngles.y;
-                transform.rotation = Quaternion.Euler(0, yawCamera, 0);
+                // --- AIM MODU: Sola Çekme ve Daire Çizme BUG'ı Kesin Çözümü ---
+                Vector3 camToPlayer = transform.position - cam.position;
+                camToPlayer.y = 0f;
+                camToPlayer.Normalize();
 
-                referenceYaw = yawCamera;
+                float trueYaw = Mathf.Atan2(camToPlayer.x, camToPlayer.z) * Mathf.Rad2Deg;
+
+                transform.rotation = Quaternion.Euler(0, trueYaw, 0);
+                referenceYaw = trueYaw;
 
                 if (inputDir.magnitude >= 0.1f && landStunTimer <= 0 && !isBlocking)
                 {
                     animSpeed = currentSpeed * 0.6f;
-                    Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-                    if (controller.enabled) controller.Move(moveDir * (currentSpeed * 0.6f) * Time.deltaTime);
+
+                    // A-D kilitlendiği için targetAngle sadece horizontal 0 iken vertical'a göre (ileri/geri) çalışır kanka
+                    float targetAngle = Mathf.Atan2(horizontal, vertical) * Mathf.Rad2Deg + trueYaw;
+                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+
+                    if (controller.enabled) controller.Move(moveDir.normalized * (currentSpeed * 0.6f) * Time.deltaTime);
                 }
             }
         }
 
         if (animator != null)
         {
-            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime); // flat: etiketi uyarı vermesin diye temizlendi kanka
+            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
             animator.SetBool("isGrounded", isGrounded);
             animator.SetBool("isNearGround", isNearGround);
             animator.SetFloat("VerticalVelocity", velocity.y);
@@ -716,7 +742,6 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (!isZiplining)
         {
-            // --- GÜNCELLENDİ: GERÇEKÇİ PLATFORM MOMENTUMU ---
             if (velocity.y < 0)
             {
                 velocity.y += gravity * fallMultiplier * Time.deltaTime;
@@ -748,6 +773,9 @@ public class DonMovement : MonoBehaviour, IDamageable
         ThrowLance();
 
         yield return new WaitForSeconds(0.4f);
+
+        // --- GÜNCELLEME: Mızrak atıldıktan sonra eğer nişan almaya devam edilmiyorsa görseli kapat kanka ---
+        if (!Input.GetMouseButton(1) && eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
 
         isThrowing = false;
     }
@@ -812,21 +840,14 @@ public class DonMovement : MonoBehaviour, IDamageable
         }
     }
 
-    // ==============================================================================================
-    // --- GÜNCELLENDİ: CROSSHAIR ODAKLI NOKTA ATIŞI MIZRAK FIRLATMA MANTIĞI ---
-    // ==============================================================================================
     void ThrowLance()
     {
-        // 1. Ekranın tam ortasından (Crosshair'ın olduğu yer) sonsuza giren kusursuz bir ray fırlatıyoruz kanka
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         RaycastHit hit;
         Vector3 targetPoint;
 
-        // Player collider'larını es geçsin ki mızrak Don'un kafasına çarparak doğmasın aq
         int layerMask = ~LayerMask.GetMask("Player", "Ignore Raycast");
 
-        // Işın haritada zemin, duvar veya herhangi bir objeye çarparsa nişan aldığımız yer orasıdır.
-        // Eğer hiçbir yere çarpmazsa gökyüzüne doğru 300 metre ilerideki hayali noktaya gitsin.
         if (Physics.Raycast(ray, out hit, 300f, layerMask))
         {
             targetPoint = hit.point;
@@ -836,21 +857,17 @@ public class DonMovement : MonoBehaviour, IDamageable
             targetPoint = ray.GetPoint(300f);
         }
 
-        // 2. Mızrağın doğacağı ilk konumu hesaplıyoruz
         Vector3 spawnPos = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
         GameObject newLance = Instantiate(lancePrefab, spawnPos, Quaternion.identity);
         newLance.tag = "Lance";
 
-        // 3. KRİTİK ÇÖZÜM: Kamera açısına göre değil, mızrağın elden çıktığı noktadan tam crosshair'ın çarptığı targetPoint'e doğru yön vektörü çıkarıyoruz!
         Vector3 flightDirection = (targetPoint - spawnPos).normalized;
 
-        // Mızrağın yönünü tam bu çizgiye kilitleyip ekstra rotasyon kaymasını çakıyoruz kanka
         newLance.transform.rotation = Quaternion.LookRotation(flightDirection) * Quaternion.Euler(lanceRotationOffset);
 
         Rigidbody lanceRb = newLance.GetComponent<Rigidbody>();
         if (lanceRb != null)
         {
-            // Mızrağa tam crosshair doğrultusunda kusursuz hız ivmesini veriyoruz
             lanceRb.velocity = flightDirection * throwForce;
         }
     }
@@ -863,6 +880,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         jumpCount = 0;
         controller.enabled = false;
 
+        // Karakterin mızrağa tutunma yön matematiği duruyor kanka dokunmadım
         Vector3 pushAwayDir = -lance.forward;
         LanceObj lanceScript = lance.GetComponent<LanceObj>();
 
@@ -958,6 +976,12 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (animator != null) animator.SetTrigger("Damage");
 
+        // --- HUD GÜNCELLEMESİ (HER HASARDA TETİKLENİR) ---
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+        }
+
         Debug.Log("🩸 Don Quixote HASAR ALDI! Kalan Can: " + currentHealth);
 
         if (currentHealth <= 0)
@@ -1014,6 +1038,13 @@ public class DonMovement : MonoBehaviour, IDamageable
             animator.SetBool("isWalking", false);
         }
 
+        // Checkpoint yüklenince HUD barlarını tekrar fulle kanka patlamasın
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+            HUDManager.Instance.UpdateDonQuixotePotions(healthPotionCount, slowPotionCount);
+        }
+
         isControlled = true;
     }
 
@@ -1068,11 +1099,26 @@ public class DonMovement : MonoBehaviour, IDamageable
             healthPotionCount--;
             currentHealth += healthPotionHealAmount;
             if (currentHealth > maxHealth) currentHealth = maxHealth;
+
+            // --- HUD GÜNCELLEME (CAN İKSİRİ) ---
+            if (HUDManager.Instance != null)
+            {
+                HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+                HUDManager.Instance.UpdateDonQuixotePotions(healthPotionCount, slowPotionCount);
+            }
+
             Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
         }
         else
         {
             slowPotionCount--;
+
+            // --- HUD GÜNCELLEME (ZAMAN İKSİRİ) ---
+            if (HUDManager.Instance != null)
+            {
+                HUDManager.Instance.UpdateDonQuixotePotions(healthPotionCount, slowPotionCount);
+            }
+
             StartCoroutine(SlowTimeRoutine());
             Debug.Log("⏳ Zaman İksiri İçildi! Kalan İksir: " + slowPotionCount);
         }
@@ -1098,7 +1144,6 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         Debug.Log("⏳ Zaman normale döndü!");
     }
-
     public void ExternalJump(float bounceHeight)
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);

@@ -159,6 +159,13 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (crosshairUI != null) crosshairUI.SetActive(false);
 
+        // --- HUD BAŞLANGIÇ EŞİTLEMESİ ---
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateSanchoHealth(currentHealth, maxHealth);
+            HUDManager.Instance.UpdateSanchoPotions(healthPotionCount, slowPotionCount);
+        }
+
         if (normalCamera != null)
         {
             normalCamera.Priority = 10;
@@ -171,6 +178,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
     void Update()
     {
+        // === PAUSE PANEL KORUMASI: OYUN DURDUĞUNDA HAREKET MATEMATİĞİNİ KESER ===
+        if (Time.timeScale == 0f) return;
+
         // ========================================================
         // --- YENİ: SAVAŞ DURUMLARINI OKU ---
         // ========================================================
@@ -358,7 +368,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             if (isCrawling) currentSpeed = crawlSpeed;
             else if (isCrouching) currentSpeed = crouchSpeed;
             else if (isWalking) currentSpeed = walkSpeed;
-            // --- GÜNCELLENDİ: Sancho da havadayken uçamasın (isGrounded şartı eklendi kanka) ---
             else if (isControlled && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && !isCrouchToggled && isGrounded) currentSpeed = sprintSpeed;
             else currentSpeed = speed;
 
@@ -391,7 +400,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             isNearGround = isGrounded;
         }
 
-        // --- GÜNCELLENDİ: SANCHO DA HASAR YERKEN LAND'E KAÇMASIN ---
         if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0)
         {
             if (animator != null) animator.SetTrigger("Land");
@@ -423,9 +431,16 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
 
         // ========================================================
-        // --- GÜNCELLENDİ: HAREKET, KAMERA YÖNÜ VE SAVAŞ KİLİDİ ---
+        // --- GÜNCELLENDİ: NİŞAN ALIRKEN INPUT KONTROLÜ (A-D İPTAL) ---
         // ========================================================
-        float horizontal = (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f && !isAttacking) ? Input.GetAxisRaw("Horizontal") : 0f;
+        float horizontal = 0f;
+        if (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f && !isAttacking)
+        {
+            if (!isAiming) // Eğer ok ile nişan almıyorsak normal A-D oku kanka
+            {
+                horizontal = Input.GetAxisRaw("Horizontal");
+            }
+        }
         float vertical = (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f && !isAttacking) ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
@@ -454,7 +469,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
         else if (isAttacking)
         {
-            // SADECE VURURKEN: KAMERAYA DÖN VE HAREKETİ KES
             animSpeed = 0f;
             float yawCamera = cam.eulerAngles.y;
             if (!isHoldingBox) transform.rotation = Quaternion.Euler(0, yawCamera, 0);
@@ -489,17 +503,25 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
             else
             {
-                // OK İLE NİŞAN ALIRKEN
-                float yawCamera = cam.eulerAngles.y;
-                if (!isHoldingBox) transform.rotation = Quaternion.Euler(0, yawCamera, 0);
-                referenceYaw = yawCamera;
+                // --- AIM MODU: Sola Çekme ve Daire Çizme BUG'ı Kesin Çözümü ---
+                Vector3 camToPlayer = transform.position - cam.position;
+                camToPlayer.y = 0f;
+                camToPlayer.Normalize();
 
-                // Nişan alırken WASD ile yürümeye izin veriyoruz (Yavaşlatılmış hızda)
+                float trueYaw = Mathf.Atan2(camToPlayer.x, camToPlayer.z) * Mathf.Rad2Deg;
+
+                if (!isHoldingBox) transform.rotation = Quaternion.Euler(0, trueYaw, 0);
+                referenceYaw = trueYaw;
+
                 if (inputDir.magnitude >= 0.1f && landStunTimer <= 0)
                 {
                     animSpeed = currentSpeed * 0.6f;
-                    Vector3 moveDir = (transform.forward * vertical + transform.right * horizontal).normalized;
-                    if (controller.enabled) controller.Move(moveDir * animSpeed * Time.deltaTime);
+
+                    // A-D kilitlendiği için targetAngle sadece horizontal 0 iken vertical'a göre (ileri/geri) çalışır kanka
+                    float targetAngle = Mathf.Atan2(horizontal, vertical) * Mathf.Rad2Deg + trueYaw;
+                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+
+                    if (controller.enabled) controller.Move(moveDir.normalized * (currentSpeed * 0.6f) * Time.deltaTime);
                 }
             }
         }
@@ -515,7 +537,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             animator.SetBool("isCrawling", isCrawling);
             animator.SetBool("isDodging", isDodging);
 
-            // YENİ: Animatöre nişan aldığımızı bildir
             animator.SetBool("isAiming", isAiming);
             if (isAiming) animator.SetFloat("AimSpeed", vertical, 0.1f, Time.deltaTime);
 
@@ -528,7 +549,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             animator.SetBool("isRepairing", isRepairing);
         }
 
-        // YENİ: Atak veya nişan anında zıplama iptal
         if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining && !isHoldingBox && !isDrinking && !isRepairing && !isCrouchToggled && !isDodging && !isAttacking && !isAiming)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -544,19 +564,15 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (!isZiplining)
         {
-            // --- GÜNCELLENDİ: GERÇEKÇİ SANCHO MOMENTUMU ---
-            // Karakter havada aşağı doğru düşüyorsa (velocity.y < 0), yerçekimini fallMultiplier ile katlayarak sert düşüş veriyoruz kanka!
             if (velocity.y < 0)
             {
                 velocity.y += gravity * fallMultiplier * Time.deltaTime;
             }
             else
             {
-                // Yukarı doğru zıplarken normal yerçekimi işlesin
                 velocity.y += gravity * Time.deltaTime;
             }
 
-            // Terminal Hız Sınırı: Çok yüksekten düşerken hız sınırı aşılmasın kanka
             if (velocity.y < terminalVelocity)
             {
                 velocity.y = terminalVelocity;
@@ -564,12 +580,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
 
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
-
-        if (normalCamera != null)
-        {
-            float targetFOV = isAiming ? aimFOV : normalFOV;
-            normalCamera.m_Lens.FieldOfView = Mathf.Lerp(normalCamera.m_Lens.FieldOfView, targetFOV, Time.deltaTime * zoomSpeed);
-        }
     }
 
     void OnEnable()
@@ -604,12 +614,13 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         if (iFrames > 0) return;
 
         currentHealth -= damageAmount;
+
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+            HUDManager.Instance.UpdateSanchoHealth(currentHealth, maxHealth);
         }
-        iFrames = 1f;
 
+        iFrames = 1f;
         isDodging = false;
 
         velocity.y = 5f;
@@ -724,15 +735,24 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             healthPotionCount--;
             currentHealth += healthPotionHealAmount;
             if (currentHealth > maxHealth) currentHealth = maxHealth;
+
             if (HUDManager.Instance != null)
             {
-                HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+                HUDManager.Instance.UpdateSanchoHealth(currentHealth, maxHealth);
+                HUDManager.Instance.UpdateSanchoPotions(healthPotionCount, slowPotionCount);
             }
+
             Debug.Log("💚 İksir İçildi! Yeni Can: " + currentHealth + " | Kalan İksir: " + healthPotionCount);
         }
         else
         {
             slowPotionCount--;
+
+            if (HUDManager.Instance != null)
+            {
+                HUDManager.Instance.UpdateSanchoPotions(healthPotionCount, slowPotionCount);
+            }
+
             StartCoroutine(SlowTimeRoutine());
             Debug.Log("⏳ Sancho Zaman İksiri İçti! Kalan İksir: " + slowPotionCount);
         }
