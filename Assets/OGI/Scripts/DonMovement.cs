@@ -5,6 +5,9 @@ using System.Collections;
 [RequireComponent(typeof(CharacterController))]
 public class DonMovement : MonoBehaviour, IDamageable
 {
+    [Header("--- SCRIPTABLE OBJECT DATA ---")]
+    [SerializeField] private CharacterData donData; // Don'un verilerini kalıcı tutan ScriptableObject kanka
+
     [Header("Özel Bölüm Kontrolü")]
     public bool isControlled = true;
 
@@ -1015,7 +1018,16 @@ public class DonMovement : MonoBehaviour, IDamageable
         isDashing = false;
         isDodging = false;
 
-        currentHealth = maxHealth;
+        // === KRİTİK GÜNCELLEME: ÖLÜNCE CANLARI VE POTLARI DATA ÜZERİNDEN RESETLE KANKA ===
+        if (CheckpointManager.Instance != null)
+        {
+            CheckpointManager.Instance.RespawnResetStats(); // Verileri datadan senkronize edip canı 100 yapacak
+            currentHealth = donData != null ? donData.currentHealth : maxHealth;
+        }
+        else
+        {
+            currentHealth = maxHealth;
+        }
 
         if (DualRealityManager.Instance != null)
         {
@@ -1144,6 +1156,7 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         Debug.Log("⏳ Zaman normale döndü!");
     }
+
     public void ExternalJump(float bounceHeight)
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);

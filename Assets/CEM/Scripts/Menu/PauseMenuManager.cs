@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using Cinemachine; // --- GÜNCELLEME: Cinemachine kütüphanesini ekledik kanka ---
 
 [System.Serializable]
 public struct PauseButtonElements
@@ -14,15 +15,19 @@ public struct PauseButtonElements
 public class PauseMenuManager : MonoBehaviour
 {
     [Header("Panels")]
-    [SerializeField] private GameObject pauseMenuPanel;   
-    [SerializeField] private GameObject areYouSurePanel;   
-    [SerializeField] private GameObject optionsPanel;      
+    [SerializeField] private GameObject pauseMenuPanel;
+    [SerializeField] private GameObject areYouSurePanel;
+    [SerializeField] private GameObject optionsPanel;
 
     [Header("Buton ve Ok Eslesmeleri (Gelişmiş)")]
     [SerializeField] private PauseButtonElements[] menuButtons;
 
     [Header("Scene Settings")]
-    [SerializeField] private string mainMenuSceneName = "MainMenu"; 
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
+
+    // --- GÜNCELLEME: Sahnedeki FreeLook kamerayı Inspector'dan buraya bağlayacağız kanka ---
+    [Header("Cinemachine Kamera Ayarı")]
+    [SerializeField] private CinemachineFreeLook playerCamera;
 
     private bool isPaused = false;
 
@@ -50,11 +55,10 @@ public class PauseMenuManager : MonoBehaviour
         }
 
         // --- GÜVENLİK GÜNCELLEMESİ ---
-        // Sahnede panel açık unutulduysa kapat ama Time.timeScale'i bozma kanka
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
         if (optionsPanel != null) optionsPanel.SetActive(false);
         if (areYouSurePanel != null) areYouSurePanel.SetActive(false);
-        
+
         isPaused = false;
         Time.timeScale = 1f;
     }
@@ -98,7 +102,7 @@ public class PauseMenuManager : MonoBehaviour
 
     public void OnAreYouSureYes()
     {
-        Time.timeScale = 1f; 
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -123,7 +127,7 @@ public class PauseMenuManager : MonoBehaviour
 
     public void OnExitClicked()
     {
-        Time.timeScale = 1f; 
+        Time.timeScale = 1f;
         if (LoadingManager.Instance != null)
         {
             LoadingManager.Instance.LoadScene(mainMenuSceneName);
@@ -138,10 +142,19 @@ public class PauseMenuManager : MonoBehaviour
     {
         isPaused = true;
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
-        
+
         // ZAMANI ZINK DİYE DURDURUYORUZ
-        Time.timeScale = 0f; 
-        
+        Time.timeScale = 0f;
+
+        // --- GÜNCELLEME: KAMERA EKSEN GİRDİLERİNİ BOŞALTIYORUZ ---
+        if (playerCamera != null)
+        {
+            playerCamera.m_XAxis.m_InputAxisName = "";
+            playerCamera.m_YAxis.m_InputAxisName = "";
+            playerCamera.m_XAxis.m_InputAxisValue = 0f;
+            playerCamera.m_YAxis.m_InputAxisValue = 0f;
+        }
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -154,9 +167,16 @@ public class PauseMenuManager : MonoBehaviour
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
         if (optionsPanel != null) optionsPanel.SetActive(false);
         if (areYouSurePanel != null) areYouSurePanel.SetActive(false);
-        
+
         // ZAMANI NORMALE DÖNDÜRÜYORUZ
-        Time.timeScale = 1f; 
+        Time.timeScale = 1f;
+
+        // --- GÜNCELLEME: FARE EKSENLERİNİ KAMERAYA GERİ BAĞLIYORUZ ---
+        if (playerCamera != null)
+        {
+            playerCamera.m_XAxis.m_InputAxisName = "Mouse X";
+            playerCamera.m_YAxis.m_InputAxisName = "Mouse Y";
+        }
 
         // --- GÜNCELLEME: Oyuna dönünce imleci geri kilitle kanka ---
         Cursor.lockState = CursorLockMode.Locked;
@@ -179,7 +199,7 @@ public class PauseMenuManager : MonoBehaviour
     {
         if (menuButtons != null && menuButtons.Length > 0)
         {
-            HighlightButton(0); 
+            HighlightButton(0);
         }
     }
 }

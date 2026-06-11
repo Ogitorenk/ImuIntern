@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fa30e73beb2a5341a2e3b7e2b95a7d3, type: 3}
+  m_Name: Game_Progress_Data
+  m_EditorClassIdentifier: 
+  totalTokens: 0
+  lastCheckpointPosition: {x: 57.102043, y: 1.4999981, z: 14.493832}
+  lastSavedSceneName: Level_1

@@ -64,6 +64,9 @@ public class DonCombat : MonoBehaviour
 
     void Update()
     {
+        // === KRİTİK PAUSE KORUMASI: Oyun durdurulduğunda kılıç/mızrak savurmayı ve kalkan bloklamayı tamamen keser kanka ===
+        if (Time.timeScale == 0f) return;
+
         if (!donMovement.isControlled || donMovement.isDrinking || donMovement.isZiplining ||
             donMovement.isDodging || donMovement.isCrawling || donMovement.isCrouchToggled || donMovement.isLatched)
         {
@@ -148,12 +151,11 @@ public class DonCombat : MonoBehaviour
             if (enemyCollider.gameObject.CompareTag("Player")) continue;
 
             // --- YENİ KONTROL: KIRILABİLİR KUTU KONTROLÜ ---
-            // Don mızrağı savurduğunda alan içinde kırılabilir kutu varsa direkt patlatsın kanka!
             SharedBreakableObject breakable = enemyCollider.GetComponent<SharedBreakableObject>();
             if (breakable != null)
             {
                 breakable.BreakIt();
-                continue; // Kutuyu kırdık, düşman hasar kontrolüne girmeden sıradaki collider'a geç kanka
+                continue;
             }
 
             IDamageable enemy = enemyCollider.GetComponent<IDamageable>();
