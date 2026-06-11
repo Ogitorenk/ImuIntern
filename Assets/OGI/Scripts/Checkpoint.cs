@@ -1,24 +1,35 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class Checkpoint : MonoBehaviour
 {
-    [Header("Görsel Ayarlar")]
+    [Header("GÃ¶rsel Ayarlar")]
     public Color activeColor = Color.green;
     private bool isActivated = false;
 
+    [Header("Ses Efekt AyarlarÄ±")]
+    [SerializeField] private AudioClip saveSoundEffect; // Dinleme sesini buraya atacaksÄ±n kanka
+    [Range(0f, 1f)][SerializeField] private float soundVolume = 0.7f; // Ses seviyesi kontrolÃ¼
+
     private void OnTriggerEnter(Collider other)
     {
-        // Sadece Player tag'li objeler (veya Sancho/Don) girince çalýþsýn
+        // Sadece Player tag'li objeler (veya Sancho/Don) girince Ã§alÄ±ÅŸsÄ±n
         if (!isActivated && (other.CompareTag("Player") || other.transform.root.CompareTag("Player")))
         {
             isActivated = true;
 
             // Manager'a "Benim pozisyonumu en son nokta yap" diyoruz
-            // Y eksenini biraz yukarý alýyoruz ki karakter yerin dibinde doðmasýn
+            // Y eksenini biraz yukarÄ± alÄ±yoruz ki karakter yerin dibinde doÄŸmasÄ±n
             Vector3 spawnPoint = transform.position + Vector3.up * 1.5f;
+
+            // Bu fonksiyon hem pozisyonu hem de Don/Sancho'nun can/iksir deÄŸerlerini tek seferde kaydedecek kanka!
             CheckpointManager.Instance.UpdateCheckpoint(spawnPoint);
 
-            // Ýstersen burada bir efekt veya ses çalabilirsin
+            // --- SES EFEKTÄ°NÄ° PATLATIYORUZ ---
+            if (saveSoundEffect != null)
+            {
+                AudioSource.PlayClipAtPoint(saveSoundEffect, transform.position, soundVolume);
+            }
+
             GetComponent<Renderer>().material.color = activeColor;
         }
     }

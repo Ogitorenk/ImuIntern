@@ -5,6 +5,9 @@ using TMPro; // TMPro KÜTÜPHANESİ YENİ EKLENDİ!
 
 public class SanchoCombat : MonoBehaviour
 {
+    [Header("--- SCRIPTABLE OBJECT DATA ---")]
+    [SerializeField] private CharacterData sanchoData; // Sancho'nun ok sayısını tutacak olan ortak veri dosyası kanka
+
     private SanchoMovement sanchoMovement;
     private Animator animator;
 
@@ -68,14 +71,8 @@ public class SanchoCombat : MonoBehaviour
     private float lastFireTime = 0f;
 
     // ========================================================
-    // --- GÜNCELLENDİ: SANCHO OK ENVANTER VE UI SİSTEMİ ---
+    // --- GÜNCELLENDİ: SANCHO OK ENVANTER SİSTEMİ (TAMAMEN DATA BAĞLI) ---
     // ========================================================
-    [Header("--- Sancho Ok Çantası ---")]
-    [Tooltip("Sancho'nun şu an kaç oku var?")]
-    public int currentArrowCount = 5;
-    [Tooltip("Maksimum kaç ok biriktirebilir?")]
-    public int maxArrowCount = 20;
-
     [Header("--- UI ENTEGRASYONU ---")]
     [Tooltip("Ok bittiğinde ekrana gelecek küçük uyarı UI nesnesi")]
     [SerializeField] private GameObject noArrowWarningUI;
@@ -83,9 +80,6 @@ public class SanchoCombat : MonoBehaviour
     [SerializeField] private float warningDuration = 2.0f;
     private Coroutine warningRoutine;
 
-    // ========================================================
-    // --- YENİ EKLENDİ: OK SAYAÇ TEXTMESHPRO REFERANSI ---
-    // ========================================================
     [Tooltip("Ekranda '5 / 20' yazacak olan TextMeshPro nesnesi")]
     [SerializeField] private TextMeshProUGUI arrowCounterText;
 
@@ -97,10 +91,14 @@ public class SanchoCombat : MonoBehaviour
         if (meleeWeaponPivot != null) meleeWeaponPivot.SetActive(false);
         if (bowPivot != null) bowPivot.SetActive(false);
 
-        // Oyun başında uyarı UI kapalı olsun garantiye alalım kanka
         if (noArrowWarningUI != null) noArrowWarningUI.SetActive(false);
 
-        // --- YENİ EKLENDİ: OYUN BAŞLARKEN SAYACI İLK KEZ DOLDUR ---
+        // --- GÜNCELLEME: BAŞLANGIÇTA TAMAMEN DATADAN ÇEKİLİP UI TAZELEYECEK KANKA ---
+        if (sanchoData != null)
+        {
+            Debug.Log($"<color=green>🏹 Sancho_Data başarıyla okundu! Mevcut Ok: {sanchoData.arrowCount}</color>");
+        }
+
         UpdateArrowCounterUI();
 
         // --- KAMERANIN ORİJİNAL RİG AYARLARINI KAYDET ---
@@ -124,6 +122,9 @@ public class SanchoCombat : MonoBehaviour
 
     void Update()
     {
+        // === KRİTİK PAUSE KORUMASI ===
+        if (Time.timeScale == 0f) return;
+
         if (!sanchoMovement.isControlled || sanchoMovement.isDrinking || sanchoMovement.isRepairing ||
             sanchoMovement.isZiplining || sanchoMovement.isDodging || sanchoMovement.isCrawling ||
             sanchoMovement.isCrouchToggled || sanchoMovement.isHoldingBox)
@@ -152,16 +153,16 @@ public class SanchoCombat : MonoBehaviour
 
             if (Input.GetMouseButtonDown(0) && Time.time >= lastFireTime + fireRate)
             {
-                // BURADA ARTIK OK KONTROLÜ YAPIYORUZ
-                if (currentArrowCount > 0)
+                // Ok sayısını doğrudan datadan sorguluyoruz kanka
+                int currentArrows = sanchoData != null ? sanchoData.arrowCount : 0;
+
+                if (currentArrows > 0)
                 {
                     FireArrow();
                 }
                 else
                 {
                     Debug.LogWarning("🏹 Sancho'nun oku bitti! Kutuları kırıp ok toplaman lazım kanka!");
-                    
-                    // --- YENİ EKLENDİ: OK BİTTİ UYARISINI EKRA GÖSTER ---
                     TriggerNoArrowWarning();
                 }
             }
@@ -201,12 +202,16 @@ public class SanchoCombat : MonoBehaviour
 
     void FireArrow()
     {
-        currentArrowCount--; // OKU HARCADIK!
-        
-        // --- YENİ EKLENDİ: OK ATILINCA UI METNİNİ GÜNCELLE ---
+        // === SCRIPTABLE OBJECT ÜZERİNDEN OK AZALTIYORUZ KANKA ===
+        if (sanchoData != null)
+        {
+            sanchoData.arrowCount--;
+        }
+
         UpdateArrowCounterUI();
 
-        Debug.Log($"🏹 Ok atıldı! Kalan Ok: {currentArrowCount}/{maxArrowCount}");
+        // === HATA VEREN 131. SATIR BURASIYDI, TAMAMEN DATA BAĞLANDI VE ÇÖZÜLDÜ ===
+        Debug.Log($"🏹 Ok atıldı! Kalan Ok: {(sanchoData != null ? sanchoData.arrowCount : 0)}");
 
         lastFireTime = Time.time;
         if (animator != null) animator.SetTrigger("FireArrow");
@@ -240,12 +245,13 @@ public class SanchoCombat : MonoBehaviour
         }
     }
 
-    // --- YENİ EKLENDİ: SAYACI GÜNCELLEYEN YARDIMCI FONKSİYON ---
     private void UpdateArrowCounterUI()
     {
         if (arrowCounterText != null)
         {
-            arrowCounterText.text = $"{currentArrowCount}/{maxArrowCount}";
+            int currentArrows = sanchoData != null ? sanchoData.arrowCount : 0;
+            int maxArrows = sanchoData != null ? sanchoData.maxArrowCount : 20;
+            arrowCounterText.text = $"{currentArrows}/{maxArrows}";
         }
     }
 
@@ -254,7 +260,7 @@ public class SanchoCombat : MonoBehaviour
         if (noArrowWarningUI == null) return;
 
         if (warningRoutine != null) StopCoroutine(warningRoutine);
-        
+
         warningRoutine = StartCoroutine(ShowWarningRoutine());
     }
 
@@ -359,19 +365,21 @@ public class SanchoCombat : MonoBehaviour
 
     public bool AddArrows(int amount)
     {
-        if (currentArrowCount >= maxArrowCount)
+        if (sanchoData != null)
         {
-            Debug.Log("🏹 Sancho'nun ok çantası ağzına kadar dolu! (+20)");
-            return false;
+            if (sanchoData.arrowCount >= sanchoData.maxArrowCount)
+            {
+                Debug.Log("🏹 Sancho'nun ok çantası ağzına kadar dolu! (+20)");
+                return false;
+            }
+
+            sanchoData.arrowCount += amount;
+            sanchoData.arrowCount = Mathf.Clamp(sanchoData.arrowCount, 0, sanchoData.maxArrowCount);
         }
 
-        currentArrowCount += amount;
-        currentArrowCount = Mathf.Clamp(currentArrowCount, 0, maxArrowCount);
-        
-        // --- YENİ EKLENDİ: YERDEN OK ALINDIĞINDA DA SAYACI GÜNCELLE ---
         UpdateArrowCounterUI();
 
-        Debug.Log($"🏹 Yerden Ok Alındı! Mevcut Ok Sayısı: {currentArrowCount}/{maxArrowCount}");
+        Debug.Log($"🏹 Yerden Ok Alındı! Mevcut Ok Sayısı: {(sanchoData != null ? sanchoData.arrowCount : 0)}");
         return true;
     }
 

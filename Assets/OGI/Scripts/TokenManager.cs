@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class TokenManager : MonoBehaviour
 {
-    public static TokenManager Instance; // Singleton yapısı
+    public static TokenManager Instance;
 
     [System.Serializable]
     public class AchievementData
@@ -26,13 +26,8 @@ public class TokenManager : MonoBehaviour
     public List<AchievementData> achievements = new List<AchievementData>();
 
     [Header("--- HUD VE PANEL BAĞLANTILARI ---")]
-    [Tooltip("Kullandığın o ortak Collectable Panel objesini buraya at kanka")]
     public GameObject hudTokenPanel;
-
-    [Tooltip("Panelin içindeki anlık +1 yazan TextMeshPro")]
-    public TextMeshProUGUI hudTokenText; // Hatalı satır silindi, doğrusu burası kanka!
-
-    [Tooltip("Panelin içindeki o büyük Başarım yazan TextMeshPro bileşeni")]
+    public TextMeshProUGUI hudTokenText;
     public TextMeshProUGUI achievementText;
 
     [Header("--- SÜRE VE SES AYARLARI ---")]
@@ -53,7 +48,24 @@ public class TokenManager : MonoBehaviour
 
     void Start()
     {
-        // Oyun başında paneli gizle ve içlerini temizle kanka
+        // --- SAHNELER ARASI HAFIZA ENTEGRASYONU ---
+        // Sahne ilk açıldığında CheckpointManager'da taşınan güncel token sayısını cüzdana çekiyoruz kanka kafa kafaya veriyorlar
+        if (CheckpointManager.Instance != null)
+        {
+            totalTokensCollected = CheckpointManager.Instance.totalTokens;
+        }
+        else
+        {
+            // Eğer sahne bağımsız test ediliyorsa direkt hard diskten oku kanka patlamasın
+            totalTokensCollected = PlayerPrefs.GetInt("Total_Tokens", 0);
+        }
+
+        // Başarımların durumunu da save dosyasından yükle kanka (Ertesi gün gelen oyuncu için)
+        for (int i = 0; i < achievements.Count; i++)
+        {
+            achievements[i].isUnlocked = PlayerPrefs.GetInt("AchUnlocked_" + i, 0) == 1;
+        }
+
         if (hudTokenPanel != null) hudTokenPanel.SetActive(false);
         ClearTexts();
         UpdatePauseMenuUI();
@@ -62,40 +74,45 @@ public class TokenManager : MonoBehaviour
     public void AddToken()
     {
         totalTokensCollected++;
+
+        // --- SESTİM TAŞIMA: Toplanan yeni token'ı merkezi cüzdana da anlık paslıyoruz kanka ---
+        if (CheckpointManager.Instance != null)
+        {
+            CheckpointManager.Instance.totalTokens = totalTokensCollected;
+
+            // Checkpoint konumuyla beraber toplam token sayısını da anlık hard diske mühürlesin kanka
+            CheckpointManager.Instance.UpdateCheckpoint(CheckpointManager.Instance.GetLastCheckpoint());
+        }
+
         UpdatePauseMenuUI();
 
-        // Eğer aktif çalışan bir ekran süresi varsa önce onu zorla durdur kanka
         if (currentDisplayCoroutine != null) StopCoroutine(currentDisplayCoroutine);
 
-        // Başarım kontrolü yapıyoruz
         bool isAchievementUnlocked = CheckAchievements();
 
         if (!isAchievementUnlocked)
         {
-            // Eğer bu sayı (2, 3, 4) başarım sayısı DEĞİLSE, başarım yazısını ZORLA siliyoruz!
             if (achievementText != null) achievementText.text = "";
-
             currentDisplayCoroutine = StartCoroutine(ShowHudTokenRoutine());
         }
     }
 
     private void UpdatePauseMenuUI()
     {
-        // Level Designer arkadaşının Pause Menü text'i varsa buraya bağlayabilirsin kanka, opsiyoneldir
+        // Level Designer arkadaşının Pause Menü text'i varsa buraya bağlayabilirsin kanka
     }
 
     private IEnumerator ShowHudTokenRoutine()
     {
         if (hudTokenPanel == null || hudTokenText == null) yield break;
 
-        // Normal sayaç yazısını basıyoruz
         hudTokenText.text = "+1 Token (" + totalTokensCollected + ")";
         hudTokenPanel.SetActive(true);
 
         yield return new WaitForSeconds(hudDisplayDuration);
 
         hudTokenPanel.SetActive(false);
-        ClearTexts(); // Panel kapanırken yazıları sıfırla kanka
+        ClearTexts();
     }
 
     private bool CheckAchievements()
@@ -104,10 +121,13 @@ public class TokenManager : MonoBehaviour
         {
             AchievementData ach = achievements[i];
 
-            // Sayı tam eşitse ve açılmadıysa başarım şovunu başlat
             if (totalTokensCollected == ach.targetTokenCount && !ach.isUnlocked)
             {
                 ach.isUnlocked = true;
+
+                // Başarım durumunu da kalıcı olarak diske yaz kanka
+                PlayerPrefs.SetInt("AchUnlocked_" + i, 1);
+                PlayerPrefs.Save();
 
                 string finalMessage = ach.achievementTitle + "\n" + ach.achievementDescription;
                 currentDisplayCoroutine = StartCoroutine(ShowAchievementRoutine(finalMessage));
@@ -121,7 +141,6 @@ public class TokenManager : MonoBehaviour
     {
         if (hudTokenPanel == null || hudTokenText == null || achievementText == null) yield break;
 
-        // Başarım anında panelin üst kısmına normal sayacı, alt kısmına büyük başarım metnini bas kanka
         hudTokenText.text = "+1 Token (" + totalTokensCollected + ")";
         achievementText.text = message;
 
@@ -136,10 +155,9 @@ public class TokenManager : MonoBehaviour
         yield return new WaitForSeconds(achievementDisplayDuration);
 
         hudTokenPanel.SetActive(false);
-        ClearTexts(); // İş bitince tertemiz yap
+        ClearTexts();
     }
 
-    // Yazıların panel açıkken içeride asılı kalmasını önleyen temizlik fonksiyonu kanka
     private void ClearTexts()
     {
         if (hudTokenText != null) hudTokenText.text = "";

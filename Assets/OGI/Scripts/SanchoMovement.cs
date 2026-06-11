@@ -5,6 +5,9 @@ using System.Collections;
 [RequireComponent(typeof(CharacterController))]
 public class SanchoMovement : MonoBehaviour, IDamageable
 {
+    [Header("--- SCRIPTABLE OBJECT DATA ---")]
+    [SerializeField] private CharacterData sanchoData; // Sancho'nun verilerini kalıcı tutan ScriptableObject kanka
+
     [Header("Özel Bölüm Kontrolü")]
     public bool isControlled = true;
 
@@ -23,6 +26,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     public float slowTimeAmount = 0.5f;
     public float slowTimeDuration = 5f;
     public KeyCode slowTimeKey = KeyCode.Alpha2; // 2 Tuşu
+
+    // --- YENİ EKLENDİ: OK / SADAK SİSTEMİ EŞLEŞMESİ ---
+    [HideInInspector] public int arrowCount = 20;
 
     [Header("Etkileşim Durumu")]
     public bool isHoldingBox = false;
@@ -180,6 +186,12 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     {
         // === PAUSE PANEL KORUMASI: OYUN DURDUĞUNDA HAREKET MATEMATİĞİNİ KESER ===
         if (Time.timeScale == 0f) return;
+
+        // --- OK SAYISINI DATADAN EŞZAMANLI ÇEK KANKA ---
+        if (sanchoData != null)
+        {
+            arrowCount = sanchoData.arrowCount;
+        }
 
         // ========================================================
         // --- YENİ: SAVAŞ DURUMLARINI OKU ---
@@ -436,7 +448,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         float horizontal = 0f;
         if (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f && !isAttacking)
         {
-            if (!isAiming) // Eğer ok ile nişan almıyorsak normal A-D oku kanka
+            if (!isAiming)
             {
                 horizontal = Input.GetAxisRaw("Horizontal");
             }
@@ -478,7 +490,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         {
             if (!isAiming)
             {
-                // NORMAL YÜRÜME
                 if (inputDir.magnitude >= 0.1f)
                 {
                     if (landStunTimer > 0)
@@ -517,7 +528,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
                 {
                     animSpeed = currentSpeed * 0.6f;
 
-                    // A-D kilitlendiği için targetAngle sadece horizontal 0 iken vertical'a göre (ileri/geri) çalışır kanka
                     float targetAngle = Mathf.Atan2(horizontal, vertical) * Mathf.Rad2Deg + trueYaw;
                     Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
 
@@ -657,6 +667,17 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         isRepairing = false;
         isHoldingBox = false;
         isDodging = false;
+
+        // === KRİTİK GÜNCELLEME: ÖLÜNCE CANLARI VE POTLARI DATA ÜZERİNDEN RESETLE KANKA ===
+        if (CheckpointManager.Instance != null)
+        {
+            CheckpointManager.Instance.RespawnResetStats(); // Verileri datadan senkronize edip canı 100 yapacak
+            currentHealth = sanchoData != null ? sanchoData.currentHealth : maxHealth;
+        }
+        else
+        {
+            currentHealth = maxHealth;
+        }
 
         if (DualRealityManager.Instance != null)
         {
