@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4114968233353214121}
   - component: {fileID: 951368963008360946}
   - component: {fileID: 6661546049472938229}
-  - component: {fileID: 9157163827268638602}
+  - component: {fileID: 6334098101775630608}
   m_Layer: 3
   m_Name: Parapet_WoodA
   m_TagString: Untagged
@@ -84,8 +84,8 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2771589824960417704}
   m_Mesh: {fileID: -1671219018582297442, guid: d98a89851d862ab489b6c6687b186e1c, type: 3}
---- !u!64 &9157163827268638602
-MeshCollider:
+--- !u!65 &6334098101775630608
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -102,7 +102,6 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
+  serializedVersion: 3
+  m_Size: {x: 1.5, y: 1.25, z: 0.25}
+  m_Center: {x: 0.75, y: 0.625, z: 0.125}
