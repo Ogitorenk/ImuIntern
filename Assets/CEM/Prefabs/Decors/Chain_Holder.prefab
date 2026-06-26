@@ -10,15 +10,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 674edadca4a307248bf91b3af8bb213b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 370.25354
+      value: 357.07706
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 674edadca4a307248bf91b3af8bb213b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 18.894861
+      value: 7.26986
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 674edadca4a307248bf91b3af8bb213b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 103.532455
+      value: 127.635284
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 674edadca4a307248bf91b3af8bb213b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -48,6 +48,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 674edadca4a307248bf91b3af8bb213b, type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 5bc0e04ba4fc84d408eac30702db2d44, type: 2}
     - target: {fileID: 919132149155446097, guid: 674edadca4a307248bf91b3af8bb213b, type: 3}
       propertyPath: m_Name
       value: Chain_Holder
