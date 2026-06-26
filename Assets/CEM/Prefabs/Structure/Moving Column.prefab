@@ -3124,6 +3124,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Moving Column
       objectReference: {fileID: 0}
+    - target: {fileID: 8964620612584767081, guid: dd97b91fc57e2514e82bb4af1f2195ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
