@@ -1,9 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class CheckpointManager : MonoBehaviour
 {
     public static CheckpointManager Instance;
+
+    [Header("--- GELİŞTİRİCİ AYARI ---")]
+    // 🛠️ BUNA TIKLARSAN KARAKTERLER KOYDUĞUN YERDE BAŞLAR KANKA!
+    [Tooltip("İşaretliyken karakterler son checkpoint yerine sahnede koyduğun yerde doğar.")]
+    public bool editorTestModu = false; 
 
     [Header("--- DATA DOSYALARI ---")]
     [SerializeField] private CharacterData donData;
@@ -31,17 +37,50 @@ public class CheckpointManager : MonoBehaviour
     IEnumerator Start()
     {
         yield return new WaitForEndOfFrame();
+        
+        // 🛠️ Eğer test modundaysak ışınlamayı tamamen es geç
+        if (editorTestModu) yield break;
+
+        ApplyDataToSceneObjects();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "MainMenu") return; 
+
+        // 🛠️ Eğer test modundaysak hiçbir şeyi ışınlama, diskten okuma
+        if (editorTestModu) return;
+
+        LoadDataFromDisk();
         ApplyDataToSceneObjects();
     }
 
     public void ApplyDataToSceneObjects()
     {
+        // 🛠️ Güvenlik önlemi: Başka bir script arkadan çağırırsa yine engellesin
+        if (editorTestModu) return;
+
         DonMovement don = FindObjectOfType<DonMovement>();
         if (don != null && donData != null)
         {
             don.currentHealth = donData.currentHealth;
             don.healthPotionCount = donData.healthPotionCount;
             don.slowPotionCount = donData.slowPotionCount;
+
+            if (progressData.lastCheckpointPosition != Vector3.zero)
+            {
+                don.transform.position = progressData.lastCheckpointPosition;
+            }
         }
 
         SanchoMovement sancho = FindObjectOfType<SanchoMovement>();
@@ -51,19 +90,21 @@ public class CheckpointManager : MonoBehaviour
             sancho.healthPotionCount = sanchoData.healthPotionCount;
             sancho.slowPotionCount = sanchoData.slowPotionCount;
 
-            // Eğer SanchoMovement içinde ok sayısını tutan bir değişkenin varsa (Örn: arrowCount) burayı aç kanka:
-            // sancho.arrowCount = sanchoData.arrowCount;
+            if (progressData.lastCheckpointPosition != Vector3.zero)
+            {
+                sancho.transform.position = progressData.lastCheckpointPosition + new Vector3(1f, 0f, 0f);
+            }
         }
 
         UpdateAllUI();
     }
 
-    // 🚩 CHECKPOINT BAYRAĞINA DEĞDİĞİNDE: O anki canı, oku, her şeyi aynen kaydeder kanka.
     public void UpdateCheckpoint(Vector3 newPos)
     {
         if (progressData == null || donData == null || sanchoData == null) return;
 
         progressData.lastCheckpointPosition = newPos;
+        progressData.lastSavedSceneName = SceneManager.GetActiveScene().name;
 
         DonMovement don = FindObjectOfType<DonMovement>();
         if (don != null)
@@ -79,31 +120,23 @@ public class CheckpointManager : MonoBehaviour
             sanchoData.currentHealth = sancho.currentHealth;
             sanchoData.healthPotionCount = sancho.healthPotionCount;
             sanchoData.slowPotionCount = sancho.slowPotionCount;
-
-            // Sancho'nun sahnedeki güncel ok sayısını dataya çekiyoruz kanka
-            // sanchoData.arrowCount = sancho.arrowCount;
         }
 
         SaveDataToDisk();
-        Debug.Log("<color=cyan>🚩 [Checkpoint] Mevcut canlar ve ok sayısı kalıcı olarak kaydedildi!</color>");
+        Debug.Log($"<color=cyan>🚩 [Checkpoint] {progressData.lastSavedSceneName} sahnesi ve konum {newPos} kalıcı olarak kaydedildi!</color>");
     }
 
-    // 💀 OYUNCU ÖLDÜĞÜNDE TETİKLENECEK KOD: Canları 100 yapar, pot ve okları son checkpoint durumuna çeker kanka!
     public void RespawnResetStats()
     {
         if (donData == null || sanchoData == null) return;
 
-        // Ölünce 100 canla başlama kuralı kanka: Datadaki canları zorla fulle!
         donData.currentHealth = donData.maxHealth;
         sanchoData.currentHealth = sanchoData.maxHealth;
 
-        // Potlar ve oklar zaten en son checkpoint'te diske ne yazıldıysa Load edilerek o güvenli sayıya geri dönecek (israf engelleme)
         LoadDataFromDisk();
-
-        // Yenilenen datayı sahnedeki Don ve Sancho objelerine geri enjekte et
         ApplyDataToSceneObjects();
 
-        Debug.Log("<color=red>💀 [Respawn] Oyuncu öldü! Canlar 100'e fullendi, envanter son checkpoint haline geri çekildi.</color>");
+        Debug.Log("<color=red>💀 [Respawn] Oyuncu öldü! Canlar fullendi, envanter son checkpoint haline geri çekildi.</color>");
     }
 
     public void SaveDataToDisk()
@@ -111,6 +144,8 @@ public class CheckpointManager : MonoBehaviour
         PlayerPrefs.SetFloat("SO_CheckX", progressData.lastCheckpointPosition.x);
         PlayerPrefs.SetFloat("SO_CheckY", progressData.lastCheckpointPosition.y);
         PlayerPrefs.SetFloat("SO_CheckZ", progressData.lastCheckpointPosition.z);
+        
+        PlayerPrefs.SetString("SO_LastScene", progressData.lastSavedSceneName);
 
         PlayerPrefs.SetFloat("SO_DonH", donData.currentHealth);
         PlayerPrefs.SetInt("SO_DonHP", donData.healthPotionCount);
@@ -119,18 +154,17 @@ public class CheckpointManager : MonoBehaviour
         PlayerPrefs.SetFloat("SO_SanH", sanchoData.currentHealth);
         PlayerPrefs.SetInt("SO_SanHP", sanchoData.healthPotionCount);
         PlayerPrefs.SetInt("SO_SanSP", sanchoData.slowPotionCount);
-
-        // Ok sayısını hard diske kilitliyoruz kanka
         PlayerPrefs.SetInt("SO_SanArrows", sanchoData.arrowCount);
 
         PlayerPrefs.SetInt("SO_Tokens", progressData.totalTokens);
-        PlayerPrefs.SetInt("HasSavedGame", 1);
+        
+        PlayerPrefs.SetInt("HasSaveData", 1); 
         PlayerPrefs.Save();
     }
 
     public void LoadDataFromDisk()
     {
-        if (PlayerPrefs.GetInt("HasSavedGame", 0) == 1)
+        if (PlayerPrefs.GetInt("HasSaveData", 0) == 1)
         {
             progressData.lastCheckpointPosition = new Vector3(
                 PlayerPrefs.GetFloat("SO_CheckX"),
@@ -138,7 +172,8 @@ public class CheckpointManager : MonoBehaviour
                 PlayerPrefs.GetFloat("SO_CheckZ")
             );
 
-            // ÖLÜM DIŞINDA oyuna Continue deyip girildiğinde kaç canı varsa öyle başlasın diye diski okuyor kanka:
+            progressData.lastSavedSceneName = PlayerPrefs.GetString("SO_LastScene", "Level_1");
+
             donData.currentHealth = PlayerPrefs.GetFloat("SO_DonH");
             donData.healthPotionCount = PlayerPrefs.GetInt("SO_DonHP");
             donData.slowPotionCount = PlayerPrefs.GetInt("SO_DonSP");
@@ -146,8 +181,6 @@ public class CheckpointManager : MonoBehaviour
             sanchoData.currentHealth = PlayerPrefs.GetFloat("SO_SanH");
             sanchoData.healthPotionCount = PlayerPrefs.GetInt("SO_SanHP");
             sanchoData.slowPotionCount = PlayerPrefs.GetInt("SO_SanSP");
-
-            // Ok sayısını diskten geri yüklüyoruz kanka
             sanchoData.arrowCount = PlayerPrefs.GetInt("SO_SanArrows", sanchoData.maxArrowCount);
 
             progressData.totalTokens = PlayerPrefs.GetInt("SO_Tokens");
@@ -162,9 +195,6 @@ public class CheckpointManager : MonoBehaviour
             HUDManager.Instance.UpdateDonQuixotePotions(donData.healthPotionCount, donData.slowPotionCount);
             HUDManager.Instance.UpdateSanchoHealth(sanchoData.currentHealth, sanchoData.maxHealth);
             HUDManager.Instance.UpdateSanchoPotions(sanchoData.healthPotionCount, sanchoData.slowPotionCount);
-
-            // Eğer HUDManager'da ok sayısını güncelleyen fonksiyonun varsa buraya çakabilirsin kanka:
-            // HUDManager.Instance.UpdateSanchoArrows(sanchoData.arrowCount);
         }
     }
 

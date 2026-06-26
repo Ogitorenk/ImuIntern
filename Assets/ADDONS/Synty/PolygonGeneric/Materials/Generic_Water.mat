@@ -54,7 +54,7 @@ Material:
     m_TexEnvs:
     - _Albedo_Map:
         m_Texture: {fileID: 2800000, guid: e80bdfd17e7b902438ddab0c5fb587ce, type: 3}
-        m_Scale: {x: 100, y: 100}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Emission_Map:
         m_Texture: {fileID: 0}
@@ -66,7 +66,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _Normal_Map:
         m_Texture: {fileID: 2800000, guid: 557e083761829454d875c98dbb0f0010, type: 3}
-        m_Scale: {x: 100, y: 100}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Skin_Mask:
         m_Texture: {fileID: 0}

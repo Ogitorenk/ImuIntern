@@ -9,21 +9,30 @@ EditorBuildSettings:
     path: Assets/CEM/Scenes/Menus/MainMenu.unity
     guid: e7cb944515f7cbc42a2cd6898235ab11
   - enabled: 1
+    path: Assets/CEM/Scenes/Menus/IntroScene.unity
+    guid: 5521d8d2f78711a4fb4cee4513fb6942
+  - enabled: 1
+    path: Assets/CEM/Scenes/Castle_Entrance.unity
+    guid: 426b49cbc75953c42862d81d7d09b466
+  - enabled: 1
     path: Assets/CEM/Scenes/Others/Castle_EntryOLD.unity
     guid: 487417dcef52f9f4f856610c27cf94cc
   - enabled: 1
     path: Assets/CEM/Scenes/Left Section/Left_Section2.unity
     guid: 6434712889663c14eb38509a1918bcbd
-  - enabled: 0
-    path: Assets/CEM/Scenes/Others/Left_Section.unity
-    guid: d2ab4dbb311fc72408a6883573b4214d
   - enabled: 1
     path: Assets/CEM/Scenes/Left Section/LeverPuzzle.unity
     guid: c4d7308f73956a0438ad92f059d3dbab
+  - enabled: 0
+    path: Assets/CEM/Scenes/Others/Left_Section.unity
+    guid: d2ab4dbb311fc72408a6883573b4214d
   - enabled: 1
     path: Assets/CEM/Scenes/Right Section/Right_Section.unity
     guid: 5fbbc431730dec8458ef261257959d80
   - enabled: 1
     path: Assets/CEM/Scenes/Right Section/Maze_Small_New.unity
     guid: e2c016a48f373ee41b841943e7dc59cb
+  - enabled: 1
+    path: Assets/CEM/Scenes/Right Section/Up_Forest.unity
+    guid: b13611d174f2955499220a8ad1b2d3b4
   m_configObjects: {}

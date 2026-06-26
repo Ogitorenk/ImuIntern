@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
-using Cinemachine; // --- GÜNCELLEME: Cinemachine kütüphanesini ekledik kanka ---
+using Cinemachine; 
 
 [System.Serializable]
 public struct PauseButtonElements
@@ -14,6 +14,10 @@ public struct PauseButtonElements
 
 public class PauseMenuManager : MonoBehaviour
 {
+    [Header("Data Reference")]
+    // 🎯 [YENİ] En son kaydedilen sahne adını diskten okumak için ScriptableObject'imizi bağlıyoruz kanka
+    [SerializeField] private GameProgressData gameProgressData;
+
     [Header("Panels")]
     [SerializeField] private GameObject pauseMenuPanel;
     [SerializeField] private GameObject areYouSurePanel;
@@ -25,7 +29,6 @@ public class PauseMenuManager : MonoBehaviour
     [Header("Scene Settings")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
-    // --- GÜNCELLEME: Sahnedeki FreeLook kamerayı Inspector'dan buraya bağlayacağız kanka ---
     [Header("Cinemachine Kamera Ayarı")]
     [SerializeField] private CinemachineFreeLook playerCamera;
 
@@ -54,7 +57,6 @@ public class PauseMenuManager : MonoBehaviour
             }
         }
 
-        // --- GÜVENLİK GÜNCELLEMESİ ---
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
         if (optionsPanel != null) optionsPanel.SetActive(false);
         if (areYouSurePanel != null) areYouSurePanel.SetActive(false);
@@ -89,21 +91,48 @@ public class PauseMenuManager : MonoBehaviour
         }
     }
 
-    // === CONTINUE BUTONU ===
+    // === CONTINUE/RESUME BUTONU === (Mevcut oyunu kaldığı yerden devam ettirir)
     public void OnContinueClicked()
     {
         ResumeGame();
     }
 
-    public void OnNewGameClicked()
+    // === LOAD LAST CHECKPOINT BUTONU === (Eski New Game Butonu yerine bu tetiklenecek kanka)
+    public void OnLoadLastCheckpointClicked()
     {
         if (areYouSurePanel != null) areYouSurePanel.SetActive(true);
     }
 
+    // ARE YOU SURE -> YES BUTONU (En son kayda dönmeyi onayladığında)
     public void OnAreYouSureYes()
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        // 🎯 [KRİTİK] Zamanı normal akışına döndürüyoruz yoksa yeni sahne donuk başlar!
+        Time.timeScale = 1f; 
+
+        if (gameProgressData != null)
+        {
+            // Diskten en güncel veriyi (en son mühürlenen sahneyi) çekiyoruz
+            gameProgressData.LoadFromDisk();
+            string targetScene = gameProgressData.lastSavedSceneName;
+
+            Debug.Log($"<color=yellow>⏳ Son checkpointe dönülüyor. Yüklenen Sahne: {targetScene}</color>");
+
+            // LoadingManager varsa onunla, yoksa düz yükle
+            if (LoadingManager.Instance != null)
+            {
+                LoadingManager.Instance.LoadScene(targetScene);
+            }
+            else
+            {
+                SceneManager.LoadScene(targetScene);
+            }
+        }
+        else
+        {
+            // Eğer referans unutulduysa oyun kilitlenmesin diye mevcut sahneyi yeniden başlatır
+            Debug.LogError("PauseMenuManager içinde GameProgressData referansı eksik!");
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
     public void OnAreYouSureNo()
@@ -143,10 +172,8 @@ public class PauseMenuManager : MonoBehaviour
         isPaused = true;
         if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
 
-        // ZAMANI ZINK DİYE DURDURUYORUZ
         Time.timeScale = 0f;
 
-        // --- GÜNCELLEME: KAMERA EKSEN GİRDİLERİNİ BOŞALTIYORUZ ---
         if (playerCamera != null)
         {
             playerCamera.m_XAxis.m_InputAxisName = "";
@@ -168,17 +195,14 @@ public class PauseMenuManager : MonoBehaviour
         if (optionsPanel != null) optionsPanel.SetActive(false);
         if (areYouSurePanel != null) areYouSurePanel.SetActive(false);
 
-        // ZAMANI NORMALE DÖNDÜRÜYORUZ
         Time.timeScale = 1f;
 
-        // --- GÜNCELLEME: FARE EKSENLERİNİ KAMERAYA GERİ BAĞLIYORUZ ---
         if (playerCamera != null)
         {
             playerCamera.m_XAxis.m_InputAxisName = "Mouse X";
             playerCamera.m_YAxis.m_InputAxisName = "Mouse Y";
         }
 
-        // --- GÜNCELLEME: Oyuna dönünce imleci geri kilitle kanka ---
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }

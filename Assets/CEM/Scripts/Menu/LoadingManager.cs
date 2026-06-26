@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.SceneManagement; // 👈 Sahne geçiş dinleyicileri için bu kütüphane şart kanka
 
 public class LoadingManager : MonoBehaviour
 {
@@ -8,12 +8,40 @@ public class LoadingManager : MonoBehaviour
 
     [Header("UI Elements")]
     [SerializeField] private GameObject loadingScreenPanel;
-    [SerializeField] private GameObject quillIcon; // Tasarımcının ikonunu buraya bağla
+    [SerializeField] private GameObject quillIcon; // Tasarımcının ikonunu buraya bağlıyoruz
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
-        else { Destroy(gameObject); }
+        if (Instance == null) 
+        { 
+            Instance = this; 
+            DontDestroyOnLoad(gameObject); 
+        }
+        else 
+        { 
+            Destroy(gameObject); 
+        }
+    }
+
+    // 🔄 Sahne yüklendiğinde tetiklenecek olan event'leri (dinleyicileri) aktif ediyoruz
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    // 🎯 Hangi sahne yüklenirse yüklensin, o sahne tamamen ayağa kalktığında bu fonksiyon otomatik çalışır
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Yeni sahneye geçtiğimizde mor ekranın kapalı olduğundan kesin emin oluyoruz kanka
+        if (loadingScreenPanel != null)
+        {
+            loadingScreenPanel.SetActive(false);
+        }
     }
 
     public void LoadScene(string sceneName)
@@ -23,14 +51,14 @@ public class LoadingManager : MonoBehaviour
 
     private IEnumerator LoadSceneAsync(string sceneName)
     {
-        // 1. Mor ekranı aç ve ikonu aktif et
-        loadingScreenPanel.SetActive(true);
-        if(quillIcon != null) quillIcon.SetActive(true);
+        // 1. Mor ekranı aç ve tüy ikonunu aktif et
+        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(true);
+        if (quillIcon != null) quillIcon.SetActive(true);
         
-        // Ağır yükleme başlamadan önce ikon 1 saniye pürüzsüzce dönsün
+        // Ağır yükleme başlamadan önce ikon 1 saniye pürüzsüzce dönsün (Görsel pürüzsüzlük hilesi)
         yield return new WaitForSecondsRealtime(1.0f);
 
-        // 2. YÜKLEMEYİ BAŞLAT (Arka plan yüklemesi)
+        // 2. YÜKLEMEYİ BAŞLAT (Arka plan asenkron yüklemesi)
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
         operation.allowSceneActivation = false;
 
@@ -41,10 +69,10 @@ public class LoadingManager : MonoBehaviour
 
         // 3. KRİTİK HİLE: Yükleme bitti, şimdi sahneleri aktifleştireceğiz (Kilitlenme burada yaşanacak)
         // Kilitlenme başlamadan HEMEN ÖNCE ikonu kapatıyoruz ki donmuş bir ikon çirkinliği yaratmasın
-        if(quillIcon != null) quillIcon.SetActive(false);
-        yield return null; // İkonun kapandığını çizmesi için 1 kare bekle
+        if (quillIcon != null) quillIcon.SetActive(false);
+        yield return null; // İkonun kapandığını ekrana çizmesi için 1 kare bekle
 
-        // 4. Sahneyi tetikle (Tüm Awake/Start lojikleri burada kilitlenecek ama ekranda sadece temiz mor zemin var)
+        // 4. Sahneyi tetikle (Tüm Don Quixote / Sancho Awake ve Start lojikleri burada kilitlenecek ama ekranda temiz mor zemin var)
         operation.allowSceneActivation = true;
 
         while (!operation.isDone)
@@ -52,7 +80,7 @@ public class LoadingManager : MonoBehaviour
             yield return null;
         }
 
-        // 5. Yeni sahne tamamen uyanınca mor ekranı kapat
-        loadingScreenPanel.SetActive(false);
+        // 5. Yeni sahne tamamen uyanınca mor ekranı kapat (OnSceneLoaded fonksiyonu da bunu garantiye alacak)
+        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
     }
 }

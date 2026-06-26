@@ -4,39 +4,39 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuManager : MonoBehaviour
 {
+    [Header("Data Reference")]
+    [SerializeField] private GameProgressData gameProgressData; 
+
     [Header("Panels")]
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject areYouSurePanel;
-    [SerializeField] private GameObject optionsPanel; // Sürükleyip bırakman için yeni alan
+    [SerializeField] private GameObject optionsPanel;
 
     [Header("Buttons")]
     [SerializeField] private Button continueButton;
 
     [Header("Scene Settings")]
-    [SerializeField] private string gameplaySceneName = "GameplayScene";
+    [SerializeField] private string defaultNewGameScene = "IntroScene"; // Yeni oyunun başlayacağı sahne
 
     void Start()
     {
-        // Başlangıçta panelleri ayarla
         mainMenuPanel.SetActive(true);
         areYouSurePanel.SetActive(false);
-        optionsPanel.SetActive(false); // Oyun başlarken options kapalı olsun
+        optionsPanel.SetActive(false);
 
-        // PlayerPrefs veya kendi save sistemini kontrol et
+        // Ortak kontrol anahtarı
         if (PlayerPrefs.HasKey("HasSaveData") && PlayerPrefs.GetInt("HasSaveData") == 1)
         {
-            continueButton.interactable = true; // Save varsa buton aktif
+            continueButton.interactable = true;
         }
         else
         {
-            continueButton.interactable = false; // Save yoksa buton tıklanamaz ve soluk olur
+            continueButton.interactable = false;
         }
     }
 
-    // NEW GAME BUTONU
     public void OnNewGameClicked()
     {
-        // Eğer save varsa emin misin diye sor, yoksa direkt oyunu başlat
         if (PlayerPrefs.HasKey("HasSaveData") && PlayerPrefs.GetInt("HasSaveData") == 1)
         {
             areYouSurePanel.SetActive(true);
@@ -47,68 +47,91 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    // ARE YOU SURE -> YES BUTONU
     public void OnAreYouSureYes()
     {
-        PlayerPrefs.DeleteKey("HasSaveData"); // Eski save'i sil (örnek olarak)
+        ClearAllSaveData(); // Eski tüm verileri diskten tamamen kazıyoruz
         StartNewGame();
     }
 
-    // ARE YOU SURE -> NO BUTONU
     public void OnAreYouSureNo()
     {
         areYouSurePanel.SetActive(false);
     }
 
-    // CONTINUE BUTONU (GÜNCELLENDİ)
     public void OnContinueClicked()
     {
-        // Direkt sahne yüklemek yerine LoadingManager'ı tetikliyoruz
-        if (LoadingManager.Instance != null)
+        if (gameProgressData != null)
         {
-            LoadingManager.Instance.LoadScene(gameplaySceneName);
+            // Eşitlenmiş anahtarlarla diskten son veriyi çekiyoruz
+            gameProgressData.LoadFromDisk();
+            
+            string targetScene = gameProgressData.lastSavedSceneName;
+            LoadTargetScene(targetScene);
         }
-        else
-        {
-            // Eğer sahnede test yaparken LoadingManager yoksa oyun donmasın diye güvenlik önlemi
-            SceneManager.LoadScene(gameplaySceneName);
-        }
-    }
-
-    // OPTIONS BUTONU (GÜNCELLENDİ)
-    public void OnOptionsClicked()
-    {
-        mainMenuPanel.SetActive(false); // Ana menüyü kapat
-        optionsPanel.SetActive(true);   // Options panelini aç
-    }
-
-    // OPTIONS -> RETURN/BACK BUTONU (YENİ EKLENDİ)
-    public void OnOptionsReturnClicked()
-    {
-        optionsPanel.SetActive(false);   // Options panelini kapat
-        mainMenuPanel.SetActive(true);  // Ana menüyü tekrar aç
-    }
-
-    // EXIT BUTONU
-    public void OnExitClicked()
-    {
-        Debug.Log("Oyundan Çıkıldı");
-        Application.Quit();
     }
 
     private void StartNewGame()
     {
-        // Yeni oyun hazırlıkları...
-        PlayerPrefs.SetInt("HasSaveData", 1); // Yeni bir save oluşturuldu işareti
+        if (gameProgressData != null)
+        {
+            // ScriptableObject'i fabrikasyon ayarlarına döndür
+            gameProgressData.ResetToDefault();
+            gameProgressData.lastSavedSceneName = defaultNewGameScene;
+            
+            // Diske bu temiz veriyi kaydet (Böylece CheckpointManager eskisini yükleyemez)
+            gameProgressData.SaveToDisk();
+
+            LoadTargetScene(defaultNewGameScene);
+        }
+    }
+
+    private void ClearAllSaveData()
+    {
+        // Tüm anahtarları tamamen siliyoruz ki çakışma yaşanmasın kanka
+        PlayerPrefs.DeleteKey("HasSaveData");
+        PlayerPrefs.DeleteKey("SO_LastScene");
+        PlayerPrefs.DeleteKey("SO_CheckX");
+        PlayerPrefs.DeleteKey("SO_CheckY");
+        PlayerPrefs.DeleteKey("SO_CheckZ");
+        PlayerPrefs.DeleteKey("SO_Tokens");
         
-        // Direkt sahne yüklemek yerine LoadingManager'ı tetikliyoruz
+        PlayerPrefs.DeleteKey("SO_DonH");
+        PlayerPrefs.DeleteKey("SO_DonHP");
+        PlayerPrefs.DeleteKey("SO_DonSP");
+        PlayerPrefs.DeleteKey("SO_SanH");
+        PlayerPrefs.DeleteKey("SO_SanHP");
+        PlayerPrefs.DeleteKey("SO_SanSP");
+        PlayerPrefs.DeleteKey("SO_SanArrows");
+        
+        PlayerPrefs.Save();
+    }
+
+    private void LoadTargetScene(string sceneName)
+    {
         if (LoadingManager.Instance != null)
         {
-            LoadingManager.Instance.LoadScene(gameplaySceneName);
+            LoadingManager.Instance.LoadScene(sceneName);
         }
         else
         {
-            SceneManager.LoadScene(gameplaySceneName);
+            SceneManager.LoadScene(sceneName);
         }
+    }
+
+    public void OnOptionsClicked()
+    {
+        mainMenuPanel.SetActive(false);
+        optionsPanel.SetActive(true);
+    }
+
+    public void OnOptionsReturnClicked()
+    {
+        optionsPanel.SetActive(false);
+        mainMenuPanel.SetActive(true);
+    }
+
+    public void OnExitClicked()
+    {
+        Application.Quit();
     }
 }
