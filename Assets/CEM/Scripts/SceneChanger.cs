@@ -11,13 +11,22 @@ public class SceneChanger : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Sadece 'Player' etiketli obje girdiğinde sahne değişsin
-        // (Eğer karakterinin Tag'i 'Player' değilse kontrol etmelisin)
         if (other.CompareTag("Player"))
         {
             if (!string.IsNullOrEmpty(targetSceneName))
             {
-                Debug.Log(targetSceneName + " sahnesine geçiliyor...");
-                SceneManager.LoadScene(targetSceneName);
+                Debug.Log(targetSceneName + " sahnesine LoadingManager ile pürüzsüz geçiş yapılıyor...");
+
+                // 🎯 [GÜNCELLENDİ] Direkt yüklemek yerine LoadingManager'ı tetikliyoruz
+                if (LoadingManager.Instance != null)
+                {
+                    LoadingManager.Instance.LoadScene(targetSceneName);
+                }
+                else
+                {
+                    // Güvenlik Önlemi: Eğer sahnede bağımsız test yapıyorsan ve LoadingManager yoksa oyun donmasın kanka
+                    SceneManager.LoadScene(targetSceneName);
+                }
             }
             else
             {
