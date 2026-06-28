@@ -621,6 +621,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damageAmount)
     {
+        if (currentHealth <= 0) return;
+
         if (iFrames > 0) return;
 
         currentHealth -= damageAmount;
@@ -702,6 +704,14 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
 
         isControlled = true;
+
+        // Assets/OGI/Scripts/SanchoMovement.cs -> SanchoRespawnRoutine içindeki işlemler bittikten sonra (Satır 701'lerin sonrası):
+if (CheckpointManager.Instance != null)
+{
+    // DualRealityManager işini bitirdikten sonra CheckpointManager'a diyoruz ki: 
+    // "Kardeş her şey bitti, artık şu can barlarını ekranda son kez bir tazeleyiver."
+    CheckpointManager.Instance.UpdateAllUI();
+}
     }
 
     public void UseHealthPotion()
