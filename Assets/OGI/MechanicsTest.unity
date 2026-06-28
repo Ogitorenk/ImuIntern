@@ -1581,6 +1581,9 @@ MonoBehaviour:
   sancho: {fileID: 8700064126245226994}
   isDonActive: 1
   canSwitch: 1
+  transitionOverlay: {fileID: 0}
+  fadeDuration: 0.12
+  holdDuration: 0.04
 --- !u!4 &527477544
 Transform:
   m_ObjectHideFlags: 0
@@ -3184,6 +3187,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7986e3082f48d2e4cb91e4926d401f2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  editorTestModu: 1
   donData: {fileID: 11400000, guid: 403ee74ae34455646a270ec82a8edd94, type: 2}
   sanchoData: {fileID: 11400000, guid: 904e8fcca5a9a80438d59528c5d40369, type: 2}
   progressData: {fileID: 11400000, guid: 59f069aef283d5847a610d434dd6e4c2, type: 2}

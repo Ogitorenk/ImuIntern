@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.AI; // Yürüme yapay zekası için şart
 using System.Collections;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyMelee : MonoBehaviour, IDamageable
@@ -113,9 +114,16 @@ public class EnemyMelee : MonoBehaviour, IDamageable
             agent.isStopped = true;
             if (animator != null) animator.SetBool("isWalking", false);
 
+            // === DİKEY EKSEN BUGFIX DOKUNUŞU ===
+            // Uzakçıysa hedefin Y eksenini (yukarı/aşağı) sıfırlamıyoruz ki tam çapraz nişan alabilsin kanka!
             Vector3 direction = (player.position - transform.position).normalized;
-            direction.y = 0;
-            if (direction != Vector3.zero) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 0.1f);
+            if (!isRanged)
+            {
+                direction.y = 0; // Sadece yakıncılar düz baksın sahnede bükülmesin
+            }
+
+            if (direction != Vector3.zero)
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), 0.1f);
 
             if (Time.time >= lastAttackTime + attackCooldown)
             {
@@ -181,15 +189,14 @@ public class EnemyMelee : MonoBehaviour, IDamageable
             if (isRanged)
             {
                 // ==================================================================
-                // RANGED (UZAKÇI - YAY) MODU
+                // RANGED (UZAKÇI - YAY) MODU - TAM 3B DİKEY NİŞAN ALMA SİSTEMİ
                 // ==================================================================
                 if (projectilePrefab != null && shootSpawnPoint != null)
                 {
-                    // Oyuncunun tam göğüs hizasına doğru kusursuz yön vektörü hesapla kanka
+                    // === KRİTİK GÜNCELLEME: Y ekseni dahil tam yön vektörü hesaplanıyor kanka ===
                     Vector3 targetDir = ((player.position + Vector3.up * 1f) - shootSpawnPoint.position).normalized;
 
-                    // --- BUG FIX 1: OKU DOĞRU ROTASYONLA YARATMA ---
-                    // Oku fırlatırken yayın duruşuna göre değil, direkt bakacağı hedefe doğru döndürerek doğuruyoruz!
+                    // Oku tam hedefe doğru döndürerek yaratıyoruz
                     Quaternion projectileRotation = Quaternion.LookRotation(targetDir);
                     GameObject bullet = Instantiate(projectilePrefab, shootSpawnPoint.position, projectileRotation);
 
@@ -197,9 +204,9 @@ public class EnemyMelee : MonoBehaviour, IDamageable
                     if (rb != null)
                     {
                         rb.isKinematic = false;
-                        rb.velocity = Vector3.zero; // Önceki olası fiziki artıkları sıfırla kanka
+                        rb.velocity = Vector3.zero; // Kalıntı fizik verilerini sıfırla
 
-                        // Oku tam hedeflenen yöne doğru mızrak gibi fırlat!
+                        // Ok artık yukarı/aşağı çapraz eksende kusursuz uçacak kanka!
                         rb.velocity = targetDir * projectileSpeed;
                     }
 
@@ -208,7 +215,7 @@ public class EnemyMelee : MonoBehaviour, IDamageable
                     {
                         bulletScript.SetupBullet(attackDamage);
                     }
-                    Debug.Log($"🎯 Uzakçı Haydut oku tam hedefe doğrultup fırlattı!");
+                    Debug.Log($"🎯 Uzakçı Haydut oku tam 3B eksende hedefe doğrultup fırlattı!");
                 }
             }
             else
