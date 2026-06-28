@@ -102,7 +102,6 @@ public class CheckpointManager : MonoBehaviour
         if (progressData == null || donData == null || sanchoData == null) return;
 
         // --- ESKİ BAYRAĞI İNDİRME MANTIĞI ---
-        // Eğer hafızamızda zaten aktif bir checkpoint varsa ve bu yeni gelenle aynı değilse eskisini kapat diyoruz
         if (activeCheckpointScript != null && activeCheckpointScript != newCheckpointScript)
         {
             activeCheckpointScript.DeactivateCheckpoint();
@@ -138,13 +137,20 @@ public class CheckpointManager : MonoBehaviour
     {
         if (donData == null || sanchoData == null) return;
 
+        // 1. Önce diskteki envanter, token ve son checkpoint pozisyonu verilerini geri yüklüyoruz.
+        LoadDataFromDisk();
+
+        // 2. Diskten gelen eski/ölü can verisini zorla ezip karakterlerin canını maximuma çekiyoruz.
         donData.currentHealth = donData.maxHealth;
         sanchoData.currentHealth = sanchoData.maxHealth;
 
-        LoadDataFromDisk();
+        // 3. Bu temiz ve fullenmiş canları hemen diske geri kaydediyoruz ki bir sonraki sahne açılışında 0 gelmesin.
+        SaveDataToDisk();
+
+        // 4. Şimdi sahnede canlı kanlı karakterlerin pozisyonunu ve canını verip UI'ı tazeleyebiliriz.
         ApplyDataToSceneObjects();
 
-        Debug.Log("<color=red>💀 [Respawn] Oyuncu öldü! Canlar fullendi, envanter son checkpoint haline geri çekildi.</color>");
+        Debug.Log("<color=red>💀 [Respawn] Oyuncu öldü! Canlar zorla fullendi, envanter son checkpoint haline geri çekildi ve kaydedildi.</color>");
     }
 
     public void SaveDataToDisk()
@@ -176,23 +182,23 @@ public class CheckpointManager : MonoBehaviour
             );
             progressData.lastSavedSceneName = PlayerPrefs.GetString("SO_LastScene", "Level_1");
             
-            // 🎯 [MÜDAHALE NOKTASI] Diskten can verisi çekilemezse (0 dönüyorsa) varsayılan olarak 100f veriyoruz!
-            donData.currentHealth = PlayerPrefs.GetFloat("SO_DonH", 100f);
+            // 🎯 Eğer diskte daha önce kaydedilmiş bir can verisi bulunamazsa, 0 yerine direkt karakterlerin maksimum canını veriyoruz.
+            donData.currentHealth = PlayerPrefs.GetFloat("SO_DonH", donData != null ? donData.maxHealth : 100f);
             donData.healthPotionCount = PlayerPrefs.GetInt("SO_DonHP", 0);
             donData.slowPotionCount = PlayerPrefs.GetInt("SO_DonSP", 0);
 
-            sanchoData.currentHealth = PlayerPrefs.GetFloat("SO_SanH", 100f);
+            sanchoData.currentHealth = PlayerPrefs.GetFloat("SO_SanH", sanchoData != null ? sanchoData.maxHealth : 100f);
             sanchoData.healthPotionCount = PlayerPrefs.GetInt("SO_SanHP", 0);
             sanchoData.slowPotionCount = PlayerPrefs.GetInt("SO_SanSP", 0);
-            sanchoData.arrowCount = PlayerPrefs.GetInt("SO_SanArrows", sanchoData.maxArrowCount);
+            sanchoData.arrowCount = PlayerPrefs.GetInt("SO_SanArrows", sanchoData != null ? sanchoData.maxArrowCount : 20);
             
             progressData.totalTokens = PlayerPrefs.GetInt("SO_Tokens", 0);
         }
         else
         {
-            // 🎯 Eğer ilk defa sahne yükleniyorsa ve kayıt hiç yoksa canları sıfırlatmayıp 100'de tutuyoruz
-            if (donData != null) donData.currentHealth = 100f;
-            if (sanchoData != null) sanchoData.currentHealth = 100f;
+            // Eğer ilk defa sahne yükleniyorsa ve kayıt hiç yoksa canları maksimumda başlatıyoruz.
+            if (donData != null) donData.currentHealth = donData.maxHealth;
+            if (sanchoData != null) sanchoData.currentHealth = sanchoData.maxHealth;
         }
     }
 

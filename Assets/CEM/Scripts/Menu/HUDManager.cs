@@ -93,7 +93,6 @@ public class HUDManager : MonoBehaviour
     }
 
     // --- YENİ FONKSİYONLAR: SANCHO İKSİR SAYILARINI GÜNCELLEME ---
-    // (Sancho'nun iksir mantığı da Don gibiyse bunu tetiklersin kanka)
     public void UpdateSanchoPotions(int healthCount, int slowCount)
     {
         if (sanchoUI.healthPotionText != null)
@@ -114,6 +113,10 @@ public class HUDManager : MonoBehaviour
         {
             ratio = Mathf.Round(ratio * hudSettings.totalBoxes) / hudSettings.totalBoxes;
         }
+
+        // 🧪 [GEÇİCİ KONTROL LOGU] Konsoldan oranları ve atanan objeleri takip ediyoruz:
+        Debug.Log($"<color=orange>🔍 [HUD Gözlem] Obje Adı: {healthImage.gameObject.name} | Gelen Can Değeri: {current}/{max} | UI Fill Oranı: {ratio}</color>");
+
         healthImage.fillAmount = ratio;
     }
 }
