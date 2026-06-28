@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 18025917025747560}
   - component: {fileID: 1208599458245169072}
   - component: {fileID: 2442640609328216247}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: "M\u0131zrak"
   m_TagString: Lance
   m_Icon: {fileID: 0}
@@ -101,6 +101,9 @@ MonoBehaviour:
   isStuck: 0
   embedDepth: -3
   maxHitAngle: 120
+  stickRotationOffset: {x: 90, y: 0, z: 0}
+  wallNormal: {x: 0, y: 0, z: 0}
+  damageAmount: 40
 --- !u!136 &1208599458245169072
 CapsuleCollider:
   m_ObjectHideFlags: 0

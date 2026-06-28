@@ -4,24 +4,37 @@ public class DeathZone : MonoBehaviour
 {
     private void OnTriggerEnter(Collider other)
     {
-        // Giren obje Player ise
+        // 1. Giren objenin kendisinde veya ebeveynlerinde "Player" tag'i var mı diye bak kanka
         if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
         {
-            Debug.Log("💀 Karakter boşluğa düştü! Anında infaz.");
+            Debug.Log("<color=black>💀💀💀 DEATHZONE: Karakter boşluğa düştü! İnfaz işlemi başlatılıyor... 💀💀💀</color>");
 
-            // Karakterlere 9999 hasar vererek kesin ölmelerini (ve Die fonksiyonunun çalışmasını) sağla
-            if (other.TryGetComponent(out DonMovement don))
-                don.TakeDamage(9999f);
-            else if (other.TryGetComponent(out SanchoMovement sancho))
-                sancho.TakeDamage(9999f);
-            else
+            // 2. EN GARANTİ YOL: Objeden bağımsız olarak projede kurduğumuz IDamageable arayüzünü ara kanka
+            IDamageable damageable = other.GetComponent<IDamageable>();
+            if (damageable == null) damageable = other.GetComponentInParent<IDamageable>();
+            if (damageable == null) damageable = other.GetComponentInChildren<IDamageable>();
+
+            if (damageable != null)
             {
-                // Eğer modelin içinden bir parça değdiyse ana scripti bul
-                var rootDon = other.GetComponentInParent<DonMovement>();
-                if (rootDon != null) rootDon.TakeDamage(9999f);
+                // Karakteri kesin olarak öldürmek için tek hamlede infaz hasarı çakıyoruz
+                damageable.TakeDamage(9999f);
+                return;
+            }
 
-                var rootSancho = other.GetComponentInParent<SanchoMovement>();
-                if (rootSancho != null) rootSancho.TakeDamage(9999f);
+            // 3. EĞER INTERFACE YAKALAYAMAZSAK (GÜVENLİK DUVARI) - Scriptlerden direkt zorla kanka
+            var don = other.GetComponentInParent<DonMovement>();
+            if (don != null)
+            {
+                // DonMovement içindeki gerçek hasar/ölüm fonksiyonunu çağır kanka
+                don.TakeDamage(9999f);
+                return;
+            }
+
+            var sancho = other.GetComponentInParent<SanchoMovement>();
+            if (sancho != null)
+            {
+                sancho.TakeDamage(9999f);
+                return;
             }
         }
     }
