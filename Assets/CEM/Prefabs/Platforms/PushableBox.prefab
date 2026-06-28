@@ -95,7 +95,7 @@ GameObject:
   - component: {fileID: 5652117571829195586}
   - component: {fileID: 3191851414096919352}
   m_Layer: 0
-  m_Name: Tutorial_Interaction (Aim)
+  m_Name: Tutorial_Interaction (Interaction)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

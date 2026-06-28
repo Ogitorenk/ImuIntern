@@ -4,8 +4,10 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuManager : MonoBehaviour
 {
-    [Header("Data Reference")]
+    [Header("Data References")]
     [SerializeField] private GameProgressData gameProgressData; 
+    [SerializeField] private CharacterData donData;
+    [SerializeField] private CharacterData sanchoData;
 
     [Header("Panels")]
     [SerializeField] private GameObject mainMenuPanel;
@@ -43,13 +45,15 @@ public class MainMenuManager : MonoBehaviour
         }
         else
         {
+            // Eğer hiç kayıt yoksa doğrudan temiz bir başlangıç yap
+            ClearAllSaveData(); 
             StartNewGame();
         }
     }
 
     public void OnAreYouSureYes()
     {
-        ClearAllSaveData(); // Eski tüm verileri diskten tamamen kazıyoruz
+        ClearAllSaveData(); // Eski tüm verileri diskten ve RAM'den tamamen kazıyoruz
         StartNewGame();
     }
 
@@ -87,7 +91,7 @@ public class MainMenuManager : MonoBehaviour
 
     private void ClearAllSaveData()
     {
-        // Tüm anahtarları tamamen siliyoruz ki çakışma yaşanmasın kanka
+        // 1. Tüm anahtarları tamamen siliyoruz ki çakışma yaşanmasın kanka
         PlayerPrefs.DeleteKey("HasSaveData");
         PlayerPrefs.DeleteKey("SO_LastScene");
         PlayerPrefs.DeleteKey("SO_CheckX");
@@ -104,6 +108,28 @@ public class MainMenuManager : MonoBehaviour
         PlayerPrefs.DeleteKey("SO_SanArrows");
         
         PlayerPrefs.Save();
+
+        // 2. 🎯 [RAM TEMİZLİĞİ VE GARANTİ CAN AYARI] 
+        // Editördeki veya ScriptableObject'teki hatalı 0 değerlerini ezmek için 100f değerini sertçe yazıyoruz.
+        if (donData != null)
+        {
+            donData.maxHealth = 100f;
+            donData.currentHealth = 100f;
+            donData.healthPotionCount = 0;
+            donData.slowPotionCount = 0;
+        }
+
+        if (sanchoData != null)
+        {
+            sanchoData.maxHealth = 100f;
+            sanchoData.currentHealth = 100f;
+            sanchoData.healthPotionCount = 0;
+            sanchoData.slowPotionCount = 0;
+            sanchoData.maxArrowCount = 30; // Maksimum ok kapasitesi
+            sanchoData.arrowCount = 30;    // Yeni oyundaki mevcut ok sayısı
+        }
+
+        Debug.Log("<color=green>✨ [New Game] Disk sıfırlandı. Don ve Sancho 100 can ile pürüzsüzce hazırlandı!</color>");
     }
 
     private void LoadTargetScene(string sceneName)

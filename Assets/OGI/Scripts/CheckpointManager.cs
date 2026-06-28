@@ -7,8 +7,6 @@ public class CheckpointManager : MonoBehaviour
     public static CheckpointManager Instance;
 
     [Header("--- GELİŞTİRİCİ AYARI ---")]
-    // 🛠️ BUNA TIKLARSAN KARAKTERLER KOYDUĞUN YERDE BAŞLAR KANKA!
-    [Tooltip("İşaretliyken karakterler son checkpoint yerine sahnede koyduğun yerde doğar.")]
     public bool editorTestModu = false; 
 
     [Header("--- DATA DOSYALARI ---")]
@@ -17,6 +15,9 @@ public class CheckpointManager : MonoBehaviour
     [SerializeField] private GameProgressData progressData;
 
     public bool useInitialPositionAsCheckpoint = true;
+
+    // Şuan sahnede aktif olan checkpoint scriptini burada tutacağız kanka
+    private Checkpoint activeCheckpointScript;
 
     public int totalTokens { get { return progressData.totalTokens; } set { progressData.totalTokens = value; } }
 
@@ -37,29 +38,20 @@ public class CheckpointManager : MonoBehaviour
     IEnumerator Start()
     {
         yield return new WaitForEndOfFrame();
-        
-        // 🛠️ Eğer test modundaysak ışınlamayı tamamen es geç
         if (editorTestModu) yield break;
-
         ApplyDataToSceneObjects();
     }
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
+    private void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
+    private void OnDisable() { SceneManager.sceneLoaded -= OnSceneLoaded; }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name == "MainMenu") return; 
-
-        // 🛠️ Eğer test modundaysak hiçbir şeyi ışınlama, diskten okuma
         if (editorTestModu) return;
+
+        // Sahne değiştiğinde eski referans çöp olacağı için temizliyoruz
+        activeCheckpointScript = null;
 
         LoadDataFromDisk();
         ApplyDataToSceneObjects();
@@ -67,7 +59,6 @@ public class CheckpointManager : MonoBehaviour
 
     public void ApplyDataToSceneObjects()
     {
-        // 🛠️ Güvenlik önlemi: Başka bir script arkadan çağırırsa yine engellesin
         if (editorTestModu) return;
 
         DonMovement don = FindObjectOfType<DonMovement>();
@@ -99,9 +90,26 @@ public class CheckpointManager : MonoBehaviour
         UpdateAllUI();
     }
 
+    // KODUNA EKLEDİĞİMİZ YENİ OVERLOAD METOD (Eski kodların patlamasın diye parametresiz halini de koruduk)
     public void UpdateCheckpoint(Vector3 newPos)
     {
+        UpdateCheckpoint(newPos, null);
+    }
+
+    // Asıl işi yapan yeni fonksiyonumuz
+    public void UpdateCheckpoint(Vector3 newPos, Checkpoint newCheckpointScript)
+    {
         if (progressData == null || donData == null || sanchoData == null) return;
+
+        // --- ESKİ BAYRAĞI İNDİRME MANTIĞI ---
+        // Eğer hafızamızda zaten aktif bir checkpoint varsa ve bu yeni gelenle aynı değilse eskisini kapat diyoruz
+        if (activeCheckpointScript != null && activeCheckpointScript != newCheckpointScript)
+        {
+            activeCheckpointScript.DeactivateCheckpoint();
+        }
+
+        // Yeni checkpoint scriptini hafızaya alıyoruz
+        activeCheckpointScript = newCheckpointScript;
 
         progressData.lastCheckpointPosition = newPos;
         progressData.lastSavedSceneName = SceneManager.GetActiveScene().name;
@@ -123,7 +131,7 @@ public class CheckpointManager : MonoBehaviour
         }
 
         SaveDataToDisk();
-        Debug.Log($"<color=cyan>🚩 [Checkpoint] {progressData.lastSavedSceneName} sahnesi ve konum {newPos} kalıcı olarak kaydedildi!</color>");
+        Debug.Log($"<color=cyan>🚩 [Checkpoint] {progressData.lastSavedSceneName} sahnesi, konum {newPos} kalıcı kaydedildi ve bayrak güncellendi!</color>");
     }
 
     public void RespawnResetStats()
@@ -144,20 +152,15 @@ public class CheckpointManager : MonoBehaviour
         PlayerPrefs.SetFloat("SO_CheckX", progressData.lastCheckpointPosition.x);
         PlayerPrefs.SetFloat("SO_CheckY", progressData.lastCheckpointPosition.y);
         PlayerPrefs.SetFloat("SO_CheckZ", progressData.lastCheckpointPosition.z);
-        
         PlayerPrefs.SetString("SO_LastScene", progressData.lastSavedSceneName);
-
         PlayerPrefs.SetFloat("SO_DonH", donData.currentHealth);
         PlayerPrefs.SetInt("SO_DonHP", donData.healthPotionCount);
         PlayerPrefs.SetInt("SO_DonSP", donData.slowPotionCount);
-
         PlayerPrefs.SetFloat("SO_SanH", sanchoData.currentHealth);
         PlayerPrefs.SetInt("SO_SanHP", sanchoData.healthPotionCount);
         PlayerPrefs.SetInt("SO_SanSP", sanchoData.slowPotionCount);
         PlayerPrefs.SetInt("SO_SanArrows", sanchoData.arrowCount);
-
         PlayerPrefs.SetInt("SO_Tokens", progressData.totalTokens);
-        
         PlayerPrefs.SetInt("HasSaveData", 1); 
         PlayerPrefs.Save();
     }
@@ -171,19 +174,25 @@ public class CheckpointManager : MonoBehaviour
                 PlayerPrefs.GetFloat("SO_CheckY"),
                 PlayerPrefs.GetFloat("SO_CheckZ")
             );
-
             progressData.lastSavedSceneName = PlayerPrefs.GetString("SO_LastScene", "Level_1");
+            
+            // 🎯 [MÜDAHALE NOKTASI] Diskten can verisi çekilemezse (0 dönüyorsa) varsayılan olarak 100f veriyoruz!
+            donData.currentHealth = PlayerPrefs.GetFloat("SO_DonH", 100f);
+            donData.healthPotionCount = PlayerPrefs.GetInt("SO_DonHP", 0);
+            donData.slowPotionCount = PlayerPrefs.GetInt("SO_DonSP", 0);
 
-            donData.currentHealth = PlayerPrefs.GetFloat("SO_DonH");
-            donData.healthPotionCount = PlayerPrefs.GetInt("SO_DonHP");
-            donData.slowPotionCount = PlayerPrefs.GetInt("SO_DonSP");
-
-            sanchoData.currentHealth = PlayerPrefs.GetFloat("SO_SanH");
-            sanchoData.healthPotionCount = PlayerPrefs.GetInt("SO_SanHP");
-            sanchoData.slowPotionCount = PlayerPrefs.GetInt("SO_SanSP");
+            sanchoData.currentHealth = PlayerPrefs.GetFloat("SO_SanH", 100f);
+            sanchoData.healthPotionCount = PlayerPrefs.GetInt("SO_SanHP", 0);
+            sanchoData.slowPotionCount = PlayerPrefs.GetInt("SO_SanSP", 0);
             sanchoData.arrowCount = PlayerPrefs.GetInt("SO_SanArrows", sanchoData.maxArrowCount);
-
-            progressData.totalTokens = PlayerPrefs.GetInt("SO_Tokens");
+            
+            progressData.totalTokens = PlayerPrefs.GetInt("SO_Tokens", 0);
+        }
+        else
+        {
+            // 🎯 Eğer ilk defa sahne yükleniyorsa ve kayıt hiç yoksa canları sıfırlatmayıp 100'de tutuyoruz
+            if (donData != null) donData.currentHealth = 100f;
+            if (sanchoData != null) sanchoData.currentHealth = 100f;
         }
     }
 
@@ -198,8 +207,5 @@ public class CheckpointManager : MonoBehaviour
         }
     }
 
-    public Vector3 GetLastCheckpoint()
-    {
-        return progressData.lastCheckpointPosition;
-    }
+    public Vector3 GetLastCheckpoint() { return progressData.lastCheckpointPosition; }
 }

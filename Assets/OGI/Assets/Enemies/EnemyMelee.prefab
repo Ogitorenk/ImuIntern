@@ -72,11 +72,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isRanged: 0
-  maxHealth: 100
+  maxHealth: 200
   player: {fileID: 0}
-  chaseRange: 15
+  chaseRange: 40
   attackRange: 2
-  attackDamage: 50
+  attackDamage: 25
   attackCooldown: 2
   attackHitDelay: 0.5
   animator: {fileID: 0}

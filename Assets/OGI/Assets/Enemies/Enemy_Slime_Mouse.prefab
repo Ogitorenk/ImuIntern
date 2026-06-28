@@ -78,7 +78,7 @@ MonoBehaviour:
   mouseRotationOffset: {x: 0, y: 0, z: 0}
   maxHealth: 80
   targetPlayer: {fileID: 0}
-  chaseRange: 10
+  chaseRange: 30
   attackRange: 1.5
   attackDamage: 10
   attackCooldown: 1.5

@@ -164,16 +164,16 @@ MonoBehaviour:
       another glorious destiny.
   - sprite: {fileID: 21300000, guid: 72a269079faeea2468530372c4325443, type: 3}
     dialogueTexts:
-    - Look, Sancho! Behold the magnificent towers piercing the very heavens! Such
-      splendor can only belong to a fortress of great renown.
-    - Today, my loyal friend, we shall carve our names into history beneath those
-      glorious walls!
+    - '"Look, Sancho! Behold the magnificent towers piercing the very heavens! Such
+      splendor can only belong to a fortress of great renown."'
+    - '"Today, my loyal friend, we shall carve our names into history beneath those
+      glorious walls!"'
   - sprite: {fileID: 21300000, guid: 3f90ced80b7eaab49adeb26d2c9d1d92, type: 3}
     dialogueTexts:
-    - Forgive me, Your Grace... but I do not see any magnificent towers or glorious
-      walls.
-    - To my humble eyes, that looks less like a fortress and more like a heap of
-      broken stones and ruined walls...
+    - '"Forgive me, Your Grace... but I do not see any magnificent towers or glorious
+      walls."'
+    - '"To my humble eyes, that looks less like a fortress and more like a heap of
+      broken stones and ruined walls..."'
   - sprite: {fileID: 21300000, guid: d3e41c324c5897042ae08ad0b669dddd, type: 3}
     dialogueTexts:
     - Two different eyes, looking at the exact same world, yet seeing entirely different
@@ -330,7 +330,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: 0, y: 182.75}
+  m_AnchoredPosition: {x: 0, y: 210}
   m_SizeDelta: {x: -200, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &188408891
@@ -688,6 +688,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &1075354162
+GameObject:
+  m_ObjectHideFlags: 19
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1075354164}
+  - component: {fileID: 1075354163}
+  m_Layer: 0
+  m_Name: PrefabPainterSceneSettings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1075354163
+MonoBehaviour:
+  m_ObjectHideFlags: 19
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075354162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d0d71238b38a4a38b35b955fbf5c019, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  parentForPrefabs: {fileID: 0}
+--- !u!4 &1075354164
+Transform:
+  m_ObjectHideFlags: 19
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075354162}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1791806528
 GameObject:
   m_ObjectHideFlags: 0
@@ -864,3 +909,4 @@ SceneRoots:
   - {fileID: 892408177}
   - {fileID: 411930906}
   - {fileID: 62917867}
+  - {fileID: 1075354164}
