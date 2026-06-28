@@ -50,11 +50,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 384953d555e2aad40ace97456e133f4c, type: 3}
       propertyPath: m_Name
-      value: arrow
+      value: EnemyArrow
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 384953d555e2aad40ace97456e133f4c, type: 3}
       propertyPath: m_TagString
-      value: Arrow
+      value: EnemyArrow
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -69,9 +69,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 384953d555e2aad40ace97456e133f4c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3419392960405627636}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 384953d555e2aad40ace97456e133f4c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: -1492263821612492359}
   m_SourcePrefab: {fileID: 100100000, guid: 384953d555e2aad40ace97456e133f4c, type: 3}
 --- !u!1 &2814224581646524321 stripped
 GameObject:
@@ -143,20 +140,3 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &-1492263821612492359
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2814224581646524321}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c396e843b2e95a49966eb6677b1e17d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  minArrowAmount: 3
-  maxArrowAmount: 5
-  rotationSpeed: 100
-  floatSpeed: 2
-  floatHeight: 0.2
