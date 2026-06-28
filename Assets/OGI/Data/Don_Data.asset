@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Don_Data
   m_EditorClassIdentifier: 
   maxHealth: 100
-  currentHealth: 100
-  healthPotionCount: 2
-  slowPotionCount: 3
+  currentHealth: 0
+  healthPotionCount: 0
+  slowPotionCount: 0
   arrowCount: 20
   maxArrowCount: 20

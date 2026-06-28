@@ -1,41 +1,34 @@
 ﻿using UnityEngine;
-using Cinemachine; // Cinemachine bileşenlerini kontrol etmek için şart kanka!
-using System.Collections;
-using System.Reflection; // isControlled kilidini tetiklemek için
+using UnityEngine.Playables; // Timeline (PlayableDirector) kontrolü için şart kanka!
+using System.Reflection;     // isControlled kilidini tetiklemek için
 
 public class CutsceneTrigger : MonoBehaviour
 {
-    [Header("--- CINEMACHINE KAMERA AYARLARI ---")]
-    [Tooltip("Sahnede gezinmesini istediğin o Dolly Camera (Virtual Camera)")]
-    public CinemachineVirtualCamera cutsceneCamera;
-
-    [Tooltip("Dolly kameranın bağlı olduğu ray hattı bileşeni (Cinemachine Smooth Path)")]
-    public CinemachineSmoothPath smoothPath;
-
-    [Header("--- SİNEMATİK AYARLARI ---")]
-    [Tooltip("Kameranın ray üzerindeki hareket hızı (Yüksek değer = daha hızlı kamera hareketi)")]
-    public float cameraSpeed = 2f;
-
-    [Tooltip("Kamera rayın sonuna gelse bile ara sahne toplam kaç saniye sürsün? (Güvenlik süresi)")]
-    public float maxCutsceneDuration = 5f;
+    [Header("--- TIMELINE AYARLARI ---")]
+    [Tooltip("Sahnede içinde kliplerin dizili olduğu PlayableDirector (CutsceneManager objesi)")]
+    [SerializeField] private PlayableDirector cutsceneDirector;
 
     private bool hasTriggered = false;
-    private CinemachineTrackedDolly dollyComponent;
     private MonoBehaviour currentPlayerScript = null; // İçeri giren karakteri tutar
 
-    void Start()
+    private void Awake()
     {
-        // Oyun başında ara sahne kamerasının önceliğini (Priority) sıfır yapıyoruz ki oyun kamerası aktif kalsın
-        if (cutsceneCamera != null)
+        if (cutsceneDirector != null)
         {
-            cutsceneCamera.Priority = 0;
+            // PlayableDirector'ın kendi kendine başlamasını engelliyoruz, kontrol tamamen bizde
+            cutsceneDirector.playOnAwake = false;
+            
+            // Timeline bittiğinde tetiklenecek fonksiyonu sisteme kaydediyoruz (Event Subscription)
+            cutsceneDirector.stopped += OnCutsceneFinished;
+        }
+    }
 
-            // Kameranın içindeki Dolly bileşenine ulaşıyoruz kanka
-            dollyComponent = cutsceneCamera.GetCinemachineComponent<CinemachineTrackedDolly>();
-            if (dollyComponent != null)
-            {
-                dollyComponent.m_PathPosition = 0f; // Rayın başına koy
-            }
+    private void OnDestroy()
+    {
+        // Hafıza sızıntısı (Memory Leak) olmaması için sahne kapanırken event kaydını siliyoruz
+        if (cutsceneDirector != null)
+        {
+            cutsceneDirector.stopped -= OnCutsceneFinished;
         }
     }
 
@@ -44,6 +37,8 @@ public class CutsceneTrigger : MonoBehaviour
         // Alana giren oyuncuysa ve ara sahne henüz oynatılmadıysa başlat kanka
         if (!hasTriggered && other.CompareTag("Player"))
         {
+            hasTriggered = true;
+
             // İçeri giren Don mu Sancho mu hemen yakala
             var don = other.GetComponent<DonMovement>();
             if (don != null) currentPlayerScript = don;
@@ -53,66 +48,45 @@ public class CutsceneTrigger : MonoBehaviour
                 if (sancho != null) currentPlayerScript = sancho;
             }
 
-            StartCoroutine(PlayCutsceneRoutine());
+            StartCutscene();
         }
     }
 
-    private IEnumerator PlayCutsceneRoutine()
+    private void StartCutscene()
     {
-        hasTriggered = true;
-        Debug.Log("<color=orange>🎬 ARA SAHNE BAŞLADI: Karakter donduruldu, kamera harekete geçiyor!</color>");
+        Debug.Log("<color=orange>🎬 ARA SAHNE BAŞLADI: Karakter donduruldu, Timeline oynatılıyor!</color>");
 
-        // 1. Karakteri tamamen dondur, asla kıpırdayamasın
+        // 1. Oyuncunun hareketini reflection ile kilitle kanka
         SetPlayerControl(false);
 
-        if (cutsceneCamera != null && dollyComponent != null && smoothPath != null)
+        // 2. Timeline'ı (CutsceneManager üzerindeki director'ı) başlat
+        if (cutsceneDirector != null)
         {
-            // 2. Sinematik kameranın önceliğini arttırarak ana kamera yapıyoruz (Pürüzsüz geçiş sağlar)
-            cutsceneCamera.Priority = 20;
-
-            float currentPathPos = 0f;
-            float maxPathPos = smoothPath.MaxPos; // Rayın son noktasını otomatik bul kanka
-            float timer = 0f;
-
-            // Kamera rayın sonuna gelene kadar veya maksimum süre dolana kadar kamerayı yürüt
-            while (currentPathPos < maxPathPos && timer < maxCutsceneDuration)
-            {
-                // Kamerayı ray üzerinde kaydırıyoruz
-                currentPathPos += cameraSpeed * Time.deltaTime;
-                dollyComponent.m_PathPosition = currentPathPos;
-
-                timer += Time.deltaTime;
-                yield return null; // Bir sonraki kareyi bekle kanka
-            }
+            cutsceneDirector.Play();
         }
         else
         {
-            // Eğer kameralar bağlanmadıysa oyun çökmesin diye güvenlik olarak süreyi bekle kanka
-            yield return new WaitForSeconds(maxCutsceneDuration);
+            Debug.LogError("🚨 CutsceneDirector bulunamadı! Güvenlik için kontrol açılıyor.");
+            SetPlayerControl(true);
         }
-
-        // 3. Ara sahne bitti! Sinematik kamerayı kapatıp kontrolü oyuncuya geri veriyoruz
-        EndCutscene();
     }
 
-    private void EndCutscene()
+    // Timeline bittiği an Unity bu fonksiyonu otomatik olarak tetikler kanka
+    private void OnCutsceneFinished(PlayableDirector director)
     {
-        Debug.Log("<color=green>🎬 ARA SAHNE BİTTİ: Kontrol oyuncuya geri devredildi!</color>");
-
-        if (cutsceneCamera != null)
+        if (director == cutsceneDirector)
         {
-            cutsceneCamera.Priority = 0; // Sinematik kamerayı devreden çıkar, oyun kamerası geri gelsin
+            Debug.Log("<color=green>🎬 ARA SAHNE BİTTİ: Kontrol oyuncuya geri devredildi!</color>");
+            
+            // 3. Kontrolü oyuncuya geri veriyoruz
+            SetPlayerControl(true);
         }
-
-        // Karakterin hareket kilidini aç, koşmaya devam etsin kanka!
-        SetPlayerControl(true);
     }
 
     private void SetPlayerControl(bool canControl)
     {
         if (currentPlayerScript == null) return;
 
-        // Reflection kullanarak Don veya Sancho'nun isControlled kilidini pürüzsüzce yönetiyoruz
         try
         {
             System.Type type = currentPlayerScript.GetType();
@@ -136,7 +110,7 @@ public class CutsceneTrigger : MonoBehaviour
         }
     }
 
-    // Editörde tetikleyici kutuyu yeşil tel kafes olarak görelim
+    // Editörde tetikleyici kutuyu magenta renkli tel kafes olarak görelim
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.magenta;

@@ -7,13 +7,12 @@ using TMPro;
 
 public class IntroManager : MonoBehaviour
 {
-    // Müfettişte (Inspector) her sprite ve ona bağlı yazıları gruplamak için bir yapı
     [System.Serializable]
     public struct IntroSlide
     {
-        public Sprite sprite; // Gösterilecek çizim
+        public Sprite sprite;
         [TextArea(2, 5)]
-        public List<string> dialogueTexts; // Bu çizim ekrandayken sırayla çıkacak yazılar
+        public List<string> dialogueTexts;
     }
 
     [Header("UI Elementleri")]
@@ -21,14 +20,16 @@ public class IntroManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI introText;
 
     [Header("Giriş İçeriği")]
-    [SerializeField] private List<IntroSlide> introSlides; // Sprite ve yazı grupları
+    [SerializeField] private List<IntroSlide> introSlides;
 
     [Header("Ayarlar")]
     [SerializeField] private float fadeDuration = 1f;
     [SerializeField] private float textSpeed = 0.05f;
     [SerializeField] private string firstGameplaySceneName;
 
-    private bool canProceed = false;
+    private bool isTextWriting = false; // Yazının şu an yazılmakta olduğunu takip eder
+    private bool skipRequested = false;  // Oyuncunun hızlı geçmek isteyip istemediğini tutar
+    private bool canProceed = false;     // Sonraki yazıya geçiş izni
 
     private void Start()
     {
@@ -44,10 +45,19 @@ public class IntroManager : MonoBehaviour
 
     private void Update()
     {
-        // Tıklama algılama
-        if (canProceed && (Input.GetMouseButtonDown(0) || Input.anyKeyDown))
+        // Sol tık veya herhangi bir tuş basıldıysa
+        if (Input.GetMouseButtonDown(0) || Input.anyKeyDown)
         {
-            canProceed = false; 
+            if (isTextWriting)
+            {
+                // 1. Durum: Yazı hala yazılıyorsa, yazmayı hızlandır/atla
+                skipRequested = true;
+            }
+            else if (canProceed)
+            {
+                // 2. Durum: Yazı tamamen bittiyse, sonraki cümleye geç
+                canProceed = false;
+            }
         }
     }
 
@@ -55,14 +65,13 @@ public class IntroManager : MonoBehaviour
     {
         foreach (IntroSlide slide in introSlides)
         {
-            // 1. Resmi Hazırla ve Görünmez Yap
             introText.text = "";
             Color c = introImage.color;
             c.a = 0f;
             introImage.color = c;
             introImage.sprite = slide.sprite;
 
-            // 2. Sadece Resim Değiştiğinde Fade-In Yap
+            // Fade-In
             float timer = 0f;
             while (timer < fadeDuration)
             {
@@ -74,27 +83,37 @@ public class IntroManager : MonoBehaviour
             c.a = 1f;
             introImage.color = c;
 
-            // 3. Bu Resme Ait Tüm Yazıları Sırayla Oynat
+            // Slayttaki yazıları sırayla oynat
             foreach (string currentText in slide.dialogueTexts)
             {
-                introText.text = ""; // Yeni yazı gelmeden önce eskiyi temizle
+                introText.text = "";
+                isTextWriting = true;
+                skipRequested = false;
 
-                // Daktilo Efekti
+                // Daktilo Efekti Döngüsü
                 for (int j = 0; j <= currentText.Length; j++)
                 {
+                    // Eğer oyuncu tıkladıysa döngüden çık ve metnin tamamını yaz
+                    if (skipRequested)
+                    {
+                        introText.text = currentText;
+                        break;
+                    }
+
                     introText.text = currentText.Substring(0, j);
                     yield return new WaitForSeconds(textSpeed);
                 }
 
-                // Yazı bitti, oyuncunun tıklamasını bekle
+                // Yazma işlemi bitti
+                isTextWriting = false;
+                
+                // Oyuncunun bir sonraki adıma geçmek için tekrar tıklamasını bekle
+                yield return new WaitedFrameFixed(); // Tıklamanın hemen algılanıp sonraki yazıyı da geçmemesi için küçük bir güvenlik payı
                 canProceed = true;
                 yield return new WaitUntil(() => !canProceed);
             }
-            
-            // Bu sprite'a ait tüm yazılar bitti, döngü başa dönecek ve yeni sprite'a geçecek.
         }
 
-        // Her şey bittiğinde yeni sahneye geç
         LoadNextScene();
     }
 
@@ -102,4 +121,12 @@ public class IntroManager : MonoBehaviour
     {
         SceneManager.LoadScene(firstGameplaySceneName);
     }
+}
+
+// Küçük bir senkronizasyon yardımı (Aynı karede iki tıklama algılanmasın diye)
+public class WaitedFrameFixed : CustomYieldInstruction
+{
+    private int targetFrame;
+    public override bool keepWaiting => Time.frameCount < targetFrame;
+    public WaitedFrameFixed() => targetFrame = Time.frameCount + 2;
 }

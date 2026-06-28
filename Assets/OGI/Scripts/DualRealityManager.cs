@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI; // --- YENİ EKLENDİ: UI Image kontrolü için ---
 
 public class DualRealityManager : MonoBehaviour
 {
@@ -14,6 +15,16 @@ public class DualRealityManager : MonoBehaviour
     // --- YENİ EKLENDİ: SWITCH KİLİDİ ---
     [HideInInspector] public bool canSwitch = true;
 
+    // ========================================================
+    // --- YENİ EKLENDİ: GEÇİŞ EFEKTİ PARAMETRELERİ ---
+    // ========================================================
+    [Header("Geçiş Efekti Ayarları")]
+    [SerializeField] private Image transitionOverlay; // Canvas altındaki siyah Image
+    [SerializeField] private float fadeDuration = 0.12f; // Ekranın kararma ve açılma süresi
+    [SerializeField] private float holdDuration = 0.04f; // Tam karanlıkta bekleme süresi
+    private bool isTransitioning = false; // Üst üste geçiş tetiklenmesini önleyen kilit
+    // ========================================================
+
     void Awake()
     {
         if (Instance == null) Instance = this;
@@ -21,14 +32,22 @@ public class DualRealityManager : MonoBehaviour
 
     void Start()
     {
+        // UI Image başlangıçta şeffaf olsun
+        if (transitionOverlay != null)
+        {
+            Color c = transitionOverlay.color;
+            c.a = 0f;
+            transitionOverlay.color = c;
+        }
+
         // Oyun başlarken Don'u aç, Sancho'yu kapat
         SwitchCharacter(true);
     }
 
     void Update()
     {
-        // TAB tuşuna basıldığında
-        if (Input.GetKeyDown(KeyCode.Tab))
+        // TAB tuşuna basıldığında (Efekt oynatılıyorsa yeni geçişi engelle)
+        if (Input.GetKeyDown(KeyCode.Tab) && !isTransitioning)
         {
             // --- YENİ EKLENDİ: ZİPLİNE KONTROLÜ ---
             // Eğer oyunculardan biri zipline üzerindeyse geçişi engelle!
@@ -67,7 +86,7 @@ public class DualRealityManager : MonoBehaviour
             }
             // ========================================================
 
-            // --- SANCHO KUTU TUTUYOR MU KONTROLÜ ---
+            // --- SANCHO KUTU TUTAÇI MU KONTROLÜ ---
             bool isSanchoHoldingBox = false;
             if (!isDonActive && sancho != null)
             {
@@ -81,7 +100,8 @@ public class DualRealityManager : MonoBehaviour
             // Kilit açıkken VE Sancho kutu tutmuyorken karakter değiştir
             if (canSwitch && !isSanchoHoldingBox)
             {
-                SwitchCharacter(!isDonActive);
+                // --- GÜNCELLENDİ: Doğrudan geçiş yerine Coroutine tetikleniyor ---
+                StartCoroutine(SwitchWithFadeRoutine(!isDonActive));
             }
             else
             {
@@ -89,6 +109,61 @@ public class DualRealityManager : MonoBehaviour
                 Debug.Log("🚫 Şu an karakter değiştirilemez! (Geçiş kilitli veya Sancho kutu tutuyor)");
             }
         }
+    }
+
+    // ========================================================
+    // --- YENİ EKLENDİ: GEÇİŞ COROUTINE YAPISI ---
+    // ========================================================
+    private IEnumerator SwitchWithFadeRoutine(bool toDon)
+    {
+        isTransitioning = true;
+
+        // transitionOverlay atanmadıysa hata vermemesi için güvenlik kontrolü
+        if (transitionOverlay != null)
+        {
+            // 1. Ekran Kararıyor (Fade In)
+            float timer = 0f;
+            while (timer < fadeDuration)
+            {
+                timer += Time.deltaTime;
+                Color c = transitionOverlay.color;
+                c.a = Mathf.Lerp(0f, 1f, timer / fadeDuration);
+                transitionOverlay.color = c;
+                yield return null;
+            }
+            
+            // Tamamen siyah olduğundan emin olalım
+            Color finalBlack = transitionOverlay.color;
+            finalBlack.a = 1f;
+            transitionOverlay.color = finalBlack;
+        }
+
+        // 2. Tam ekran kapkarayken orijinal geçiş mantığını çalıştırıyoruz
+        SwitchCharacter(toDon);
+
+        // Minik bir göz kırpma/bekleme süresi
+        yield return new WaitForSeconds(holdDuration);
+
+        if (transitionOverlay != null)
+        {
+            // 3. Ekran Açılıyor (Fade Out)
+            float timer = 0f;
+            while (timer < fadeDuration)
+            {
+                timer += Time.deltaTime;
+                Color c = transitionOverlay.color;
+                c.a = Mathf.Lerp(1f, 0f, timer / fadeDuration);
+                transitionOverlay.color = c;
+                yield return null;
+            }
+
+            // Tamamen şeffaf yapalım
+            Color finalClear = transitionOverlay.color;
+            finalClear.a = 0f;
+            transitionOverlay.color = finalClear;
+        }
+
+        isTransitioning = false;
     }
 
     void SwitchCharacter(bool toDon)
@@ -182,7 +257,6 @@ public class DualRealityManager : MonoBehaviour
         EnemyFlying[] flyingEnemies = FindObjectsOfType<EnemyFlying>(true);
         foreach (EnemyFlying enemy in flyingEnemies)
         {
-            // Sadece animatorü değil, modelin doğrudan kendisini açıp kapatan metodu tetikliyoruz kanka!
             enemy.UpdateModelVisibility(isDonActive);
         }
     }

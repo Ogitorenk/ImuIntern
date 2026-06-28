@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // Sahne yönetimi için gerekli kütüphane
+using UnityEngine.SceneManagement;
 
 public class SceneChanger : MonoBehaviour
 {
@@ -7,24 +7,37 @@ public class SceneChanger : MonoBehaviour
     [Tooltip("Geçiş yapılacak sahnenin tam adını buraya yazın.")]
     public string targetSceneName;
 
-    // Tetikleyiciye bir şey girdiğinde çalışır
+    [Header("Spesifik Doğma Ayarı (Opsiyonel)")]
+    public bool ozelKoordinataIsinla = false;
+    [Tooltip("Oyuncunun hedef sahnede doğmasını istediğin X, Y, Z koordinatları.")]
+    public Vector3 hedefKoordinat;
+
+    // Diğer scriptlerin okuyabilmesi için statik (sabit) değişkenler
+    public static bool ozelIsinlanmaAktif = false;
+    public static Vector3 transferKoordinat;
+
     private void OnTriggerEnter(Collider other)
     {
-        // Sadece 'Player' etiketli obje girdiğinde sahne değişsin
         if (other.CompareTag("Player"))
         {
             if (!string.IsNullOrEmpty(targetSceneName))
             {
+                // Eğer özel koordinat kutucuğunu işaretlediysen, bilgileri statik hafızaya alıyoruz
+                if (ozelKoordinataIsinla)
+                {
+                    ozelIsinlanmaAktif = true;
+                    transferKoordinat = hedefKoordinat;
+                    Debug.Log($"<color=orange>🚀 [Işınlanma Hazır] Hedef sahneye şu koordinat gönderildi: {hedefKoordinat}</color>");
+                }
+
                 Debug.Log(targetSceneName + " sahnesine LoadingManager ile pürüzsüz geçiş yapılıyor...");
 
-                // 🎯 [GÜNCELLENDİ] Direkt yüklemek yerine LoadingManager'ı tetikliyoruz
                 if (LoadingManager.Instance != null)
                 {
                     LoadingManager.Instance.LoadScene(targetSceneName);
                 }
                 else
                 {
-                    // Güvenlik Önlemi: Eğer sahnede bağımsız test yapıyorsan ve LoadingManager yoksa oyun donmasın kanka
                     SceneManager.LoadScene(targetSceneName);
                 }
             }
