@@ -621,6 +621,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damageAmount)
     {
+        if (currentHealth <= 0) return;
+
         if (iFrames > 0) return;
 
         currentHealth -= damageAmount;
