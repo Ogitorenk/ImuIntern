@@ -442,9 +442,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
         }
 
-        // ========================================================
-        // --- GÜNCELLENDİ: NİŞAN ALIRKEN INPUT KONTROLÜ (A-D İPTAL) ---
-        // ========================================================
         float horizontal = 0f;
         if (isControlled && !isDrinking && !isRepairing && crawlStartTimer <= 0f && !isAttacking)
         {
@@ -514,7 +511,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
             else
             {
-                // --- AIM MODU: Sola Çekme ve Daire Çizme BUG'ı Kesin Çözümü ---
                 Vector3 camToPlayer = transform.position - cam.position;
                 camToPlayer.y = 0f;
                 camToPlayer.Normalize();
@@ -648,10 +644,36 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
     }
 
+    // ==============================================================================
+    // --- GÜNCELLEME: ÖLÜM ANİMASYONUNU HİÇBİR KOŞUL DİNLEMEDEN ZORLAYAN KİLİT SİSTEMİ ---
+    // ==============================================================================
     void Die()
     {
-        if (animator != null) animator.SetTrigger("Death");
+        Debug.Log($"💀 {gameObject.name} ÖLDÜ! Tüm animasyonlar temizlenip ölüm zorla oynatılıyor...");
 
+        // 1. Girdileri ve karakter kontrollerını anında dondur kanka sahnede kaymasın
+        isControlled = false;
+        velocity = Vector3.zero;
+
+        // 2. Animator Bypass Mekanizması: Tüm çakışabilecek parametreleri sıfırla ve zorla Play at!
+        if (animator != null)
+        {
+            animator.ResetTrigger("Jump");
+            animator.ResetTrigger("Damage");
+            animator.ResetTrigger("Land");
+            animator.ResetTrigger("RepairStart");
+
+            animator.SetBool("isWalking", false);
+            animator.SetBool("isAiming", false);
+            animator.SetBool("isDodging", false);
+            animator.SetBool("isHoldingBox", false);
+            animator.SetBool("isRepairing", false);
+
+            // Animatör state sürelerini ve geçiş şartlarını tamamen bypass edip direkt çal kanka!
+            animator.Play("Death", 0, 0f);
+        }
+
+        // Mevcut respawn akışını başlat kanka
         StartCoroutine(SanchoRespawnRoutine());
     }
 
@@ -670,10 +692,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         isHoldingBox = false;
         isDodging = false;
 
-        // === KRİTİK GÜNCELLEME: ÖLÜNCE CANLARI VE POTLARI DATA ÜZERİNDEN RESETLE KANKA ===
         if (CheckpointManager.Instance != null)
         {
-            CheckpointManager.Instance.RespawnResetStats(); // Verileri datadan senkronize edip canı 100 yapacak
+            CheckpointManager.Instance.RespawnResetStats();
             currentHealth = sanchoData != null ? sanchoData.currentHealth : maxHealth;
         }
         else
@@ -705,13 +726,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         isControlled = true;
 
-        // Assets/OGI/Scripts/SanchoMovement.cs -> SanchoRespawnRoutine içindeki işlemler bittikten sonra (Satır 701'lerin sonrası):
-if (CheckpointManager.Instance != null)
-{
-    // DualRealityManager işini bitirdikten sonra CheckpointManager'a diyoruz ki: 
-    // "Kardeş her şey bitti, artık şu can barlarını ekranda son kez bir tazeleyiver."
-    CheckpointManager.Instance.UpdateAllUI();
-}
+        if (CheckpointManager.Instance != null)
+        {
+            CheckpointManager.Instance.UpdateAllUI();
+        }
     }
 
     public void UseHealthPotion()

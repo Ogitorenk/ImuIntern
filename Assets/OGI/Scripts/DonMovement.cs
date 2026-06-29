@@ -253,7 +253,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
             Vector3 moveDiff = newGlobalPlatformPoint - activeGlobalPlatformPoint;
 
-            if (moveDiff.magnitude > 0.0001f)
+            if (moveDiff.magnitude > 0.0001f && currentHealth > 0) // Öldüyse platform taşımasın kanka
             {
                 controller.Move(moveDiff);
             }
@@ -262,7 +262,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             Quaternion rotationDiff = newGlobalPlatformRotation * Quaternion.Inverse(activeGlobalPlatformRotation);
 
             rotationDiff.ToAngleAxis(out float angle, out Vector3 axis);
-            if (angle > 0.001f)
+            if (angle > 0.001f && currentHealth > 0)
             {
                 transform.Rotate(axis, angle, Space.World);
             }
@@ -311,17 +311,17 @@ public class DonMovement : MonoBehaviour, IDamageable
             dashCooldownTimer -= Time.deltaTime;
         }
 
-        if (isControlled && Input.GetKeyDown(healKey))
+        if (isControlled && Input.GetKeyDown(healKey) && currentHealth > 0)
         {
             UseHealthPotion();
         }
 
-        if (isControlled && Input.GetKeyDown(slowTimeKey))
+        if (isControlled && Input.GetKeyDown(slowTimeKey) && currentHealth > 0)
         {
             UseSlowPotion();
         }
 
-        if (isLatched)
+        if (isLatched && currentHealth > 0)
         {
             if (latchedLance != null)
             {
@@ -346,7 +346,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             return;
         }
 
-        if (isZiplining && isControlled && Input.GetButtonDown("Jump"))
+        if (isZiplining && isControlled && Input.GetButtonDown("Jump") && currentHealth > 0)
         {
             isZiplining = false;
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -354,12 +354,12 @@ public class DonMovement : MonoBehaviour, IDamageable
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (isControlled && Input.GetKeyDown(KeyCode.C) && !isDrinking)
+        if (isControlled && Input.GetKeyDown(KeyCode.C) && !isDrinking && currentHealth > 0)
         {
             CheckForLanceLatch();
         }
 
-        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && !isDodging && isGrounded && dashCooldownTimer <= 0f && !isDrinking && !isAttacking && !isBlocking)
+        if (isControlled && Input.GetKeyDown(KeyCode.E) && !isDashing && !isDodging && isGrounded && dashCooldownTimer <= 0f && !isDrinking && !isAttacking && !isBlocking && currentHealth > 0)
         {
             isDashing = true;
             dashTimer = dashDuration;
@@ -383,7 +383,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             crouchCooldownTimer -= Time.deltaTime;
         }
 
-        if (isControlled && !isDrinking && !isZiplining && !isLatched && !isDashing && !isDodging && !isCrouchToggled)
+        if (isControlled && !isDrinking && !isZiplining && !isLatched && !isDashing && !isDodging && !isCrouchToggled && currentHealth > 0)
         {
             if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
             {
@@ -420,7 +420,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             shiftPressTimer = 0f;
         }
 
-        if (!isDashing && !isDodging && !isLatched && !isZiplining && !isDrinking)
+        if (!isDashing && !isDodging && !isLatched && !isZiplining && !isDrinking && currentHealth > 0)
         {
             if (isControlled && (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl)))
             {
@@ -492,24 +492,23 @@ public class DonMovement : MonoBehaviour, IDamageable
             isWalking = false;
         }
 
-        bool isAiming = isControlled && Input.GetMouseButton(1) && !isDrinking;
+        bool isAiming = isControlled && Input.GetMouseButton(1) && !isDrinking && currentHealth > 0;
         float targetFOV = normalFOV;
         float targetOffsetX = 0f;
         float targetOffsetY = 0f;
 
-        // === KRİTİK GÜNCELLEME: NİŞAN ALIRKEN INPUT KONTROLÜ (A-D DEVRE DIŞI BIRAKILDI) ===
         float horizontal = 0f;
-        if (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking)
+        if (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking && currentHealth > 0)
         {
-            if (!isAiming) // Eğer nişan almıyorsak A-D tuşlarını oku kanka
+            if (!isAiming)
             {
                 horizontal = Input.GetAxisRaw("Horizontal");
             }
         }
-        float vertical = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking) ? Input.GetAxisRaw("Vertical") : 0f;
+        float vertical = (isControlled && !isDrinking && crawlStartTimer <= 0f && !isAttacking && !isBlocking && currentHealth > 0) ? Input.GetAxisRaw("Vertical") : 0f;
         Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
-        if (isLanceEquipped && !isDashing && !isDodging && !isZiplining && !isDrinking)
+        if (isLanceEquipped && !isDashing && !isDodging && !isZiplining && !isDrinking && currentHealth > 0)
         {
             if (isAiming)
             {
@@ -566,7 +565,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             isNearGround = isGrounded;
         }
 
-        if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0)
+        if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0 && currentHealth > 0)
         {
             if (animator != null) animator.SetTrigger("Land");
             landStunTimer = landStunDuration;
@@ -597,123 +596,128 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         float animSpeed = 0f;
 
-        if (isDashing)
+        // === AKTİF HAREKET SADECE CAN VARKEN KONTROL EDİLİR KANKA ===
+        if (currentHealth > 0)
         {
-            dashTimer -= Time.deltaTime;
-            if (dashTimer <= 0)
+            if (isDashing)
             {
-                isDashing = false;
-            }
-            else
-            {
-                if (controller.enabled) controller.Move(transform.forward * dashSpeed * Time.deltaTime);
-            }
-        }
-        else if (isDodging)
-        {
-            dodgeTimer -= Time.deltaTime;
-            if (dodgeTimer <= 0)
-            {
-                isDodging = false;
-            }
-            else
-            {
-                if (controller.enabled)
+                dashTimer -= Time.deltaTime;
+                if (dashTimer <= 0)
                 {
-                    float hInput = Input.GetAxisRaw("Horizontal");
-                    float vInput = Input.GetAxisRaw("Vertical");
-                    Vector3 dodgeDir = new Vector3(hInput, 0f, vInput).normalized;
-
-                    if (dodgeDir.magnitude < 0.1f)
+                    isDashing = false;
+                }
+                else
+                {
+                    if (controller.enabled) controller.Move(transform.forward * dashSpeed * Time.deltaTime);
+                }
+            }
+            else if (isDodging)
+            {
+                dodgeTimer -= Time.deltaTime;
+                if (dodgeTimer <= 0)
+                {
+                    isDodging = false;
+                }
+                else
+                {
+                    if (controller.enabled)
                     {
-                        controller.Move(transform.forward * dodgeSpeed * Time.deltaTime);
-                    }
-                    else
-                    {
-                        Vector3 camForward = Camera.main.transform.forward;
-                        Vector3 camRight = Camera.main.transform.right;
-                        camForward.y = 0f;
-                        camRight.y = 0f;
-                        camForward.Normalize();
-                        camRight.Normalize();
+                        float hInput = Input.GetAxisRaw("Horizontal");
+                        float vInput = Input.GetAxisRaw("Vertical");
+                        Vector3 dodgeDir = new Vector3(hInput, 0f, vInput).normalized;
 
-                        Vector3 finalDodgeDir = (camForward * vInput + camRight * hInput).normalized;
+                        if (dodgeDir.magnitude < 0.1f)
+                        {
+                            controller.Move(transform.forward * dodgeSpeed * Time.deltaTime);
+                        }
+                        else
+                        {
+                            Vector3 camForward = Camera.main.transform.forward;
+                            Vector3 camRight = Camera.main.transform.right;
+                            camForward.y = 0f;
+                            camRight.y = 0f;
+                            camForward.Normalize();
+                            camRight.Normalize();
 
-                        transform.rotation = Quaternion.LookRotation(finalDodgeDir);
+                            Vector3 finalDodgeDir = (camForward * vInput + camRight * hInput).normalized;
 
-                        controller.Move(finalDodgeDir * dodgeSpeed * Time.deltaTime);
+                            transform.rotation = Quaternion.LookRotation(finalDodgeDir);
+
+                            controller.Move(finalDodgeDir * dodgeSpeed * Time.deltaTime);
+                        }
                     }
                 }
             }
-        }
-        else if (isZiplining || isDrinking)
-        {
-            animSpeed = 0f;
-        }
-        else if (isAttacking)
-        {
-            animSpeed = 0f;
-            float yawCamera = cam.eulerAngles.y;
-            transform.rotation = Quaternion.Euler(0, yawCamera, 0);
-
-            referenceYaw = yawCamera;
-        }
-        else
-        {
-            if (!isAiming && !isBlocking)
+            else if (isZiplining || isDrinking)
             {
-                // NORMAL MOD: Sorunsuz Çalışan Bölge
-                if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
-                {
-                    referenceYaw = cam.eulerAngles.y;
-                }
+                animSpeed = 0f;
+            }
+            else if (isAttacking)
+            {
+                animSpeed = 0f;
+                float yawCamera = cam.eulerAngles.y;
+                transform.rotation = Quaternion.Euler(0, yawCamera, 0);
 
-                if (inputDir.magnitude >= 0.1f)
+                referenceYaw = yawCamera;
+            }
+            else
+            {
+                if (!isAiming && !isBlocking)
                 {
-                    if (landStunTimer > 0)
+                    if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
                     {
-                        animSpeed = 0f;
+                        referenceYaw = cam.eulerAngles.y;
                     }
-                    else
-                    {
-                        animSpeed = currentSpeed;
-                        float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
-                        float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-                        transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
+                    if (inputDir.magnitude >= 0.1f)
+                    {
+                        if (landStunTimer > 0)
+                        {
+                            animSpeed = 0f;
+                        }
+                        else
+                        {
+                            animSpeed = currentSpeed;
+                            float targetAngle = Mathf.Atan2(inputDir.x, inputDir.z) * Mathf.Rad2Deg + referenceYaw;
+                            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+                            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+                            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                            if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+                        }
+                    }
+                }
+                else
+                {
+                    Vector3 camToPlayer = transform.position - cam.position;
+                    camToPlayer.y = 0f;
+                    camToPlayer.Normalize();
+
+                    float trueYaw = Mathf.Atan2(camToPlayer.x, camToPlayer.z) * Mathf.Rad2Deg;
+
+                    transform.rotation = Quaternion.Euler(0, trueYaw, 0);
+                    referenceYaw = trueYaw;
+
+                    if (inputDir.magnitude >= 0.1f && landStunTimer <= 0 && !isBlocking)
+                    {
+                        animSpeed = currentSpeed * 0.6f;
+
+                        float targetAngle = Mathf.Atan2(horizontal, vertical) * Mathf.Rad2Deg + trueYaw;
                         Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-                        if (controller.enabled) controller.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+
+                        if (controller.enabled) controller.Move(moveDir.normalized * (currentSpeed * 0.6f) * Time.deltaTime);
                     }
-                }
-            }
-            else
-            {
-                // --- AIM MODU: Sola Çekme ve Daire Çizme BUG'ı Kesin Çözümü ---
-                Vector3 camToPlayer = transform.position - cam.position;
-                camToPlayer.y = 0f;
-                camToPlayer.Normalize();
-
-                float trueYaw = Mathf.Atan2(camToPlayer.x, camToPlayer.z) * Mathf.Rad2Deg;
-
-                transform.rotation = Quaternion.Euler(0, trueYaw, 0);
-                referenceYaw = trueYaw;
-
-                if (inputDir.magnitude >= 0.1f && landStunTimer <= 0 && !isBlocking)
-                {
-                    animSpeed = currentSpeed * 0.6f;
-
-                    // A-D kilitlendiği için targetAngle sadece horizontal 0 iken vertical'a göre (ileri/geri) çalışır kanka
-                    float targetAngle = Mathf.Atan2(horizontal, vertical) * Mathf.Rad2Deg + trueYaw;
-                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-
-                    if (controller.enabled) controller.Move(moveDir.normalized * (currentSpeed * 0.6f) * Time.deltaTime);
                 }
             }
         }
 
+        // === ANIMATÖR GÜNCELLEMELERİ HER DURUMDA AKMALI KANKA (ÖLÜM DAHİL) ===
         if (animator != null)
         {
-            animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
+            // Eğer karakter ölüyse animSpeed'i zorla 0 yapıyoruz ki locomotion kilitlensin
+            float finalAnimSpeed = (currentHealth <= 0) ? 0f : animSpeed;
+
+            animator.SetFloat("Speed", finalAnimSpeed, 0.1f, Time.deltaTime);
             animator.SetBool("isGrounded", isGrounded);
             animator.SetBool("isNearGround", isNearGround);
             animator.SetFloat("VerticalVelocity", velocity.y);
@@ -730,7 +734,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
         }
 
-        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && !isDodging && landStunTimer <= 0 && !isZiplining && !isDrinking && !isCrouchToggled && !isAttacking && !isBlocking)
+        if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && !isDodging && landStunTimer <= 0 && !isZiplining && !isDrinking && !isCrouchToggled && !isAttacking && !isBlocking && currentHealth > 0)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
@@ -738,12 +742,13 @@ public class DonMovement : MonoBehaviour, IDamageable
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f && !isZiplining)
+        if (isControlled && Input.GetButtonUp("Jump") && velocity.y > 0f && !isZiplining && currentHealth > 0)
         {
             velocity.y *= jumpCutMultiplier;
         }
 
-        if (!isZiplining)
+        // Yerçekimi ve Move kuralı sadece karakter hayattayken işlesin kanka, yoksa kütük gibi yere çiviler karakteri
+        if (!isZiplining && currentHealth > 0)
         {
             if (velocity.y < 0)
             {
@@ -758,9 +763,9 @@ public class DonMovement : MonoBehaviour, IDamageable
             {
                 velocity.y = terminalVelocity;
             }
-        }
 
-        if (controller.enabled) controller.Move(velocity * Time.deltaTime);
+            if (controller.enabled) controller.Move(velocity * Time.deltaTime);
+        }
     }
 
     private System.Collections.IEnumerator ThrowRoutine()
@@ -777,7 +782,6 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         yield return new WaitForSeconds(0.4f);
 
-        // --- GÜNCELLEME: Mızrak atıldıktan sonra eğer nişan almaya devam edilmiyorsa görseli kapat kanka ---
         if (!Input.GetMouseButton(1) && eldekiGorselMizrak != null) eldekiGorselMizrak.SetActive(false);
 
         isThrowing = false;
@@ -883,7 +887,6 @@ public class DonMovement : MonoBehaviour, IDamageable
         jumpCount = 0;
         controller.enabled = false;
 
-        // Karakterin mızrağa tutunma yön matematiği duruyor kanka dokunmadım
         Vector3 pushAwayDir = -lance.forward;
         LanceObj lanceScript = lance.GetComponent<LanceObj>();
 
@@ -977,9 +980,8 @@ public class DonMovement : MonoBehaviour, IDamageable
         velocity.y = 5f;
         isGrounded = false;
 
-        if (animator != null) animator.SetTrigger("Damage");
+        if (animator != null && currentHealth > 0) animator.SetTrigger("Damage");
 
-        // --- HUD GÜNCELLEMESİ (HER HASARDA TETİKLENİR) ---
         if (HUDManager.Instance != null)
         {
             HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
@@ -995,22 +997,44 @@ public class DonMovement : MonoBehaviour, IDamageable
 
     void Die()
     {
-        if (animator != null) animator.SetTrigger("Death");
+        Debug.Log($"💀 {gameObject.name} ÖLDÜ! Tüm hareket donduruluyor ve ölüm zorla oynatılıyor...");
+
+        // Girdileri ve hız vektörlerini kapat kanka
+        isControlled = false;
+        velocity = Vector3.zero;
+
+        // Animatoru kilit durumlarından kurtarıp direkt ölüm state'ine sokuyoruz
+        if (animator != null)
+        {
+            animator.ResetTrigger("Attack1");
+            animator.ResetTrigger("Attack2");
+            animator.ResetTrigger("Damage");
+            animator.ResetTrigger("Throw");
+            animator.ResetTrigger("Jump");
+            animator.ResetTrigger("Land");
+
+            // Mekanik geçişleri tamamen ezip zorla oynat kanka
+            animator.Play("Death", 0, 0f);
+        }
+
+        // Respawn coroutine'ini ateşle
         StartCoroutine(DonRespawnRoutine());
     }
 
     private IEnumerator DonRespawnRoutine()
     {
-        isControlled = false;
-        Debug.Log("💀 Don Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
+        Debug.Log("💀 Don Öldü! Ölüm animasyonu için 2 saniyelik sinematik bekleme başladı...");
 
+        // === EN ÖNEMLİ BUGFIX BÖLGESİ: Işınlamayı animasyonun sonuna taşıdık kanka ===
+        // Karakter 2 saniye boyunca olduğu yerde can çekişme/ölüm animasyonunu pürüzsüz oynayacak.
+        yield return new WaitForSeconds(2f);
+
+        Debug.Log("🔄 Zaman doldu, Don için checkpoint sıfırlamaları ve hileli Y ışınlaması yapılıyor...");
+
+        // Animasyon bittikten sonra görünmez yapmak veya yukarı taşımak için şimdi kapat kanka
         controller.enabled = false;
         transform.position = new Vector3(transform.position.x, transform.position.y + deathYOffset, transform.position.z);
         controller.enabled = true;
-
-        yield return new WaitForSeconds(2f);
-
-        Debug.Log("🔄 2 saniye bitti, Don için checkpoint sıfırlamaları yapılıyor...");
 
         isDrinking = false;
         isLatched = false;
@@ -1018,10 +1042,9 @@ public class DonMovement : MonoBehaviour, IDamageable
         isDashing = false;
         isDodging = false;
 
-        // === KRİTİK GÜNCELLEME: ÖLÜNCE CANLARI VE POTLARI DATA ÜZERİNDEN RESETLE KANKA ===
         if (CheckpointManager.Instance != null)
         {
-            CheckpointManager.Instance.RespawnResetStats(); // Verileri datadan senkronize edip canı 100 yapacak
+            CheckpointManager.Instance.RespawnResetStats();
             currentHealth = donData != null ? donData.currentHealth : maxHealth;
         }
         else
@@ -1050,7 +1073,6 @@ public class DonMovement : MonoBehaviour, IDamageable
             animator.SetBool("isWalking", false);
         }
 
-        // Checkpoint yüklenince HUD barlarını tekrar fulle kanka patlamasın
         if (HUDManager.Instance != null)
         {
             HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
@@ -1112,7 +1134,6 @@ public class DonMovement : MonoBehaviour, IDamageable
             currentHealth += healthPotionHealAmount;
             if (currentHealth > maxHealth) currentHealth = maxHealth;
 
-            // --- HUD GÜNCELLEME (CAN İKSİRİ) ---
             if (HUDManager.Instance != null)
             {
                 HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
@@ -1125,7 +1146,6 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             slowPotionCount--;
 
-            // --- HUD GÜNCELLEME (ZAMAN İKSİRİ) ---
             if (HUDManager.Instance != null)
             {
                 HUDManager.Instance.UpdateDonQuixotePotions(healthPotionCount, slowPotionCount);

@@ -133,9 +133,25 @@ public class EnemyMelee : MonoBehaviour, IDamageable
         // TAKİP MENZİLİNDEYSE
         else if (distanceToPlayer <= chaseRange)
         {
-            agent.isStopped = false;
-            agent.SetDestination(player.position);
-            if (animator != null) animator.SetBool("isWalking", true);
+            // === DİKEY MESAFE VE NAVMESH DOĞRULAMA KİLİDİ ===
+            float heightDifference = Mathf.Abs(player.position.y - transform.position.y);
+
+            if (heightDifference > 3.0f && (!agent.hasPath || agent.pathStatus == NavMeshPathStatus.PathPartial))
+            {
+                agent.isStopped = true;
+                if (animator != null) animator.SetBool("isWalking", false);
+            }
+            else
+            {
+                agent.isStopped = false;
+                agent.SetDestination(player.position);
+
+                if (animator != null)
+                {
+                    bool isActuallyMoving = agent.velocity.sqrMagnitude > 0.1f;
+                    animator.SetBool("isWalking", isActuallyMoving);
+                }
+            }
         }
         // MENZİL DIŞINDAYSA (BEKLE)
         else
