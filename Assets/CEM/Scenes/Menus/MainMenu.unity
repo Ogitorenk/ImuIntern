@@ -3259,7 +3259,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   loadingScreenPanel: {fileID: 1623035540}
+  loadingCanvasGroup: {fileID: 1623035544}
   quillIcon: {fileID: 360028749}
+  fadeDuration: 0.5
 --- !u!4 &1389619593
 Transform:
   m_ObjectHideFlags: 0
@@ -3881,6 +3883,7 @@ GameObject:
   - component: {fileID: 1623035541}
   - component: {fileID: 1623035543}
   - component: {fileID: 1623035542}
+  - component: {fileID: 1623035544}
   m_Layer: 5
   m_Name: LoadingScreenPanel
   m_TagString: Untagged
@@ -3946,6 +3949,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1623035540}
   m_CullTransparentMesh: 1
+--- !u!225 &1623035544
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1623035540}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1714306278
 GameObject:
   m_ObjectHideFlags: 0

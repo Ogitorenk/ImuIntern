@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3ffb1974c5971045ab80936d72f2d25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tutorialMessage: Interaction
+  tutorialMessage: Interaction (Sancho)
   keyPromptSprites:
   - {fileID: 21300000, guid: 63dc603ed25d1fc458e95ae427fe90db, type: 3}
   showOnEnter: 1
