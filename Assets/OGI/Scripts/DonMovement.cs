@@ -354,7 +354,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             if (animator != null) animator.SetTrigger("Jump");
         }
 
-        if (isControlled && Input.GetKeyDown(KeyCode.C) && !isDrinking && currentHealth > 0)
+        if (isControlled && Input.GetKeyDown(KeyCode.F) && !isDrinking && currentHealth > 0)
         {
             CheckForLanceLatch();
         }

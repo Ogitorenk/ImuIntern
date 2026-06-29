@@ -4842,6 +4842,7 @@ Transform:
   - {fileID: 1031134552}
   - {fileID: 695503252}
   - {fileID: 1582948266}
+  - {fileID: 1342588614}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &84022864
@@ -5289,6 +5290,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 2300942327582244121, guid: 6a549a408565cdf44b5961dccadce139, type: 3}
   m_PrefabInstance: {fileID: 96703484}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &97449938 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 535116022961098203, guid: be92b36a9c274db4e9c7d0c1f44d2ae8, type: 3}
+  m_PrefabInstance: {fileID: 801438601}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &101257802 stripped
 MonoBehaviour:
@@ -14979,15 +14985,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 22.5
+      value: 22.43101
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.25
+      value: 2.5
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -42.5
+      value: -42.618977
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalRotation.w
@@ -14995,15 +15001,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.000000014901159
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 1691351680763311903, guid: ff5d612c19ee2f84582b4dadee0635d5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -93837,6 +93843,73 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3030452383505135295, guid: 8409e69b364257644988b394401c8927, type: 3}
   m_PrefabInstance: {fileID: 748323357}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1342588613
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1342588614}
+  - component: {fileID: 1342588615}
+  m_Layer: 0
+  m_Name: TokenManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1342588614
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1342588613}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -63.092987, y: 7.0980644, z: -67.92651}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 83819837}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1342588615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1342588613}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72a2f1d008802e044b697ff8145f6289, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  achievements:
+  - targetTokenCount: 1
+    achievementTitle: New Knight
+    achievementDescription: Collect your first token.
+    isUnlocked: 0
+  - targetTokenCount: 5
+    achievementTitle: Noble Knight
+    achievementDescription: Collect 5 token.
+    isUnlocked: 0
+  - targetTokenCount: 10
+    achievementTitle: Master Knight
+    achievementDescription: Collect 10 token.
+    isUnlocked: 0
+  - targetTokenCount: 20
+    achievementTitle: God Knight
+    achievementDescription: Collect 20 token.
+    isUnlocked: 0
+  hudTokenPanel: {fileID: 97449938}
+  hudTokenText: {fileID: 1858780613}
+  achievementText: {fileID: 1639677913}
+  hudDisplayDuration: 2.5
+  achievementSound: {fileID: 0}
+  achievementDisplayDuration: 3.5
 --- !u!1001 &1352633691
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -122499,6 +122572,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6799440408756717933, guid: ae12f1ba847c6f74281e7a9a7b0ac7fd, type: 3}
   m_PrefabInstance: {fileID: 1636307846}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1639677913 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8977515298846711375, guid: be92b36a9c274db4e9c7d0c1f44d2ae8, type: 3}
+  m_PrefabInstance: {fileID: 801438601}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1640149119
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -138134,6 +138218,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e9381fac46ce32344b0832b3ad30e484, type: 3}
+--- !u!114 &1858780613 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2802086194193027397, guid: be92b36a9c274db4e9c7d0c1f44d2ae8, type: 3}
+  m_PrefabInstance: {fileID: 801438601}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1861554078
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -159347,7 +159442,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7986e3082f48d2e4cb91e4926d401f2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  editorTestModu: 1
+  editorTestModu: 0
   donData: {fileID: 11400000, guid: 403ee74ae34455646a270ec82a8edd94, type: 2}
   sanchoData: {fileID: 11400000, guid: 904e8fcca5a9a80438d59528c5d40369, type: 2}
   progressData: {fileID: 11400000, guid: 59f069aef283d5847a610d434dd6e4c2, type: 2}
