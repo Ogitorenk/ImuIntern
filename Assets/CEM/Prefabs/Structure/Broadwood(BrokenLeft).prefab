@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 757526490579364326}
   - component: {fileID: 2077353032434884850}
   - component: {fileID: 3746400241588178411}
-  - component: {fileID: 3068260056989867400}
+  - component: {fileID: -509507982111191713}
   m_Layer: 3
   m_Name: Broadwood(BrokenLeft)
   m_TagString: Untagged
@@ -84,7 +84,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &3068260056989867400
+--- !u!64 &-509507982111191713
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
