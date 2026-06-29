@@ -15,6 +15,7 @@ TagManager:
   - Sword
   - Spear
   - Arrow
+  - EnemyArrow
   layers:
   - Default
   - TransparentFX

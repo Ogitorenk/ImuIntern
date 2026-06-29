@@ -18,6 +18,12 @@ public class CombatAreaTrigger : MonoBehaviour
     [Tooltip("Bu alana girildiğinde doğacak düşmanların ve noktalarının listesi")]
     public List<EnemySpawnData> enemiesToSpawn = new List<EnemySpawnData>();
 
+    [Header("--- GÖRSEL SPAWN EFEKTİ ---")]
+    [Tooltip("Düşmanlar doğarken çıkacak olan toz, duman veya büyü vfx prefab'ı kanka")]
+    public GameObject spawnEffectPrefab;
+    [Tooltip("Efekt doğduktan kaç saniye sonra sahnede kalabalık yapmasın diye silinsin?")]
+    public float effectDestroyDelay = 2f;
+
     [Header("--- SINIRLANDIRICI DUVARLAR (WALLS) ---")]
     [Tooltip("Alana girildiğinde aktifleşecek, dövüş bitince kapanacak görünmez duvarlar (1'den fazla eklenebilir)")]
     public List<GameObject> arenaWalls = new List<GameObject>();
@@ -30,9 +36,19 @@ public class CombatAreaTrigger : MonoBehaviour
     private List<GameObject> spawnedEnemies = new List<GameObject>();
     private bool arenaActive = false;
 
+    // Duvarların orijinal katmanlarını (Layer) hafızada tutmak için sözlük (Dictionary) kanka
+    private Dictionary<GameObject, int> originalWallLayers = new Dictionary<GameObject, int>();
+
     void Start()
     {
-        // Oyun başında duvarları ne olur ne olmaz deaktif et kanka, oyuncu özgürce yürüsün
+        // Oyun başında duvarların orijinal katmanlarını kaydet ve ne olur ne olmaz deaktif et kanka
+        foreach (GameObject wall in arenaWalls)
+        {
+            if (wall != null && !originalWallLayers.ContainsKey(wall))
+            {
+                originalWallLayers.Add(wall, wall.layer);
+            }
+        }
         ToggleWalls(false);
     }
 
@@ -66,7 +82,7 @@ public class CombatAreaTrigger : MonoBehaviour
             ToggleWalls(true);
         }
 
-        // 2. Düşmanları Point'lerinde Doğur
+        // 2. Düşmanları Point'lerinde Doğur ve Efektleri Çak
         SpawnAllEnemies();
     }
 
@@ -76,6 +92,13 @@ public class CombatAreaTrigger : MonoBehaviour
         {
             if (spawnData.enemyPrefab != null && spawnData.spawnPoint != null)
             {
+                // === YENİ EKLENDİ: SPAWN EFEKTİ TETİKLEME ===
+                if (spawnEffectPrefab != null)
+                {
+                    GameObject effect = Instantiate(spawnEffectPrefab, spawnData.spawnPoint.position, spawnData.spawnPoint.rotation);
+                    Destroy(effect, effectDestroyDelay); // Sahnede çöp kalmasın kanka
+                }
+
                 // Düşmanı Point'in koordinatlarında ve rotasyonunda klonla
                 GameObject enemy = Instantiate(spawnData.enemyPrefab, spawnData.spawnPoint.position, spawnData.spawnPoint.rotation);
 
@@ -115,23 +138,37 @@ public class CombatAreaTrigger : MonoBehaviour
 
         // Duvarları indir, oyuncu ilerleyebilsin
         ToggleWalls(false);
-
-        // İleride bu dövüş bitince kapı açılma sesi veya müzik değişimi tetiklenecekse tam buraya yazılır kanka
     }
 
     private void ToggleWalls(bool isActive)
     {
+        int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+
         foreach (GameObject wall in arenaWalls)
         {
             if (wall != null)
             {
                 wall.SetActive(isActive);
+
+                if (isActive)
+                {
+                    // === MIZRAK BUGFIX DOKUNUŞU ===
+                    // Duvar aktifken katmanını Ignore Raycast yapıyoruz ki mızrak içinden geçsin, takılmasın kanka!
+                    wall.layer = ignoreRaycastLayer;
+                }
+                else
+                {
+                    // Duvar kapanırken orijinal katmanına (Örn: Default) geri döner
+                    if (originalWallLayers.ContainsKey(wall))
+                    {
+                        wall.layer = originalWallLayers[wall];
+                    }
+                }
             }
         }
     }
 
     // --- LEVED DESIGNER DOSTU GIZMOS HİLESİ ---
-    // Editör ekranında pointlerin nerede olduğunu çizgilerle görmemizi sağlar, aşırı kolaylık kanka!
     private void OnDrawGizmos()
     {
         // Tetikleyici kutunun sınırlarını yeşil göster
