@@ -104,6 +104,7 @@ MonoBehaviour:
   maxHitAngle: 120
   stickRotationOffset: {x: -90, y: 0, z: 0}
   wallNormal: {x: 0, y: 0, z: 0}
+  damageAmount: 40
 --- !u!136 &-8261482338549563802
 CapsuleCollider:
   m_ObjectHideFlags: 0

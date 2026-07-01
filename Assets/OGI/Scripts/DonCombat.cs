@@ -1,14 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class DonCombat : MonoBehaviour
 {
     private DonMovement donMovement;
     private Animator animator;
 
-    // ========================================================
-    // --- GÜNCELLENDİ: GÖRSEL SİLAH PİVOT SİSTEMİ ---
-    // ========================================================
     [Header("Görsel Silahlar (Kemik İçindeki Modeller)")]
     [Tooltip("Saldırırken elde belirecek mızrağın PİVOT (Yalancı Parent) objesi")]
     public GameObject meleeLancePivot;
@@ -16,18 +14,20 @@ public class DonCombat : MonoBehaviour
     [Tooltip("Kalkan açarken belirecek kalkan (Model gelince buraya atarsın)")]
     public GameObject shieldModel;
 
-    // ========================================================
-    // --- YENİ EKLENDİ: KALKAN SCRIPT BAĞLANTISI ---
-    // ========================================================
     [Header("Kalkan Hesaplama Ayarları")]
     [Tooltip("Kalkanın üzerine attığımız o Shield.cs scriptini buraya sürükle kanka")]
     public Shield shieldScript;
-    // ========================================================
 
     [Header("Yakın Dövüş Kombo Ayarları")]
     public float comboResetTime = 1.0f;
     public float attack1Duration = 0.5f;
     public float attack2Duration = 0.7f;
+
+    // === GÜNCELLENDİ: SABİTLENEN YENİ STAMINA TÜKETİM MALİYETLERİ ===
+    [Header("Kombo Stamina Maliyetleri")]
+    public float attack1StaminaCost = 10f; // Tam istediğin gibi 10 kanka
+    public float attack2StaminaCost = 15f; // Tam istediğin gibi 15 kanka
+    private float minimumAttackThreshold = 10f; // 10'un altındaysa vuruş engellenecek kanka
 
     private int comboStep = 0;
     private float lastAttackTime = 0f;
@@ -37,9 +37,6 @@ public class DonCombat : MonoBehaviour
     public KeyCode blockKey = KeyCode.Mouse2;
     [HideInInspector] public bool isBlocking = false;
 
-    // ========================================================
-    // --- İLK KEZ EKLEYECEĞİN YAKIN DÖVÜŞ HASAR AYARLARI ---
-    // ========================================================
     [Header("--- Yakın Dövüş Hasar Ayarları ---")]
     [Tooltip("Don'un önünde duracak ve vuruşun merkez noktasını belirleyecek boş obje")]
     public Transform attackPoint;
@@ -50,6 +47,9 @@ public class DonCombat : MonoBehaviour
     [Tooltip("Sol tık bastıktan kaç saniye sonra hasar düşmana işlesin? (Vuruş gecikmesi)")]
     public float hitDelay = 0.2f;
 
+    private Dictionary<IDamageable, float> enemyHitCooldowns = new Dictionary<IDamageable, float>();
+    private float globalHitCooldown = 0.25f;
+
     private Coroutine attackResetRoutine;
 
     void Start()
@@ -57,23 +57,21 @@ public class DonCombat : MonoBehaviour
         donMovement = GetComponent<DonMovement>();
         animator = GetComponentInChildren<Animator>();
 
-        // Başlangıçta dövüş halinde olmadığımız için silahları gizle
         if (meleeLancePivot != null) meleeLancePivot.SetActive(false);
         if (shieldModel != null) shieldModel.SetActive(false);
     }
 
     void Update()
     {
-        // === KRİTİK PAUSE KORUMASI: Oyun durdurulduğunda kılıç/mızrak savurmayı ve kalkan bloklamayı tamamen keser kanka ===
         if (Time.timeScale == 0f) return;
 
-        if (!donMovement.isControlled || donMovement.isDrinking || donMovement.isZiplining ||
-            donMovement.isDodging || donMovement.isCrawling || donMovement.isCrouchToggled || donMovement.isLatched)
+        if (!donMovement.isControlled || donMovement.currentHealth <= 0 || donMovement.isDrinking ||
+            donMovement.isZiplining || donMovement.isDodging || donMovement.isCrawling ||
+            donMovement.isCrouchToggled || donMovement.isLatched)
         {
             isBlocking = false;
             if (animator != null) animator.SetBool("isBlocking", false);
 
-            // Kontrol bizde değilse kalkanı zorla kapat ve durumunu sıfırla
             if (shieldModel != null) shieldModel.SetActive(false);
             if (shieldScript != null) shieldScript.SetShieldStatus(false);
             return;
@@ -89,29 +87,50 @@ public class DonCombat : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0) && !isAiming && !isBlocking && donMovement.isGrounded)
         {
-            if (Time.time - lastAttackTime > comboResetTime)
+            // === CRITICAL BUGFIX: 10'UN ALTINDAYSA HİÇBİR ŞEY YAPMA VE STAMINA HARCAMA ===
+            if (donMovement.currentStamina < minimumAttackThreshold)
             {
-                comboStep = 0;
+                Debug.LogWarning($"<color=red>🛑 ATAK ENGELLENDİ! </color> Stamina 10'un altında! | <color=yellow>Mevcut Stamina: {Mathf.RoundToInt(donMovement.currentStamina)}</color>");
+                return; // Stamina harcamadan ve kodu tetiklemeden direkt çıkıyoruz kanka!
             }
 
-            comboStep++;
+            int nextStep = comboStep;
+            if (Time.time - lastAttackTime > comboResetTime)
+            {
+                nextStep = 0;
+            }
+            nextStep++;
+
+            float requiredStamina = (nextStep == 1) ? attack1StaminaCost : attack2StaminaCost;
+
+            // Üstteki 10 kontrolünden geçse bile, eğer tam gereken stamina yetmiyorsa (Örn: Stamina 12 ama Atak2 için 15 lazım) koruma kalkanı kanka
+            if (donMovement.currentStamina < requiredStamina)
+            {
+                Debug.LogWarning($"<color=orange>⚠️ STAMINA YETERSİZ! </color> Kombo {nextStep} için gereken: {requiredStamina} | <color=yellow>Mevcut Stamina: {Mathf.RoundToInt(donMovement.currentStamina)}</color>");
+                return;
+            }
+
+            comboStep = nextStep;
             lastAttackTime = Time.time;
 
             if (attackResetRoutine != null) StopCoroutine(attackResetRoutine);
 
-            // --- ATAK BAŞLADI: MIZRAK PİVOTUNU GÖSTER ---
             if (meleeLancePivot != null) meleeLancePivot.SetActive(true);
+
+            isAttacking = true;
+            if (animator != null) animator.SetBool("isAttacking", true);
+
+            // Staminayı pürüzsüzce harca kanka
+            donMovement.UseStamina(requiredStamina);
+
+            Debug.Log($"<color=cyan>⚔️ Atak Başarılı (Kombo {comboStep}) -> </color> Harcanan Stamina: {requiredStamina} | <color=green>Kalan Stamina: {Mathf.RoundToInt(donMovement.currentStamina)}</color>");
 
             if (comboStep == 1)
             {
                 animator.ResetTrigger("Attack2");
                 animator.SetTrigger("Attack1");
 
-                isAttacking = true;
-                if (animator != null) animator.SetBool("isAttacking", true);
-
                 StartCoroutine(DealDamageWithDelay(hitDelay));
-
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack1Duration));
             }
             else if (comboStep >= 2)
@@ -119,39 +138,33 @@ public class DonCombat : MonoBehaviour
                 animator.ResetTrigger("Attack1");
                 animator.SetTrigger("Attack2");
 
-                isAttacking = true;
-                if (animator != null) animator.SetBool("isAttacking", true);
-
                 comboStep = 0;
 
                 StartCoroutine(DealDamageWithDelay(hitDelay));
-
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack2Duration));
             }
         }
     }
 
-    // ==============================================================================================
-    // --- GÜNCELLENDİ: KUTULARI VE VAZOLARI PARÇALAYAN HASAR SİSTEMİ ---
-    // ==============================================================================================
     private IEnumerator DealDamageWithDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
 
         if (attackPoint == null)
         {
-            Debug.LogError("🚨 KANKA! DonCombat içindeki 'Attack Point' kutusu boş! Don'un önüne boş bir obje açıp bağla!");
+            Debug.LogError("🚨 KANKA! DonCombat içindeki 'Attack Point' boş!");
             yield break;
         }
 
-        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange);
+        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, ~0, QueryTriggerInteraction.Collide);
 
         foreach (Collider enemyCollider in hitEnemies)
         {
             if (enemyCollider.gameObject.CompareTag("Player")) continue;
 
-            // --- YENİ KONTROL: KIRILABİLİR KUTU KONTROLÜ ---
             SharedBreakableObject breakable = enemyCollider.GetComponent<SharedBreakableObject>();
+            if (breakable == null) breakable = enemyCollider.GetComponentInParent<SharedBreakableObject>();
+
             if (breakable != null)
             {
                 breakable.BreakIt();
@@ -164,7 +177,14 @@ public class DonCombat : MonoBehaviour
 
             if (enemy != null)
             {
+                if (enemyHitCooldowns.ContainsKey(enemy) && Time.time < enemyHitCooldowns[enemy])
+                {
+                    continue;
+                }
+
                 enemy.TakeDamage(meleeDamage);
+                enemyHitCooldowns[enemy] = Time.time + globalHitCooldown;
+
                 Debug.Log($"⚔️ Don yakın dövüşle {enemyCollider.name} objesine {meleeDamage} hasar verdi!");
             }
         }
@@ -180,7 +200,7 @@ public class DonCombat : MonoBehaviour
             if (animator != null) animator.SetBool("isBlocking", true);
 
             if (shieldModel != null) shieldModel.SetActive(true);
-            if (shieldScript != null) shieldScript.SetShieldStatus(true); // Kalkanı aktif et
+            if (shieldScript != null) shieldScript.SetShieldStatus(true);
         }
         else
         {
@@ -188,7 +208,7 @@ public class DonCombat : MonoBehaviour
             if (animator != null) animator.SetBool("isBlocking", false);
 
             if (shieldModel != null) shieldModel.SetActive(false);
-            if (shieldScript != null) shieldScript.SetShieldStatus(false); // Kalkanı kapat
+            if (shieldScript != null) shieldScript.SetShieldStatus(false);
         }
     }
 

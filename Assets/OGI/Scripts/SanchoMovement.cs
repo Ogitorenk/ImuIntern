@@ -16,6 +16,18 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     public float currentHealth;
     private float iFrames = 0f;
 
+    // ========================================================
+    // --- YENİ EKLENDİ: SANCHO STAMINA SİSTEMİ ---
+    // ========================================================
+    [Header("Kondisyon (Stamina) Sistemi")]
+    public float maxStamina = 100f;
+    public float currentStamina;
+    [Tooltip("Saniyede kaç stamina geri dolsun?")]
+    public float staminaRegenRate = 25f;
+    [Tooltip("Saldırı veya ok attıktan sonra stamina yenilenmeye başlamadan önce kaç saniye beklensin?")]
+    public float staminaRegenDelay = 0.5f;
+    private float staminaRegenTimer = 0f;
+
     [Header("Envanter (Can İksiri)")]
     public int healthPotionCount = 0;
     public float healthPotionHealAmount = 20f;
@@ -152,6 +164,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         sanchoCombat = GetComponent<SanchoCombat>();
 
         currentHealth = maxHealth;
+        currentStamina = maxStamina; // Stamina full başlasın kanka
         currentSpeed = speed;
 
         controller.height = normalHeight;
@@ -186,6 +199,21 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     {
         // === PAUSE PANEL KORUMASI: OYUN DURDUĞUNDA HAREKET MATEMATİĞİNİ KESER ===
         if (Time.timeScale == 0f) return;
+
+        // === BUGFIX 1: SANCHO KİLİT ŞALTERİ ===
+        // Eğer karakter öldüyse, Update içindeki hiçbir hareket ve parametre güncellemesi çalışmamalı kanka!
+        if (currentHealth <= 0) return;
+
+        // === STAMINA DOLMA MEKANİZMASI ===
+        if (staminaRegenTimer > 0f)
+        {
+            staminaRegenTimer -= Time.deltaTime;
+        }
+        else if (currentStamina < maxStamina)
+        {
+            currentStamina += staminaRegenRate * Time.deltaTime;
+            currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+        }
 
         // --- OK SAYISINI DATADAN EŞZAMANLI ÇEK KANKA ---
         if (sanchoData != null)
@@ -634,7 +662,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.y = 5f;
         isGrounded = false;
 
-        if (animator != null) animator.SetTrigger("Damage");
+        if (animator != null && currentHealth > 0) animator.SetTrigger("Damage");
 
         Debug.Log("🩸 Sancho HASAR ALDI! Kalan Can: " + currentHealth);
 
@@ -651,11 +679,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     {
         Debug.Log($"💀 {gameObject.name} ÖLDÜ! Tüm animasyonlar temizlenip ölüm zorla oynatılıyor...");
 
-        // 1. Girdileri ve karakter kontrollerını anında dondur kanka sahnede kaymasın
         isControlled = false;
         velocity = Vector3.zero;
 
-        // 2. Animator Bypass Mekanizması: Tüm çakışabilecek parametreleri sıfırla ve zorla Play at!
         if (animator != null)
         {
             animator.ResetTrigger("Jump");
@@ -669,11 +695,11 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             animator.SetBool("isHoldingBox", false);
             animator.SetBool("isRepairing", false);
 
-            // Animatör state sürelerini ve geçiş şartlarını tamamen bypass edip direkt çal kanka!
-            animator.Play("Death", 0, 0f);
+            // === BUGFIX 2: ANY STATE TRIGGER'I TETİKLEMEK ===
+            // Any State yapında "Death" adında bir Trigger kullandığın için bunu SetTrigger yapıyoruz kanka!
+            animator.SetTrigger("Death");
         }
 
-        // Mevcut respawn akışını başlat kanka
         StartCoroutine(SanchoRespawnRoutine());
     }
 
@@ -683,6 +709,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         Debug.Log("💀 Sancho Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
 
+        // === BUGFIX BÖLGESİ: Sancho'nun ölüm animasyonu da kesilmesin diye ışınlanma/respawn öncesi 2 saniye bekletiyoruz kanka ===
         yield return new WaitForSeconds(2f);
 
         Debug.Log("🔄 2 saniye bitti, Sancho için checkpoint sıfırlamaları yapılıyor...");
@@ -858,5 +885,15 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
 
         Debug.Log("✅ Sancho tamiri bitirdi (veya bıraktı)!");
+    }
+
+    // ========================================================
+    // --- YENİ: SAVAŞ SCRİPTİNİN ÇAĞIRACAĞI STAMINA KULLANMA ---
+    // ========================================================
+    public void UseStamina(float amount)
+    {
+        currentStamina -= amount;
+        if (currentStamina < 0f) currentStamina = 0f;
+        staminaRegenTimer = staminaRegenDelay; // Dolmayı anlık geciktir
     }
 }

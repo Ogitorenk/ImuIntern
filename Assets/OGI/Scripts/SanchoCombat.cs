@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using Cinemachine; // KAMERA İÇİN GEREKLİ KÜTÜPHANE
 using TMPro; // TMPro KÜTÜPHANESİ YENİ EKLENDİ!
 
@@ -16,9 +17,6 @@ public class SanchoCombat : MonoBehaviour
     [Tooltip("Elde/Sırtta belirecek olan Quiver (Yay/Sadak) objesi")]
     public GameObject bowPivot;
 
-    // ==========================================
-    // DON STİLİ KAMERA AYARLARI (YENİ EKLENDİ)
-    // ==========================================
     [Header("Nişan Alma (Kamera Zoom & Kaydırma)")]
     public CinemachineFreeLook normalCamera; // Sancho'nun kullandığı FreeLook Kamera
 
@@ -43,14 +41,18 @@ public class SanchoCombat : MonoBehaviour
     public float attack1Duration = 1.0f;
     public float attack2Duration = 1.0f;
 
+    // === YENİ EKLENDİ: STAMINA MALİYETLERİ VE EŞİĞİ ===
+    [Header("Stamina Maliyetleri")]
+    public float attack1StaminaCost = 10f;
+    public float attack2StaminaCost = 15f;
+    public float bowShootStaminaCost = 10f; // Ok atmanın stamina maliyeti
+    private float minimumAttackThreshold = 10f; // Vuruş için gereken minimum eşik kanka
+
     private int comboStep = 0;
     private float lastAttackTime = 0f;
     [HideInInspector] public bool isAttacking = false;
     private Coroutine attackResetRoutine;
 
-    // ========================================================
-    // --- YENİ EKLENDİ: SANCHO YAKIN DÖVÜŞ HASAR AYARLARI ---
-    // ========================================================
     [Header("--- Sancho Yakın Dövüş Hasar Ayarları ---")]
     [Tooltip("Sancho'nun önünde duracak ve vuruşun merkez noktasını belirleyecek boş obje")]
     public Transform attackPoint;
@@ -70,9 +72,10 @@ public class SanchoCombat : MonoBehaviour
     [HideInInspector] public bool isAiming = false;
     private float lastFireTime = 0f;
 
-    // ========================================================
-    // --- GÜNCELLENDİ: SANCHO OK ENVANTER SİSTEMİ (TAMAMEN DATA BAĞLI) ---
-    // ========================================================
+    // === SPAM ENGELLEME SİSTEMİ İÇİN COOLDOWN SÖZLÜĞÜ ===
+    private Dictionary<IDamageable, float> enemyHitCooldowns = new Dictionary<IDamageable, float>();
+    private float globalHitCooldown = 0.25f; // Saniyede en fazla 4 darbe yiyebilirler kanka erimezler
+
     [Header("--- UI ENTEGRASYONU ---")]
     [Tooltip("Ok bittiğinde ekrana gelecek küçük uyarı UI nesnesi")]
     [SerializeField] private GameObject noArrowWarningUI;
@@ -93,7 +96,6 @@ public class SanchoCombat : MonoBehaviour
 
         if (noArrowWarningUI != null) noArrowWarningUI.SetActive(false);
 
-        // --- GÜNCELLEME: BAŞLANGIÇTA TAMAMEN DATADAN ÇEKİLİP UI TAZELEYECEK KANKA ---
         if (sanchoData != null)
         {
             Debug.Log($"<color=green>🏹 Sancho_Data başarıyla okundu! Mevcut Ok: {sanchoData.arrowCount}</color>");
@@ -101,7 +103,6 @@ public class SanchoCombat : MonoBehaviour
 
         UpdateArrowCounterUI();
 
-        // --- KAMERANIN ORİJİNAL RİG AYARLARINI KAYDET ---
         if (normalCamera != null)
         {
             normalCamera.m_Lens.FieldOfView = normalFOV;
@@ -122,12 +123,11 @@ public class SanchoCombat : MonoBehaviour
 
     void Update()
     {
-        // === KRİTİK PAUSE KORUMASI ===
         if (Time.timeScale == 0f) return;
 
-        if (!sanchoMovement.isControlled || sanchoMovement.isDrinking || sanchoMovement.isRepairing ||
-            sanchoMovement.isZiplining || sanchoMovement.isDodging || sanchoMovement.isCrawling ||
-            sanchoMovement.isCrouchToggled || sanchoMovement.isHoldingBox)
+        if (!sanchoMovement.isControlled || sanchoMovement.currentHealth <= 0 || sanchoMovement.isDrinking ||
+            sanchoMovement.isRepairing || sanchoMovement.isZiplining || sanchoMovement.isDodging ||
+            sanchoMovement.isCrawling || sanchoMovement.isCrouchToggled || sanchoMovement.isHoldingBox)
         {
             isAiming = false;
             if (animator != null) animator.SetBool("isAiming", false);
@@ -153,11 +153,21 @@ public class SanchoCombat : MonoBehaviour
 
             if (Input.GetMouseButtonDown(0) && Time.time >= lastFireTime + fireRate)
             {
-                // Ok sayısını doğrudan datadan sorguluyoruz kanka
+                // === YENİ: OK ATARKEN STAMINA GÜVENLİK DUVARI ===
+                if (sanchoMovement.currentStamina < bowShootStaminaCost)
+                {
+                    Debug.LogWarning($"<color=orange>⚠️ OK ATILAMADI! </color> Stamina yetersiz! Gereken: {bowShootStaminaCost} | Mevcut: {Mathf.RoundToInt(sanchoMovement.currentStamina)}");
+                    return; // Ok atma iptal kanka
+                }
+
                 int currentArrows = sanchoData != null ? sanchoData.arrowCount : 0;
 
                 if (currentArrows > 0)
                 {
+                    // Staminayı pürüzsüzce düşür
+                    sanchoMovement.UseStamina(bowShootStaminaCost);
+                    Debug.Log($"<color=magenta>🏹 Yay Gerildi! </color> Harcanan Stamina: {bowShootStaminaCost} | <color=green>Kalan Stamina: {Mathf.RoundToInt(sanchoMovement.currentStamina)}</color>");
+
                     FireArrow();
                 }
                 else
@@ -202,7 +212,6 @@ public class SanchoCombat : MonoBehaviour
 
     void FireArrow()
     {
-        // === SCRIPTABLE OBJECT ÜZERİNDEN OK AZALTIYORUZ KANKA ===
         if (sanchoData != null)
         {
             sanchoData.arrowCount--;
@@ -210,7 +219,6 @@ public class SanchoCombat : MonoBehaviour
 
         UpdateArrowCounterUI();
 
-        // === HATA VEREN 131. SATIR BURASIYDI, TAMAMEN DATA BAĞLANDI VE ÇÖZÜLDÜ ===
         Debug.Log($"🏹 Ok atıldı! Kalan Ok: {(sanchoData != null ? sanchoData.arrowCount : 0)}");
 
         lastFireTime = Time.time;
@@ -275,36 +283,59 @@ public class SanchoCombat : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0) && !isAiming && sanchoMovement.isGrounded)
         {
-            if (Time.time - lastAttackTime > comboResetTime) comboStep = 0;
+            // === YENİ: YAKIN DÖVÜŞ İÇİN 10 STAMINA EŞİĞİ KONTROLÜ ===
+            if (sanchoMovement.currentStamina < minimumAttackThreshold)
+            {
+                Debug.LogWarning($"<color=red>🛑 SANCHO ATAK ENGELLENDİ! </color> Stamina 10'un altında! | <color=yellow>Mevcut Stamina: {Mathf.RoundToInt(sanchoMovement.currentStamina)}</color>");
+                return; // Stamina yoksa direkt koddan çık, spamı kes kanka!
+            }
 
-            comboStep++;
+            int nextStep = comboStep;
+            if (Time.time - lastAttackTime > comboResetTime) nextStep = 0;
+
+            nextStep++;
+
+            // Kombo adımına göre requiredStamina'yı belirle
+            float requiredStamina = (nextStep == 1) ? attack1StaminaCost : attack2StaminaCost;
+
+            // Eğer eşik(10) üstünde ama gereken maliyet(15) karşılanmıyorsa pas geç kanka
+            if (sanchoMovement.currentStamina < requiredStamina)
+            {
+                Debug.LogWarning($"<color=orange>⚠️ SANCHO STAMINA YETERSİZ! </color> Kombo {nextStep} için gereken: {requiredStamina} | <color=yellow>Mevcut Stamina: {Mathf.RoundToInt(sanchoMovement.currentStamina)}</color>");
+                return;
+            }
+
+            // Stamina engellerini geçtik, artık komboyu mühürle
+            comboStep = nextStep;
             lastAttackTime = Time.time;
 
             if (attackResetRoutine != null) StopCoroutine(attackResetRoutine);
 
             if (meleeWeaponPivot != null) meleeWeaponPivot.SetActive(true);
 
+            // === HAREKETLİ COMBAT SİHRİ ===
+            isAttacking = true;
+            if (animator != null) animator.SetBool("isAttacking", true);
+
+            // Staminayı pürüzsüzce eksilt
+            sanchoMovement.UseStamina(requiredStamina);
+            Debug.Log($"<color=cyan>⚔️ Sancho Atak Yaptı (Kombo {comboStep}) -> </color> Harcanan Stamina: {requiredStamina} | <color=green>Kalan Stamina: {Mathf.RoundToInt(sanchoMovement.currentStamina)}</color>");
+
             if (comboStep == 1)
             {
                 animator.ResetTrigger("Attack2");
                 animator.SetTrigger("Attack1");
-                isAttacking = true;
-                if (animator != null) animator.SetBool("isAttacking", true);
 
                 StartCoroutine(DealMeleeDamageWithDelay(hitDelay));
-
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack1Duration));
             }
             else if (comboStep >= 2)
             {
                 animator.ResetTrigger("Attack1");
                 animator.SetTrigger("Attack2");
-                isAttacking = true;
-                if (animator != null) animator.SetBool("isAttacking", true);
                 comboStep = 0;
 
                 StartCoroutine(DealMeleeDamageWithDelay(hitDelay));
-
                 attackResetRoutine = StartCoroutine(ResetAttackState(attack2Duration));
             }
         }
@@ -320,26 +351,42 @@ public class SanchoCombat : MonoBehaviour
             yield break;
         }
 
-        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange);
+        // === BUGFIX: ~0 Katman maskesi çakıldı, kutular hangi layerda olursa olsun zınk diye kırılacak kanka! ===
+        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, ~0, QueryTriggerInteraction.Collide);
 
         foreach (Collider enemyCollider in hitEnemies)
         {
             if (enemyCollider.gameObject.CompareTag("Player")) continue;
 
+            // 1. KIRILABİLİR NESNE DETEKSİYONU
             SharedBreakableObject breakable = enemyCollider.GetComponent<SharedBreakableObject>();
+            if (breakable == null) breakable = enemyCollider.GetComponentInParent<SharedBreakableObject>();
+
             if (breakable != null)
             {
                 breakable.BreakIt();
-                continue;
+                continue; // Kutuyu patlattıysak düşman arama koduna hiç girme kanka atla
             }
 
+            // 2. DÜŞMAN HASAR KONTROLÜ
             IDamageable enemy = enemyCollider.GetComponent<IDamageable>();
             if (enemy == null) enemy = enemyCollider.GetComponentInParent<IDamageable>();
             if (enemy == null) enemy = enemyCollider.GetComponentInChildren<IDamageable>();
 
             if (enemy != null)
             {
+                // === SPAM ENGELLEYİCİ GÜVENLİK DUVARI ===
+                // Sol tık abanarak düşman eritmeyi engelleyen cooldown kontrolü kanka
+                if (enemyHitCooldowns.ContainsKey(enemy) && Time.time < enemyHitCooldowns[enemy])
+                {
+                    continue; // Cooldown dolmadıysa hasarı pas geç kanka!
+                }
+
                 enemy.TakeDamage(meleeDamage);
+
+                // Bir sonraki vuruş zamanını mühürle
+                enemyHitCooldowns[enemy] = Time.time + globalHitCooldown;
+
                 Debug.Log($"⚔️ Sancho yakın dövüşle {enemyCollider.name} objesine {meleeDamage} hasar verdi!");
             }
         }
