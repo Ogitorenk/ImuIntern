@@ -54,7 +54,11 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: db8c29b5f8b2a2e40b477b54206d0456, type: 2}
     - target: {fileID: 919132149155446097, guid: f5b58099ef0cb0c4aaf8b6bd64942592, type: 3}
       propertyPath: m_Name
-      value: comlek1
+      value: PotA
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f5b58099ef0cb0c4aaf8b6bd64942592, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
