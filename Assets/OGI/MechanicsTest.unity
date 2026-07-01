@@ -2798,6 +2798,27 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
   m_PrefabInstance: {fileID: 2848151723540300408}
   m_PrefabAsset: {fileID: 0}
+--- !u!65 &814810170
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 814810166}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.879094, y: 16.80686, z: 3.3244874}
+  m_Center: {x: -0.000014121087, y: -7.6349936, z: 0.0000042806564}
 --- !u!1001 &815728726
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3383,7 +3404,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7486984644106006432, guid: 2ccfee397ab699c489131f4c0c10c44c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2061208253}
   m_SourcePrefab: {fileID: 100100000, guid: 2ccfee397ab699c489131f4c0c10c44c, type: 3}
 --- !u!1 &967848205
 GameObject:
@@ -6844,6 +6868,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2061208249 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7486984644106006432, guid: 2ccfee397ab699c489131f4c0c10c44c, type: 3}
+  m_PrefabInstance: {fileID: 955636255}
+  m_PrefabAsset: {fileID: 0}
+--- !u!54 &2061208253
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2061208249}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1001 &2077798965
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11195,7 +11251,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
       propertyPath: m_TagString
-      value: Sword
+      value: Spear
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 6781972242729301677, guid: 496d18390533bdb4f865245a4fade59b, type: 3}
@@ -11204,7 +11260,10 @@ PrefabInstance:
     - {fileID: 724887415642934902, guid: 496d18390533bdb4f865245a4fade59b, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 814810170}
   m_SourcePrefab: {fileID: 100100000, guid: 5ec70e7d2a41d25409b9306989b8d683, type: 3}
 --- !u!4 &2848766230763226424
 Transform:
@@ -19936,7 +19995,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6453298335911015178, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6498767202760481564, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -20024,12 +20083,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8434642821560219865, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: deathYOffset
-      value: 4
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8434642821560219865, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: normalCamera
       value: 
       objectReference: {fileID: 1257718403}
+    - target: {fileID: 8434642821560219865, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
+      propertyPath: currentStamina
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 8434642821560219865, guid: 24a22b7de6f84d34fa61ecf1a8a0a37c, type: 3}
       propertyPath: landStunDuration
       value: 0
@@ -20440,6 +20503,8 @@ MonoBehaviour:
   comboResetTime: 1
   attack1Duration: 0.6
   attack2Duration: 0.6
+  attack1StaminaCost: 10
+  attack2StaminaCost: 15
   isAttacking: 0
   blockKey: 325
   isBlocking: 0

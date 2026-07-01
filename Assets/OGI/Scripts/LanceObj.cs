@@ -4,7 +4,7 @@ using System.Collections; // YENİ: Coroutine kullanmak için eklendi
 public class LanceObj : MonoBehaviour
 {
     // ========================================================
-    // --- YENİ EKLENDİ: SAHNEDEKİ TEK MIZRAĞI TUTACAK HAFIZA ---
+    // --- SAHNEDEKİ TEK MIZRAĞI TUTACAK HAFIZA ---
     // ========================================================
     private static LanceObj currentActiveLance;
 
@@ -15,14 +15,14 @@ public class LanceObj : MonoBehaviour
     public float embedDepth = 0.2f;
     public float maxHitAngle = 45f;
 
-    // --- YENİ: SAPLANMA ROTASYONU ---
+    // --- SAPLANMA ROTASYONU ---
     [Tooltip("Duvara saplandığında ters duruyorsa bu değerleri 0, 0, 0 yap!")]
     public Vector3 stickRotationOffset = new Vector3(90f, 0f, 0f);
 
-    // --- YENİ EKLENDİ: Duvarın dışarı doğru bakan yönü ---
+    // --- Duvarın dışarı doğru bakan yönü ---
     [HideInInspector] public Vector3 wallNormal;
 
-    private Coroutine destroyRoutine; // YENİ: Ölüm sayacını tutacağımız değişken
+    private Coroutine destroyRoutine; // Ölüm sayacını tutacağımız değişken
 
     [Header("--- Düşman Hasar Ayarları ---")]
     [Tooltip("Mızrak düşmana çarptığında ne kadar hasar verecek?")]
@@ -30,17 +30,15 @@ public class LanceObj : MonoBehaviour
     private bool hasHitEnemy = false; // Çift vuruş bug'ını önlemek için emniyet kilidi
 
     // ========================================================
-    // --- YENİ EKLENDİ: YENİ MIZRAK DOĞDUĞUNDA ESKİSİNİ YOK ET ---
+    // --- YENİ MIZRAK DOĞDUĞUNDA ESKİSİNİ YOK ET ---
     // ========================================================
     void Awake()
     {
-        // Eğer hafızada benden önce atılmış bir mızrak varsa ve o ben değilsem, eskisini yok et!
         if (currentActiveLance != null && currentActiveLance != this)
         {
             Destroy(currentActiveLance.gameObject);
         }
 
-        // Artık sahnedeki tek ve güncel mızrak benim!
         currentActiveLance = this;
     }
 
@@ -54,7 +52,7 @@ public class LanceObj : MonoBehaviour
         if (isStuck || collision.gameObject.CompareTag("Player")) return;
 
         // ========================================================
-        // === HİÇBİR ŞEYİ BOZMADAN EKLENEN DÜŞMAN HASAR KONTROLÜ ===
+        // === DÜŞMAN HASAR KONTROLÜ ===
         // ========================================================
         IDamageable enemy = collision.gameObject.GetComponent<IDamageable>();
         if (enemy == null) enemy = collision.gameObject.GetComponentInParent<IDamageable>();
@@ -63,17 +61,18 @@ public class LanceObj : MonoBehaviour
         {
             if (!hasHitEnemy)
             {
-                hasHitEnemy = true; // Kilit açıldı
-                enemy.TakeDamage(damageAmount); // Slime, Fare veya Bandit'e hasarı basıyoruz
+                hasHitEnemy = true;
+                enemy.TakeDamage(damageAmount);
                 Debug.Log($"🎯 Mızrak {collision.gameObject.name} düşmanına çarptı ve {damageAmount} hasar verdi!");
 
-                Destroy(gameObject); // Düşmana çarpan mızrak anında yok olsun, içinden geçmesin
+                if (currentActiveLance == this) currentActiveLance = null; // Bellek temizliği kanka
+                Destroy(gameObject);
             }
-            return; // Düşmana çarptıysak alttaki duvar kodlarını çalıştırma, burada bitir
+            return;
         }
 
         // ========================================================
-        // --- SENİN ORİJİNAL DUVARA SAPLANMA MANTIĞIN (DOKUNULMADI) ---
+        // --- SENİN ORİJİNAL DUVARA SAPLANMA MANTIĞIN ---
         // ========================================================
         if (!collision.gameObject.CompareTag("Wall"))
         {
@@ -86,13 +85,10 @@ public class LanceObj : MonoBehaviour
         // --- KÖŞE BUG'I VE HIZ DÜZELTMESİ ---
         Vector3 gercekCarpmaYonu = -collision.relativeVelocity.normalized;
 
-        // Mızrağın geliş açısı ile duvarın yüzey açısını karşılaştır
         float hitAngle = Vector3.Angle(gercekCarpmaYonu, -contact.normal);
 
-        // 🚨 KONSOL AJANI
         Debug.Log($"Mızrak Duvara Vurdu! Çarpma Açısı: {hitAngle}");
 
-        // Çok yandan veya köşeden çarptıysa saplanma, sekip düşsün
         if (hitAngle > maxHitAngle)
         {
             Debug.Log("❌ AÇI ÇOK GENİŞ! Mızrak saplanması iptal edildi.");
@@ -103,12 +99,19 @@ public class LanceObj : MonoBehaviour
         // --- KUSURSUZ SAPLANMA ---
         Debug.Log("✅ AÇI UYGUN! Mızrak saplanıyor.");
         isStuck = true;
-        rb.isKinematic = true;
 
-        // --- YENİ EKLENDİ: Duvarın yönünü kaydet ki karakter bilsin ---
+        // ==============================================================================
+        // === FİZİKSEL ARTIK TEMİZLEME DUVARI: Saçmalamayı engelleyen asıl kısım burası kanka ===
+        // ==============================================================================
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;        // Mızrağın ileri/geri tüm hızını anında sıfırla
+            rb.angularVelocity = Vector3.zero; // Çarpma anındaki dönme momentumunu tamamen sıfırlaki dik kalmasın
+            rb.isKinematic = true;             // Fizik motorunu devre dışı bırak
+        }
+
         wallNormal = contact.normal;
 
-        // --- YENİ: ÖLÜM SAYACINI İPTAL ET ---
         if (destroyRoutine != null)
         {
             StopCoroutine(destroyRoutine);
@@ -116,7 +119,7 @@ public class LanceObj : MonoBehaviour
             Debug.Log("🛡️ Mızrak saplandığı için yok olma emri iptal edildi!");
         }
 
-        // --- GÜNCELLENDİ: ZORLA BÜKME YERİNE AYARLANABİLİR BÜKME ---
+        // === SEVDİĞİN ORİJİNAL HESAPLAMALARINA HİÇ DOKUNULMADI KANKA ===
         Quaternion lookRot = Quaternion.LookRotation(-contact.normal);
         transform.rotation = lookRot * Quaternion.Euler(stickRotationOffset);
 
@@ -131,7 +134,6 @@ public class LanceObj : MonoBehaviour
     {
         gameObject.tag = "Untagged";
 
-        // --- GÜNCELLENDİ: İPTAL EDİLEBİLİR YOK OLMA SİSTEMİ ---
         if (destroyRoutine == null && gameObject.activeInHierarchy)
         {
             destroyRoutine = StartCoroutine(DestroyAfterTime(2f));
@@ -141,6 +143,7 @@ public class LanceObj : MonoBehaviour
     private IEnumerator DestroyAfterTime(float time)
     {
         yield return new WaitForSeconds(time);
+        if (currentActiveLance == this) currentActiveLance = null; // Bellek emniyeti
         Destroy(gameObject);
     }
 }

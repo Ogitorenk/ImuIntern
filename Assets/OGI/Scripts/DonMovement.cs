@@ -18,6 +18,18 @@ public class DonMovement : MonoBehaviour, IDamageable
     [Tooltip("Ölürken karakterin ne kadar yukarı ışınlanacağını ayarlar.")]
     public float deathYOffset = 100f; // Sen test et diye direkt 100f verdim kanka!;
 
+    // ========================================================
+    // --- GÜNCELLENDİ: %50 YAVAŞLATMALI STAMINA SİSTEMİ ---
+    // ========================================================
+    [Header("Kondisyon (Stamina) Sistemi")]
+    public float maxStamina = 100f;
+    public float currentStamina;
+    [Tooltip("Saniyede kaç stamina geri dolsun?")]
+    public float staminaRegenRate = 25f; // Tam istediğin gibi 25 kanka
+    [Tooltip("Saldırı yaptıktan sonra stamina yenilenmeye başlamadan önce kaç saniye beklensin?")]
+    public float staminaRegenDelay = 0.5f; // Tam istediğin gibi 0.5s kanka
+    private float staminaRegenTimer = 0f;
+
     [Header("Envanter (Can İksiri)")]
     public int healthPotionCount = 0;
     public float healthPotionHealAmount = 20f;
@@ -127,7 +139,7 @@ public class DonMovement : MonoBehaviour, IDamageable
     [Tooltip("Karakterin duvara girmemesi için mızraktan dışarı doğru (geriye) mesafesi.")]
     public float lanceWallOffset = 0.8f;
 
-    [Tooltip("Karakterin kendi Z ekseninde (ileri/geri) mızrağa göre konumu. Elleri hizalamak için kullan.")]
+    [Tooltip("Karakterin kendi Z Keyboard (ileri/geri) mızrağa göre konumu. Elleri hizalamak için kullan.")]
     public float lanceForwardOffset = 0f;
 
     [Tooltip("Zıplamadan hemen önce çarpışmayı yoksayarak mızrak fırlatılınca karakterin ne kadar ilerisine ışınlanacak?")]
@@ -197,6 +209,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         donCombat = GetComponent<DonCombat>();
 
         currentHealth = maxHealth;
+        currentStamina = maxStamina; // Stamina full başlasın kanka
         currentSpeed = speed;
 
         if (crosshairUI != null) crosshairUI.SetActive(false);
@@ -236,10 +249,11 @@ public class DonMovement : MonoBehaviour, IDamageable
 
     void Update()
     {
-        // === KRİTİK GÜNCELLEME: PAUSE PANEL AÇIKKEN HAREKETİ TAMAMEN KESER ===
         if (Time.timeScale == 0f) return;
 
-        // --- YENİ: COMBAT DURUMLARINI ÇEK ---
+        // === BUGFIX 1: KİLİT ŞALTERİ ===
+        if (currentHealth <= 0) return;
+
         bool isAttacking = false;
         bool isBlocking = false;
         if (donCombat != null)
@@ -248,12 +262,23 @@ public class DonMovement : MonoBehaviour, IDamageable
             isBlocking = donCombat.isBlocking;
         }
 
+        // === STAMINA DOLMA MEKANİZMASI ===
+        if (staminaRegenTimer > 0f)
+        {
+            staminaRegenTimer -= Time.deltaTime;
+        }
+        else if (currentStamina < maxStamina)
+        {
+            currentStamina += staminaRegenRate * Time.deltaTime;
+            currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+        }
+
         if (activePlatform != null)
         {
             Vector3 newGlobalPlatformPoint = activePlatform.TransformPoint(activeLocalPlatformPoint);
             Vector3 moveDiff = newGlobalPlatformPoint - activeGlobalPlatformPoint;
 
-            if (moveDiff.magnitude > 0.0001f && currentHealth > 0) // Öldüyse platform taşımasın kanka
+            if (moveDiff.magnitude > 0.0001f && currentHealth > 0)
             {
                 controller.Move(moveDiff);
             }
@@ -480,6 +505,12 @@ public class DonMovement : MonoBehaviour, IDamageable
                 currentSpeed = currentSpeed * 1.5f;
             }
 
+            // === CRITICAL COMBAT HIZ AYARI (%50 YAVAŞLATMA SİHRİ) ===
+            if (isAttacking)
+            {
+                currentSpeed = speed * 0.5f;
+            }
+
             float targetHeight = isCrawling ? crawlHeight : (isCrouching ? crouchHeight : normalHeight);
             controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
 
@@ -596,7 +627,6 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         float animSpeed = 0f;
 
-        // === AKTİF HAREKET SADECE CAN VARKEN KONTROL EDİLİR KANKA ===
         if (currentHealth > 0)
         {
             if (isDashing)
@@ -652,19 +682,17 @@ public class DonMovement : MonoBehaviour, IDamageable
             {
                 animSpeed = 0f;
             }
-            else if (isAttacking)
-            {
-                animSpeed = 0f;
-                float yawCamera = cam.eulerAngles.y;
-                transform.rotation = Quaternion.Euler(0, yawCamera, 0);
-
-                referenceYaw = yawCamera;
-            }
             else
             {
                 if (!isAiming && !isBlocking)
                 {
-                    if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
+                    if (isAttacking)
+                    {
+                        float yawCamera = cam.eulerAngles.y;
+                        transform.rotation = Quaternion.Euler(0, yawCamera, 0);
+                        referenceYaw = yawCamera;
+                    }
+                    else if ((isControlled && Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f) || inputDir.magnitude < 0.1f)
                     {
                         referenceYaw = cam.eulerAngles.y;
                     }
@@ -711,10 +739,8 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
         }
 
-        // === ANIMATÖR GÜNCELLEMELERİ HER DURUMDA AKMALI KANKA (ÖLÜM DAHİL) ===
         if (animator != null)
         {
-            // Eğer karakter ölüyse animSpeed'i zorla 0 yapıyoruz ki locomotion kilitlensin
             float finalAnimSpeed = (currentHealth <= 0) ? 0f : animSpeed;
 
             animator.SetFloat("Speed", finalAnimSpeed, 0.1f, Time.deltaTime);
@@ -747,7 +773,6 @@ public class DonMovement : MonoBehaviour, IDamageable
             velocity.y *= jumpCutMultiplier;
         }
 
-        // Yerçekimi ve Move kuralı sadece karakter hayattayken işlesin kanka, yoksa kütük gibi yere çiviler karakteri
         if (!isZiplining && currentHealth > 0)
         {
             if (velocity.y < 0)
@@ -766,6 +791,13 @@ public class DonMovement : MonoBehaviour, IDamageable
 
             if (controller.enabled) controller.Move(velocity * Time.deltaTime);
         }
+    }
+
+    public void UseStamina(float amount)
+    {
+        currentStamina -= amount;
+        if (currentStamina < 0f) currentStamina = 0f;
+        staminaRegenTimer = staminaRegenDelay;
     }
 
     private System.Collections.IEnumerator ThrowRoutine()
@@ -999,11 +1031,9 @@ public class DonMovement : MonoBehaviour, IDamageable
     {
         Debug.Log($"💀 {gameObject.name} ÖLDÜ! Tüm hareket donduruluyor ve ölüm zorla oynatılıyor...");
 
-        // Girdileri ve hız vektörlerini kapat kanka
         isControlled = false;
         velocity = Vector3.zero;
 
-        // Animatoru kilit durumlarından kurtarıp direkt ölüm state'ine sokuyoruz
         if (animator != null)
         {
             animator.ResetTrigger("Attack1");
@@ -1013,11 +1043,9 @@ public class DonMovement : MonoBehaviour, IDamageable
             animator.ResetTrigger("Jump");
             animator.ResetTrigger("Land");
 
-            // Mekanik geçişleri tamamen ezip zorla oynat kanka
-            animator.Play("Death", 0, 0f);
+            animator.SetTrigger("Death");
         }
 
-        // Respawn coroutine'ini ateşle
         StartCoroutine(DonRespawnRoutine());
     }
 
@@ -1025,13 +1053,10 @@ public class DonMovement : MonoBehaviour, IDamageable
     {
         Debug.Log("💀 Don Öldü! Ölüm animasyonu için 2 saniyelik sinematik bekleme başladı...");
 
-        // === EN ÖNEMLİ BUGFIX BÖLGESİ: Işınlamayı animasyonun sonuna taşıdık kanka ===
-        // Karakter 2 saniye boyunca olduğu yerde can çekişme/ölüm animasyonunu pürüzsüz oynayacak.
         yield return new WaitForSeconds(2f);
 
         Debug.Log("🔄 Zaman doldu, Don için checkpoint sıfırlamaları ve hileli Y ışınlaması yapılıyor...");
 
-        // Animasyon bittikten sonra görünmez yapmak veya yukarı taşımak için şimdi kapat kanka
         controller.enabled = false;
         transform.position = new Vector3(transform.position.x, transform.position.y + deathYOffset, transform.position.z);
         controller.enabled = true;
