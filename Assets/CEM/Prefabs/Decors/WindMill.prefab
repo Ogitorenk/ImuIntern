@@ -56,8 +56,41 @@ PrefabInstance:
       propertyPath: m_Name
       value: WindMill
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 98090e0b564c45049a176ab4216b54b8, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 98090e0b564c45049a176ab4216b54b8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -3426972136417534937}
   m_SourcePrefab: {fileID: 100100000, guid: 98090e0b564c45049a176ab4216b54b8, type: 3}
+--- !u!1 &5770312165264184801 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 98090e0b564c45049a176ab4216b54b8, type: 3}
+  m_PrefabInstance: {fileID: 6689302876715673776}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &-3426972136417534937
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5770312165264184801}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 62.03858, y: 34.820618, z: 81.0471}
+  m_Center: {x: 0.17935371, y: 16.146828, z: -10.113396}

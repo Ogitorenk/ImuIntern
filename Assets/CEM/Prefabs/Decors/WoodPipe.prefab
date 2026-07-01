@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7808853887300382506}
   - component: {fileID: 4572135293263466115}
   - component: {fileID: 3152819630179218450}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: WoodPipe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -105,4 +105,4 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
+  m_Mesh: {fileID: -7283527061276240135, guid: 7c3ddd5f6c770664fbb7caa99acf544b, type: 3}

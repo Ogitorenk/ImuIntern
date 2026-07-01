@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 591112204407229487}
   - component: {fileID: 7752106862317207960}
   - component: {fileID: -50220000990697234}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Broadwood-4x20
   m_TagString: Untagged
   m_Icon: {fileID: 0}
