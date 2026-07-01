@@ -65,6 +65,10 @@ PrefabInstance:
       value: "\xE7er\xE7eve"
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 928d790bbafea2e42a005d72f8b52d6e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 928d790bbafea2e42a005d72f8b52d6e, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 2147483647
       objectReference: {fileID: 0}
