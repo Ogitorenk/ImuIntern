@@ -15,3 +15,7 @@ MonoBehaviour:
   totalTokens: 0
   lastCheckpointPosition: {x: 57.102043, y: 1.4999981, z: 14.493832}
   lastSavedSceneName: Level_1
+  isLeftBossDefeated: 0
+  isFirstIronGateOpen: 0
+  isRightBossDefeated: 0
+  isSecondIronGateOpen: 0

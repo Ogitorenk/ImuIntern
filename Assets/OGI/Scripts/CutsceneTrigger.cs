@@ -8,11 +8,21 @@ public class CutsceneTrigger : MonoBehaviour
     [Tooltip("Sahnede içinde kliplerin dizili olduğu PlayableDirector (CutsceneManager objesi)")]
     [SerializeField] private PlayableDirector cutsceneDirector;
 
+    [Header("--- KALICI HAFIZA AYARLARI ---")]
+    [Tooltip("Her sinematik için buraya benzersiz bir isim ver kanka (Örn: CastleEntrance_Intro)")]
+    [SerializeField] private string cutsceneID;
+
     private bool hasTriggered = false;
     private MonoBehaviour currentPlayerScript = null; // İçeri giren karakteri tutar
 
     private void Awake()
     {
+        // Oyun açıldığında, bu sinematiğin kalıcı olarak oynatılıp oynatılmadığını kontrol ediyoruz
+        if (!string.IsNullOrEmpty(cutsceneID) && PlayerPrefs.GetInt(cutsceneID, 0) == 1)
+        {
+            hasTriggered = true; // Eğer 1 ise daha önce oynatılmıştır, yerel kilidi de kapatıyoruz
+        }
+
         if (cutsceneDirector != null)
         {
             // PlayableDirector'ın kendi kendine başlamasını engelliyoruz, kontrol tamamen bizde
@@ -34,10 +44,20 @@ public class CutsceneTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // Diskten gelen bilgiye veya yerel kontrole göre zaten oynatıldıysa hiç başlama kanka
+        if (hasTriggered) return;
+
         // Alana giren oyuncuysa ve ara sahne henüz oynatılmadıysa başlat kanka
         if (!hasTriggered && other.CompareTag("Player"))
         {
             hasTriggered = true;
+
+            // Eğer bir ID girildiyse, diske "Bu sinematik bir kere oynandı" olarak kaydediyoruz
+            if (!string.IsNullOrEmpty(cutsceneID))
+            {
+                PlayerPrefs.SetInt(cutsceneID, 1);
+                PlayerPrefs.Save(); // Değişiklikleri diske pürüzsüzce yaz
+            }
 
             // İçeri giren Don mu Sancho mu hemen yakala
             var don = other.GetComponent<DonMovement>();
