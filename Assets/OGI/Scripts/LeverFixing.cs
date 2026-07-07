@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 
@@ -7,11 +8,26 @@ public class LeverFixing : MonoBehaviour
     [Header("Tamir Ayarları")]
     public int requiredSuccesses = 5; // Kaç kere doğru tuşa basması lazım?
     public float timePerKey = 1.5f;   // Her tuş için kaç saniyesi var?
-    public KeyCode startKey = KeyCode.F; // GÜNCELLENDİ: E yerine F yapıldı!
+    public KeyCode startKey = KeyCode.F; 
+
+    [Header("Metin Ayarları (Text Settings)")]
+    public string textStart = "REPAIR STARTED!";
+    public string textGood = "GREAT!";
+    public string textSlow = "TOO SLOW!";
+    public string textWrong = "WRONG KEY!";
+    public string textRestart = "STARTING OVER!";
+    public string textFixed = "LEVER FIXED!";
 
     [Header("UI (Arayüz) Bağlantıları")]
     public GameObject miniGameCanvas;
     public TextMeshProUGUI promptText;
+    
+    [Tooltip("Tuş ikonlarının çıkacağı UI Image objesini buraya sürükle")]
+    public Image promptImage; 
+
+    [Header("Tuş İkonları")]
+    [Tooltip("Sırasıyla W, A, S, D tuş ikonlarını (Sprite) buraya ekle")]
+    public Sprite[] keySprites; 
 
     [Header("Görsel Efektler")]
     [Tooltip("Bozuk haldeyken duman çıkaracak Particle System objesini buraya sürükle")]
@@ -29,7 +45,6 @@ public class LeverFixing : MonoBehaviour
     private bool isWaitingForKey = false;
 
     private KeyCode[] possibleKeys = { KeyCode.W, KeyCode.A, KeyCode.S, KeyCode.D };
-    private string[] possibleKeyTexts = { "W", "A", "S", "D" };
 
     void Start()
     {
@@ -70,14 +85,15 @@ public class LeverFixing : MonoBehaviour
 
         if (sanchoPlayer != null)
         {
-            // --- GÜNCELLENDİ: SANCHO'NUN FİŞİNİ ÇEKMEK YERİNE FONKSİYONUNU ÇAĞIRIYORUZ ---
-            // Artık Sancho'nun scriptini kapatmıyoruz, böylece animasyonlar kusursuz çalışacak!
             sanchoPlayer.StartRepairing();
         }
 
         if (miniGameCanvas != null) miniGameCanvas.SetActive(true);
 
-        promptText.text = "TAMIR BASLIYOR!";
+        if (promptImage != null) promptImage.gameObject.SetActive(false);
+        promptText.gameObject.SetActive(true);
+
+        promptText.text = textStart;
         promptText.color = Color.yellow;
         yield return new WaitForSeconds(1.5f);
 
@@ -86,8 +102,12 @@ public class LeverFixing : MonoBehaviour
             int randomIndex = Random.Range(0, possibleKeys.Length);
             currentTargetKey = possibleKeys[randomIndex];
 
-            promptText.text = possibleKeyTexts[randomIndex];
-            promptText.color = Color.white;
+            promptText.gameObject.SetActive(false);
+            if (promptImage != null)
+            {
+                promptImage.gameObject.SetActive(true);
+                promptImage.sprite = keySprites[randomIndex];
+            }
 
             isWaitingForKey = true;
 
@@ -105,7 +125,7 @@ public class LeverFixing : MonoBehaviour
 
             if (isWaitingForKey)
             {
-                FailMiniGame("COK YAVAS!");
+                FailMiniGame(textSlow);
                 yield break;
             }
 
@@ -122,14 +142,18 @@ public class LeverFixing : MonoBehaviour
             if (Input.GetKeyDown(currentTargetKey))
             {
                 currentSuccesses++;
-                promptText.text = "GUZEL!";
+                
+                if (promptImage != null) promptImage.gameObject.SetActive(false);
+                promptText.gameObject.SetActive(true);
+                
+                promptText.text = textGood;
                 promptText.color = Color.green;
                 isWaitingForKey = false;
             }
             else if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) ||
                      Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D))
             {
-                FailMiniGame("YANLIS TUS!");
+                FailMiniGame(textWrong);
             }
         }
     }
@@ -139,10 +163,12 @@ public class LeverFixing : MonoBehaviour
         isWaitingForKey = false;
         miniGameActive = false;
 
-        promptText.text = reason + "\nBASA SARDIN!";
+        if (promptImage != null) promptImage.gameObject.SetActive(false);
+        promptText.gameObject.SetActive(true);
+
+        promptText.text = reason + "\n" + textRestart;
         promptText.color = Color.red;
 
-        // --- GÜNCELLENDİ: OYUNCUYU SERBEST BIRAK ---
         if (sanchoPlayer != null)
         {
             sanchoPlayer.StopRepairing();
@@ -157,7 +183,10 @@ public class LeverFixing : MonoBehaviour
         miniGameActive = false;
         isBroken = false;
 
-        promptText.text = "SALTER TAMIR EDILDI!";
+        if (promptImage != null) promptImage.gameObject.SetActive(false);
+        promptText.gameObject.SetActive(true);
+
+        promptText.text = textFixed;
         promptText.color = Color.green;
 
         if (smokeParticles != null)
@@ -165,7 +194,6 @@ public class LeverFixing : MonoBehaviour
             smokeParticles.Stop();
         }
 
-        // --- GÜNCELLENDİ: OYUNCUYU SERBEST BIRAK ---
         if (sanchoPlayer != null)
         {
             sanchoPlayer.StopRepairing();

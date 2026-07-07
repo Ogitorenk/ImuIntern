@@ -140,8 +140,6 @@ Transform:
   - {fileID: 6905026157888678546}
   - {fileID: 2269077924718643077}
   - {fileID: 1098249451617945759}
-  - {fileID: 8617607971568276509}
-  - {fileID: 6916908689875067333}
   - {fileID: 142001718171750982}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -143, z: 0}
@@ -216,8 +214,20 @@ MonoBehaviour:
   requiredSuccesses: 10
   timePerKey: 1
   startKey: 102
+  textStart: REPAIR STARTED!
+  textGood: GREAT!
+  textSlow: TOO SLOW!
+  textWrong: WRONG KEY!
+  textRestart: STARTING OVER!
+  textFixed: LEVER FIXED!
   miniGameCanvas: {fileID: 0}
   promptText: {fileID: 0}
+  promptImage: {fileID: 0}
+  keySprites:
+  - {fileID: 21300000, guid: 175ac1363b8905f4e8bc706cd7fad34d, type: 3}
+  - {fileID: 21300000, guid: a4bc94c5119e5344e94c6d2f5234f4ad, type: 3}
+  - {fileID: 21300000, guid: a371690af02d3764c89220a6b5572762, type: 3}
+  - {fileID: 21300000, guid: 830042bfa3ce08443900cc21261a3b7a, type: 3}
   smokeParticles: {fileID: 2990146714869257710}
 --- !u!1 &6814805849458363916
 GameObject:
@@ -441,192 +451,4 @@ Transform:
 ParticleSystem:
   m_CorrespondingSourceObject: {fileID: 3442817712699613745, guid: c5d84bb5cd4148b78a9c805f51d3f6ea, type: 3}
   m_PrefabInstance: {fileID: 484272063406110687}
-  m_PrefabAsset: {fileID: 0}
---- !u!1001 &1697257786950495147
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 7648646275441526433}
-    m_Modifications:
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ShapeModule.angle
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ColorModule.gradient.maxGradient.key0.b
-      value: 0.5471698
-      objectReference: {fileID: 0}
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ColorModule.gradient.maxGradient.key0.g
-      value: 0.5471698
-      objectReference: {fileID: 0}
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ColorModule.gradient.maxGradient.key0.r
-      value: 0.5471698
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.032
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.17416191
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.129
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.22436838
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.22436838
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.6705661
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.6705661
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7295848803321479827, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_Name
-      value: Smoke_Effect
-      objectReference: {fileID: 0}
-    - target: {fileID: 7295848803321479827, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
---- !u!4 &6916908689875067333 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-  m_PrefabInstance: {fileID: 1697257786950495147}
-  m_PrefabAsset: {fileID: 0}
---- !u!1001 &4604915167409806963
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 7648646275441526433}
-    m_Modifications:
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ShapeModule.angle
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ColorModule.gradient.maxGradient.key0.b
-      value: 0.5471698
-      objectReference: {fileID: 0}
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ColorModule.gradient.maxGradient.key0.g
-      value: 0.5471698
-      objectReference: {fileID: 0}
-    - target: {fileID: 5041866650058470967, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: ColorModule.gradient.maxGradient.key0.r
-      value: 0.5471698
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.032
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.17416191
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.129
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.22436838
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.22436838
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.6705661
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.6705661
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7295848803321479827, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_Name
-      value: Smoke_Effect
-      objectReference: {fileID: 0}
-    - target: {fileID: 7295848803321479827, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
---- !u!4 &8617607971568276509 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5219695301079845486, guid: 46845f24861cfaf4e9efc334793a2817, type: 3}
-  m_PrefabInstance: {fileID: 4604915167409806963}
   m_PrefabAsset: {fileID: 0}
