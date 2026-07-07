@@ -17,6 +17,9 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
     [Tooltip("Sancho aktifken görünecek Fare modeli")]
     public GameObject mouseModel;
 
+    [Header("İlerleme Bağlantısı")]
+    [SerializeField] private GameProgressData progressionData;
+
     [Header("Model Hizalama Hileleri (Inspector Offset)")]
     public Vector3 slimePositionOffset = Vector3.zero;
     public Vector3 slimeRotationOffset = Vector3.zero;

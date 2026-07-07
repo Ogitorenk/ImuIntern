@@ -324,3 +324,5 @@ MonoBehaviour:
   rightHinge: {fileID: 7672691432640509394}
   openAngle: -90
   openSpeed: 2
+  canBeOpenedDirectly: 1
+  interactKey: 102
