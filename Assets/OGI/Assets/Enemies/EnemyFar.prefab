@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 1912845633171740151}
   m_Layer: 0
   m_Name: EnemyFar
-  m_TagString: Untagged
+  m_TagString: EnemyArrow
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -83,7 +83,7 @@ MonoBehaviour:
   animator: {fileID: 0}
   visualAxe: {fileID: 0}
   visualBow: {fileID: 0}
-  projectilePrefab: {fileID: 2814224581646524321, guid: 1b44708c7d9360a49b6d1f06ae6d7c0f, type: 3}
+  projectilePrefab: {fileID: 2814224581646524321, guid: 3714611654879814ba0368ae04962713, type: 3}
   shootSpawnPoint: {fileID: 3725770201353226158}
   projectileSpeed: 15
 --- !u!114 &7251950701774728432

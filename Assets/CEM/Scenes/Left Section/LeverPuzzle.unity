@@ -15078,6 +15078,14 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: -0.0000016540289
       objectReference: {fileID: 0}
+    - target: {fileID: 1246146870154161672, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1831184925643472331, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 3290169729933959275, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
       propertyPath: m_LocalPosition.x
       value: -5
@@ -15086,9 +15094,17 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: 0.0000013709068
       objectReference: {fileID: 0}
+    - target: {fileID: 4280901277589866700, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 4335424638531359208, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
       propertyPath: m_Name
       value: DonMovingPlatformA
+      objectReference: {fileID: 0}
+    - target: {fileID: 4335424638531359208, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5053097474918976842, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
       propertyPath: m_LocalPosition.x
@@ -15133,6 +15149,10 @@ PrefabInstance:
     - target: {fileID: 8041026939382388590, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
       propertyPath: platformType
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8613743742361340072, guid: 8ea3c5e04f3a0cc4286a380817189028, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -27418,7 +27438,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7986e3082f48d2e4cb91e4926d401f2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  editorTestModu: 0
+  editorTestModu: 1
   donData: {fileID: 11400000, guid: 403ee74ae34455646a270ec82a8edd94, type: 2}
   sanchoData: {fileID: 11400000, guid: 904e8fcca5a9a80438d59528c5d40369, type: 2}
   progressData: {fileID: 11400000, guid: 59f069aef283d5847a610d434dd6e4c2, type: 2}

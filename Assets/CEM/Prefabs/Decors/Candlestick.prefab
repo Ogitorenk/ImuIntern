@@ -57,11 +57,44 @@ PrefabInstance:
       value: Candlestick
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: e00b2594c63b0ee4ba706c3b2df6a0bf, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: e00b2594c63b0ee4ba706c3b2df6a0bf, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 16
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e00b2594c63b0ee4ba706c3b2df6a0bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -332133500244543467}
   m_SourcePrefab: {fileID: 100100000, guid: e00b2594c63b0ee4ba706c3b2df6a0bf, type: 3}
+--- !u!1 &7012481135996985491 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e00b2594c63b0ee4ba706c3b2df6a0bf, type: 3}
+  m_PrefabInstance: {fileID: 7894880109200891330}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &-332133500244543467
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7012481135996985491}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.70829237, y: 0.39944482, z: 1.4333432}
+  m_Center: {x: 0.000013813376, y: 0, z: 0.17939125}
