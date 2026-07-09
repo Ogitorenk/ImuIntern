@@ -40,11 +40,11 @@ Material:
     m_TexEnvs:
     - _Albedo_Map:
         m_Texture: {fileID: 2800000, guid: e2da4f21e14152e4a9e1e91fc77338b6, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 0.2, y: 0.2}
         m_Offset: {x: 0, y: 0}
     - _Emission_Map:
         m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 0.2, y: 0.2}
         m_Offset: {x: 0, y: 0}
     - _Hair_Mask:
         m_Texture: {fileID: 0}
@@ -52,7 +52,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _Normal_Map:
         m_Texture: {fileID: 2800000, guid: 61ec974f61e6f8b4594aa2e3fb46704c, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 0.2, y: 0.2}
         m_Offset: {x: 0, y: 0}
     - _Skin_Mask:
         m_Texture: {fileID: 0}
