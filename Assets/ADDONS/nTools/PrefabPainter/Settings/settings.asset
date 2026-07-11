@@ -712,8 +712,8 @@ MonoBehaviour:
       customPreviewImage: {fileID: 0}
     - name: SM_Gen_Env_Tree_01
       settings:
-        brushRadius: 6.2
-        brushSpacing: 6
+        brushRadius: 10
+        brushSpacing: 10
         brushOverlapCheckMode: 0
         brushOverlapDistance: 0.5
         brushOverlapCheckObjects: 1
@@ -1022,7 +1022,7 @@ MonoBehaviour:
       - gameObject: {fileID: 0}
       - gameObject: {fileID: 0}
       selectedSlot: 6
-      selected: 0
+      selected: 1
       colorTag: 0
       customPreviewImage: {fileID: 0}
     - name: SM_Gen_Env_Tree_Dead_01
@@ -4257,7 +4257,7 @@ MonoBehaviour:
     levelsInWhite: 255
     levelsOutBlack: 0
     levelsOutWhite: 255
-  activeTab: 1
+  activeTab: 0
   paintOnSelected: 0
   paintLayers:
     serializedVersion: 2
@@ -4274,7 +4274,7 @@ MonoBehaviour:
   pinSnapScale: 0
   placeAngleStep: 15
   placeScaleStep: 0.1
-  eraseBrushRadius: 5
+  eraseBrushRadius: 7.78
   eraseByLayer: 1
   eraseLayers:
     serializedVersion: 2
