@@ -166,6 +166,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         currentHealth = maxHealth;
         currentStamina = maxStamina; // Stamina full başlasın kanka
         currentSpeed = speed;
+        if (HUDManager.Instance != null)
+        {
+        HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
+        }
 
         controller.height = normalHeight;
         baseCenter = controller.center;
@@ -173,7 +177,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
+            HUDManager.Instance.UpdateSanchoHealth(currentHealth, maxHealth);
         }
 
         if (crosshairUI != null) crosshairUI.SetActive(false);
@@ -213,6 +217,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         {
             currentStamina += staminaRegenRate * Time.deltaTime;
             currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+            if (HUDManager.Instance != null)
+            {
+            HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
+            }
         }
 
         // --- OK SAYISINI DATADAN EŞZAMANLI ÇEK KANKA ---
@@ -947,6 +955,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         currentStamina -= amount;
         if (currentStamina < 0f) currentStamina = 0f;
         staminaRegenTimer = staminaRegenDelay;
+        if (HUDManager.Instance != null)
+        {
+        HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
+        }
     }
 
     public void ResetCharacterStates()

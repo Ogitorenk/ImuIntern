@@ -10,10 +10,15 @@ public class HUDManager : MonoBehaviour
     {
         [Tooltip("Aktif can kutuları (Filled Image)")]
         public Image activeHealthImage;
+        
+        // --- YENİ EKLENDİ: STAMINA UI ---
+        [Tooltip("Aktif üstteki dolu stamina barı (Filled Image)")]
+        public Image activeStaminaImage;
+
         [Tooltip("Seçili silahın görüneceği slot")]
         public Image weaponSlotImage;
 
-        // --- YENİ EKLENDİ: İKSİR UI ELEMENTLERİ ---
+        // --- İKSİR UI ELEMENTLERİ ---
         [Tooltip("Can İksiri sayısını gösterecek Text component'i")]
         public Text healthPotionText;
         [Tooltip("Zaman İksiri sayısını gösterecek Text component'i")]
@@ -66,7 +71,14 @@ public class HUDManager : MonoBehaviour
 
     public void UpdateDonQuixoteHealth(float currentHealth, float maxHealth)
     {
-        UpdateHealthBar(donQuixoteUI.activeHealthImage, currentHealth, maxHealth);
+        UpdateBar(donQuixoteUI.activeHealthImage, currentHealth, maxHealth, hudSettings.snapToHearts);
+    }
+
+    // --- YENİ: DON KİŞOT STAMINA GÜNCELLEME ---
+    public void UpdateDonQuixoteStamina(float currentStamina, float maxStamina)
+    {
+        // Staminada kalpli snap özelliğine gerek olmadığı için false gönderiyoruz kanka
+        UpdateBar(donQuixoteUI.activeStaminaImage, currentStamina, maxStamina, false);
     }
 
     public void ChangeDonQuixoteWeapon(bool isWeaponShield)
@@ -75,7 +87,6 @@ public class HUDManager : MonoBehaviour
         donQuixoteUI.weaponSlotImage.sprite = isWeaponShield ? donWeaponSprites.shieldSprite : donWeaponSprites.spearSprite;
     }
 
-    // --- YENİ FONKSİYONLAR: DON İKSİR SAYILARINI GÜNCELLEME ---
     public void UpdateDonQuixotePotions(int healthCount, int slowCount)
     {
         if (donQuixoteUI.healthPotionText != null)
@@ -89,10 +100,15 @@ public class HUDManager : MonoBehaviour
 
     public void UpdateSanchoHealth(float currentHealth, float maxHealth)
     {
-        UpdateHealthBar(sanchoUI.activeHealthImage, currentHealth, maxHealth);
+        UpdateBar(sanchoUI.activeHealthImage, currentHealth, maxHealth, hudSettings.snapToHearts);
     }
 
-    // --- YENİ FONKSİYONLAR: SANCHO İKSİR SAYILARINI GÜNCELLEME ---
+    // --- YENİ: SANCHO STAMINA GÜNCELLEME ---
+    public void UpdateSanchoStamina(float currentStamina, float maxStamina)
+    {
+        UpdateBar(sanchoUI.activeStaminaImage, currentStamina, maxStamina, false);
+    }
+
     public void UpdateSanchoPotions(int healthCount, int slowCount)
     {
         if (sanchoUI.healthPotionText != null)
@@ -102,21 +118,18 @@ public class HUDManager : MonoBehaviour
             sanchoUI.slowPotionText.text = slowCount.ToString();
     }
 
-    // --- ORTAK YARDIMCI METOT ---
+    // --- ORTAK YARDIMCI METOT (İsim can barından daha genel bir isme çevrildi kanka) ---
 
-    private void UpdateHealthBar(Image healthImage, float current, float max)
+    private void UpdateBar(Image barImage, float current, float max, bool useSnap)
     {
-        if (healthImage == null) return;
-        float ratio = Mathf.Clamp01(current / max); // Güvence amacıyla 0-1 arasına kilitledim kanka
+        if (barImage == null || max <= 0) return;
+        float ratio = Mathf.Clamp01(current / max);
 
-        if (hudSettings.snapToHearts && hudSettings.totalBoxes > 0)
+        if (useSnap && hudSettings.snapToHearts && hudSettings.totalBoxes > 0)
         {
             ratio = Mathf.Round(ratio * hudSettings.totalBoxes) / hudSettings.totalBoxes;
         }
 
-        // 🧪 [GEÇİCİ KONTROL LOGU] Konsoldan oranları ve atanan objeleri takip ediyoruz:
-        Debug.Log($"<color=orange>🔍 [HUD Gözlem] Obje Adı: {healthImage.gameObject.name} | Gelen Can Değeri: {current}/{max} | UI Fill Oranı: {ratio}</color>");
-
-        healthImage.fillAmount = ratio;
+        barImage.fillAmount = ratio;
     }
 }
