@@ -1,32 +1,43 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // --- YENÝ EKLENDÝ: Yazýyý deðiþtirmek için
+using TMPro; 
 using System.Collections;
 
 public class HonorGate : MonoBehaviour
 {
-    [Header("Çift Kapý Ayarlarý")]
-    [Tooltip("Sol kapýnýn menteþe objesi")]
+    [Header("Ã‡ift KapÄ± AyarlarÄ±")]
+    [Tooltip("Sol kapÄ±nÄ±n menteÅŸe objesi")]
     public Transform leftDoorHinge;
-    [Tooltip("Sað kapýnýn menteþe objesi")]
+    [Tooltip("SaÄŸ kapÄ±nÄ±n menteÅŸe objesi")]
     public Transform rightDoorHinge;
 
-    [Tooltip("Sol kapý ne yöne açýlacak? (Genelde Y ekseninde -90)")]
+    [Tooltip("Sol kapÄ± ne yÃ¶ne aÃ§Ä±lacak? (Genelde Y ekseninde -90)")]
     public Vector3 leftOpenRotation = new Vector3(0, -90f, 0);
-    [Tooltip("Sað kapý ne yöne açýlacak? (Genelde Y ekseninde 90)")]
+    [Tooltip("SaÄŸ kapÄ± ne yÃ¶ne aÃ§Ä±lacak? (Genelde Y ekseninde 90)")]
     public Vector3 rightOpenRotation = new Vector3(0, 90f, 0);
     public float doorOpenSpeed = 2f;
 
-    [Header("Zorlanma (Clicker) Ayarlarý")]
+    [Header("Zorlanma (Clicker) AyarlarÄ±")]
     public float maxProgress = 100f;
     public float clickPower = 15f;
     public float decayRate = 25f;
-    public KeyCode startKey = KeyCode.E; // Ýstersen Inspector'dan F yapabilirsin
+    public KeyCode startKey = KeyCode.E; 
 
-    [Header("UI (Arayüz) Baðlantýlarý")]
+    [Header("Metin AyarlarÄ± (Text Settings)")]
+    public string textSpam = "SPAM LEFT CLICK!";
+    public string textSuccess = "GATE BROKEN!";
+
+    [Header("GÃ¶rsel Ayarlar (Icon Settings)")]
+    [Tooltip("Ekranda basÄ±lÄ±p basÄ±lmadÄ±ÄŸÄ±nÄ± gÃ¶sterecek Image objesi")]
+    public Image clickFeedbackImage;
+    [Tooltip("Sol tÄ±k BASILMADIÄžINDA gÃ¶rÃ¼necek Sprite")]
+    public Sprite unpressedSprite;
+    [Tooltip("Sol tÄ±k BASILDIÄžINDA gÃ¶rÃ¼necek Sprite")]
+    public Sprite pressedSprite;
+
+    [Header("UI (ArayÃ¼z) BaÄŸlantÄ±larÄ±")]
     public GameObject miniGameCanvas;
     public Slider progressBar;
-    // --- YENÝ EKLENDÝ: Canvas'taki o yazýyý buraya baðlayacaðýz ---
     public TextMeshProUGUI promptText;
 
     private bool isOpen = false;
@@ -61,13 +72,27 @@ public class HonorGate : MonoBehaviour
 
         if (isMiniGameActive)
         {
-            // 1. Geri Düþme (Aðýrlýk)
+            // 1. Geri DÃ¼ÅŸme (AÄŸÄ±rlÄ±k)
             currentProgress -= decayRate * Time.deltaTime;
 
-            // 2. Týklama Kontrolü (Sol Týk)
+            // 2. TÄ±klama KontrolÃ¼ ve Sprite DeÄŸiÅŸimi
             if (Input.GetMouseButtonDown(0))
             {
                 currentProgress += clickPower;
+                
+                // TÄ±klandÄ±ÄŸÄ± an basÄ±lÄ± sprite'a geÃ§
+                if (clickFeedbackImage != null && pressedSprite != null)
+                {
+                    clickFeedbackImage.sprite = pressedSprite;
+                }
+            }
+            else if (Input.GetMouseButtonUp(0))
+            {
+                // TÄ±klama bÄ±rakÄ±ldÄ±ÄŸÄ±nda normal sprite'a dÃ¶n
+                if (clickFeedbackImage != null && unpressedSprite != null)
+                {
+                    clickFeedbackImage.sprite = unpressedSprite;
+                }
             }
 
             currentProgress = Mathf.Clamp(currentProgress, 0f, maxProgress);
@@ -77,7 +102,7 @@ public class HonorGate : MonoBehaviour
                 progressBar.value = currentProgress;
             }
 
-            // 3. BAÞARI DURUMU
+            // 3. BAÅžARI DURUMU
             if (currentProgress >= maxProgress)
             {
                 FinishMiniGame();
@@ -92,11 +117,16 @@ public class HonorGate : MonoBehaviour
 
         if (donPlayer != null) donPlayer.enabled = false;
 
-        // --- YAZIYI "SOL TIK SPAMLA" OLARAK DEÐÝÞTÝR ---
         if (promptText != null)
         {
-            promptText.text = "SOL TIK SPAMLA!";
+            promptText.text = textSpam;
             promptText.color = Color.red;
+        }
+
+        // Mini oyun baÅŸlarken ikonun varsayÄ±lan (basÄ±lmamÄ±ÅŸ) halini ayarla
+        if (clickFeedbackImage != null && unpressedSprite != null)
+        {
+            clickFeedbackImage.sprite = unpressedSprite;
         }
 
         if (miniGameCanvas != null) miniGameCanvas.SetActive(true);
@@ -107,18 +137,22 @@ public class HonorGate : MonoBehaviour
         isMiniGameActive = false;
         isOpen = true;
 
-        // --- YAZIYI AÇILDI OLARAK DEÐÝÞTÝR ---
         if (promptText != null)
         {
-            promptText.text = "KAPI PARCALANDI!";
+            promptText.text = textSuccess;
             promptText.color = Color.green;
+        }
+
+        // BaÅŸarÄ±lÄ± olduÄŸunda basÄ±lmamÄ±ÅŸ sprite'a geri dÃ¶ndÃ¼r (takÄ±lÄ± kalmasÄ±n)
+        if (clickFeedbackImage != null && unpressedSprite != null)
+        {
+            clickFeedbackImage.sprite = unpressedSprite;
         }
 
         if (donPlayer != null) donPlayer.enabled = true;
 
         StartCoroutine(OpenDoubleDoorsRoutine());
 
-        // Kapý açýldýktan 1.5 saniye sonra Canvas'ý tamamen kapat
         StartCoroutine(HideCanvasAfterDelay(1.5f));
     }
 
