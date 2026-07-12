@@ -224,6 +224,9 @@ public class SanchoCombat : MonoBehaviour
         lastFireTime = Time.time;
         if (animator != null) animator.SetTrigger("FireArrow");
 
+        // --- HATA DÜZELTİLDİ: AudioManager içindeki 'arrowShootSound' ile milimetrik eşitlendi kanka ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.arrowShootSound, transform.position);
+
         if (arrowPrefab != null && firePoint != null)
         {
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
@@ -319,6 +322,10 @@ public class SanchoCombat : MonoBehaviour
 
             // Staminayı pürüzsüzce eksilt
             sanchoMovement.UseStamina(requiredStamina);
+
+            // --- SES ENTEGRASYONU (Sancho Yakın Dövüş/Savurma Ses Tetiği) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.sanchoMeleeSound, transform.position);
+
             Debug.Log($"<color=cyan>⚔️ Sancho Atak Yaptı (Kombo {comboStep}) -> </color> Harcanan Stamina: {requiredStamina} | <color=green>Kalan Stamina: {Mathf.RoundToInt(sanchoMovement.currentStamina)}</color>");
 
             if (comboStep == 1)
@@ -376,7 +383,6 @@ public class SanchoCombat : MonoBehaviour
             if (enemy != null)
             {
                 // === SPAM ENGELLEYİCİ GÜVENLİK DUVARI ===
-                // Sol tık abanarak düşman eritmeyi engelleyen cooldown kontrolü kanka
                 if (enemyHitCooldowns.ContainsKey(enemy) && Time.time < enemyHitCooldowns[enemy])
                 {
                     continue; // Cooldown dolmadıysa hasarı pas geç kanka!

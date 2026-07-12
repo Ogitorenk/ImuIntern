@@ -305,6 +305,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             isZiplining = false;
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount = 1;
+
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+
             if (animator != null) animator.SetTrigger("Jump");
         }
 
@@ -344,6 +348,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
                     {
                         isDodging = true;
                         dodgeTimer = dodgeDuration;
+
+                        // --- SES ENTEGRASYONU ---
+                        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.dodgeSound, transform.position);
+
                         if (animator != null) animator.SetTrigger("Dodge");
                     }
                 }
@@ -442,6 +450,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0)
         {
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.landSound, transform.position);
+
             if (animator != null) animator.SetTrigger("Land");
             landStunTimer = landStunDuration;
         }
@@ -560,6 +571,15 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
         }
 
+        // === KUTU İTME SES ENTEGRASYONU ===
+        if (isHoldingBox && inputDir.magnitude >= 0.1f && isGrounded)
+        {
+            if (AudioManager.Instance != null && Time.frameCount % 20 == 0) // Sesi her karede spamlamasın diye loop modunda veya aralıklı kanka
+            {
+                AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.3f);
+            }
+        }
+
         if (animator != null)
         {
             animator.SetFloat("Speed", animSpeed, 0.1f, Time.deltaTime);
@@ -587,6 +607,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
 
             if (animator != null) animator.SetTrigger("Jump");
         }
@@ -616,6 +639,30 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
 
+    // ==============================================================================
+    // === YENİ EKLENDİ: ANIMASYONDAN GELECEK ADIM SESİ RADARI (3 ZEMİN AYIRTMALI) ===
+    // ==============================================================================
+    public void PlayFootstepSound()
+    {
+        // --- KLAVYEDEN GİRDİ KONTROLÜ ---
+        float inputX = Input.GetAxisRaw("Horizontal");
+        float inputZ = Input.GetAxisRaw("Vertical");
+        bool isMovingInput = (Mathf.Abs(inputX) > 0.05f || Mathf.Abs(inputZ) > 0.05f);
+
+        if (!isGrounded || !isMovingInput) return;
+
+        RaycastHit hit;
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, 1f, groundMask, QueryTriggerInteraction.Ignore))
+        {
+            string hitTag = hit.collider.gameObject.tag;
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayFootstep(hitTag, transform.position);
+            }
+        }
+    }
+
     void OnEnable()
     {
         turnSmoothVelocity = 0f;
@@ -640,6 +687,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
 
+        // --- SES ENTEGRASYONU ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+
         if (animator != null) animator.SetTrigger("Jump");
     }
 
@@ -662,6 +712,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.y = 5f;
         isGrounded = false;
 
+        // --- SES ENTEGRASYONU (Hasar Alma) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.sanchoDamageSound, transform.position);
+
         if (animator != null && currentHealth > 0) animator.SetTrigger("Damage");
 
         Debug.Log("🩸 Sancho HASAR ALDI! Kalan Can: " + currentHealth);
@@ -672,9 +725,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
     }
 
-    // ==============================================================================
-    // --- GÜNCELLEME: ÖLÜM ANİMASYONUNU HİÇBİR KOŞUL DİNLEMEDEN ZORLAYAN KİLİT SİSTEMİ ---
-    // ==============================================================================
     void Die()
     {
         Debug.Log($"💀 {gameObject.name} ÖLDÜ! Tüm animasyonlar temizlenip ölüm zorla oynatılıyor...");
@@ -695,8 +745,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             animator.SetBool("isHoldingBox", false);
             animator.SetBool("isRepairing", false);
 
-            // === BUGFIX 2: ANY STATE TRIGGER'I TETİKLEMEK ===
-            // Any State yapında "Death" adında bir Trigger kullandığın için bunu SetTrigger yapıyoruz kanka!
             animator.SetTrigger("Death");
         }
 
@@ -707,9 +755,10 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     {
         isControlled = false;
 
+        CombatAreaTrigger.ResetAllCombatArenas();
+
         Debug.Log("💀 Sancho Öldü! Ölüm animasyonu oynuyor, 2 saniye bekleniyor...");
 
-        // === BUGFIX BÖLGESİ: Sancho'nun ölüm animasyonu da kesilmesin diye ışınlanma/respawn öncesi 2 saniye bekletiyoruz kanka ===
         yield return new WaitForSeconds(2f);
 
         Debug.Log("🔄 2 saniye bitti, Sancho için checkpoint sıfırlamaları yapılıyor...");
@@ -804,6 +853,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (animator != null) animator.SetTrigger("DrinkPotion");
 
+        // --- SES ENTEGRASYONU ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.drinkPotionSound, transform.position);
+
         yield return new WaitForSeconds(2f);
 
         if (isHealthPotion)
@@ -864,6 +916,9 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.x = 0f;
         velocity.z = 0f;
 
+        // --- SES ENTEGRASYONU (Tamir / Lever Sesi) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.leverSound, transform.position);
+
         if (animator != null)
         {
             animator.SetTrigger("RepairStart");
@@ -887,13 +942,47 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         Debug.Log("✅ Sancho tamiri bitirdi (veya bıraktı)!");
     }
 
-    // ========================================================
-    // --- YENİ: SAVAŞ SCRİPTİNİN ÇAĞIRACAĞI STAMINA KULLANMA ---
-    // ========================================================
     public void UseStamina(float amount)
     {
         currentStamina -= amount;
         if (currentStamina < 0f) currentStamina = 0f;
-        staminaRegenTimer = staminaRegenDelay; // Dolmayı anlık geciktir
+        staminaRegenTimer = staminaRegenDelay;
+    }
+
+    public void ResetCharacterStates()
+    {
+        if (isGrounded)
+        {
+            velocity = Vector3.zero;
+        }
+        currentSpeed = speed;
+
+        isDrinking = false;
+        isRepairing = false;
+        isHoldingBox = false;
+        isDodging = false;
+        isCrawling = false;
+        isCrouchToggled = false;
+        isZiplining = false;
+
+        if (sanchoCombat != null)
+        {
+            sanchoCombat.isAttacking = false;
+            sanchoCombat.isAiming = false;
+        }
+
+        if (animator != null)
+        {
+            animator.SetBool("isAttacking", false);
+            animator.SetBool("isAiming", false);
+            animator.SetBool("isHoldingBox", false);
+            animator.SetBool("isRepairing", false);
+            animator.SetFloat("Speed", 0f);
+
+            animator.ResetTrigger("Attack1");
+            animator.ResetTrigger("Attack2");
+            animator.ResetTrigger("Damage");
+            animator.ResetTrigger("FireArrow");
+        }
     }
 }

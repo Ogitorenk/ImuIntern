@@ -93,6 +93,9 @@ public class DonMovement : MonoBehaviour, IDamageable
     private int jumpCount;
     private Vector3 velocity;
 
+    // --- YENİ EKLENDİ: MANAGERIN HIZI OKUYUP AKTARABİLMESİ İÇİN KAPSÜL ---
+    public Vector3 CurrentVelocity { get { return velocity; } set { velocity = value; } }
+
     // --- YENİ EKLENDİ: PLATFORM MOMENTUM DEĞİŞKENLERİ ---
     [Header("Düşüş Momentum Ayarları")]
     [Tooltip("Düşerken yerçekimi normalin kaç katı etki etsin? (Daha sert ve gerçekçi düşüş)")]
@@ -376,6 +379,10 @@ public class DonMovement : MonoBehaviour, IDamageable
             isZiplining = false;
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount = 1;
+
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+
             if (animator != null) animator.SetTrigger("Jump");
         }
 
@@ -389,6 +396,9 @@ public class DonMovement : MonoBehaviour, IDamageable
             isDashing = true;
             dashTimer = dashDuration;
             dashCooldownTimer = dashCooldown;
+
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.dodgeSound, transform.position);
 
             if (animator != null) animator.SetTrigger("Dash");
         }
@@ -428,6 +438,10 @@ public class DonMovement : MonoBehaviour, IDamageable
                     {
                         isDodging = true;
                         dodgeTimer = dodgeDuration;
+
+                        // --- SES ENTEGRASYONU ---
+                        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.dodgeSound, transform.position);
+
                         if (animator != null) animator.SetTrigger("Dodge");
 
                         if (donCombat != null && donCombat.isAttacking)
@@ -598,6 +612,9 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (!wasGrounded && isGrounded && !isZiplining && iFrames <= 0 && currentHealth > 0)
         {
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.landSound, transform.position);
+
             if (animator != null) animator.SetTrigger("Land");
             landStunTimer = landStunDuration;
         }
@@ -765,6 +782,9 @@ public class DonMovement : MonoBehaviour, IDamageable
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
 
+            // --- SES ENTEGRASYONU ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+
             if (animator != null) animator.SetTrigger("Jump");
         }
 
@@ -790,6 +810,32 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
 
             if (controller.enabled) controller.Move(velocity * Time.deltaTime);
+        }
+    }
+
+    // ==============================================================================
+    // === YENİ EKLENDİ: ANIMASYONDAN GELECEK ADIM SESİ RADARI (3 ZEMİN AYIRTMALI) ===
+    // ==============================================================================
+    public void PlayFootstepSound()
+    {
+        // --- KLAVYEDEN GİRDİ KONTROLÜ ---
+        // Oyuncu yön tuşlarına (W,A,S,D / Ok tuşları) basıyor mu kontrol ediyoruz kanka
+        float inputX = Input.GetAxisRaw("Horizontal");
+        float inputZ = Input.GetAxisRaw("Vertical");
+        bool isMovingInput = (Mathf.Abs(inputX) > 0.05f || Mathf.Abs(inputZ) > 0.05f);
+
+        // Karakter yerde değilse VEYA klavyeden hiçbir yön tuşuna basmıyorsa sesi direkt kes kanka!
+        if (!isGrounded || !isMovingInput) return;
+
+        RaycastHit hit;
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, 1f, groundMask, QueryTriggerInteraction.Ignore))
+        {
+            string hitTag = hit.collider.gameObject.tag;
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayFootstep(hitTag, transform.position);
+            }
         }
     }
 
@@ -825,6 +871,9 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             if (wallBreakEffect != null) Instantiate(wallBreakEffect, hit.point, Quaternion.LookRotation(hit.normal));
             Destroy(hit.gameObject);
+
+            // --- SES ENTEGRASYONU (Duvar Patlama) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.leverSound, hit.point); // geçici kaldıraç sesi verdim kanka vfx sesi yoksa
 
             isDashing = false;
             dashTimer = 0f;
@@ -909,6 +958,9 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             lanceRb.velocity = flightDirection * throwForce;
         }
+
+        // --- SES ENTEGRASYONU ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.lanceThrowSound, spawnPos);
     }
 
     public void LatchOntoLance(Transform lance)
@@ -942,6 +994,9 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         transform.position = lance.position + (Vector3.up * lanceHangOffset) + (pushAwayDir * lanceWallOffset) + (transform.forward * lanceForwardOffset);
 
+        // --- SES ENTEGRASYONU (Mızrağa asılma) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.landSound, transform.position);
+
         if (animator != null) animator.SetTrigger("LanceCatch");
     }
 
@@ -965,6 +1020,9 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * lanceJumpMultiplier;
         jumpCount = 1;
+
+        // --- SES ENTEGRASYONU ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
 
         if (animator != null) animator.SetTrigger("Jump");
     }
@@ -999,6 +1057,8 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (damageAmount <= 0)
         {
+            // --- SES ENTEGRASYONU (Kalkanla hasar emme) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.shieldBlockSound, transform.position);
             Debug.Log("🛡️ Don kalkanıyla hasarı tamamen süzdü, canı gitmedi!");
             return;
         }
@@ -1011,6 +1071,9 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         velocity.y = 5f;
         isGrounded = false;
+
+        // --- SES ENTEGRASYONU (Hasar alma) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donDamageSound, transform.position);
 
         if (animator != null && currentHealth > 0) animator.SetTrigger("Damage");
 
@@ -1051,6 +1114,8 @@ public class DonMovement : MonoBehaviour, IDamageable
 
     private IEnumerator DonRespawnRoutine()
     {
+        CombatAreaTrigger.ResetAllCombatArenas();
+
         Debug.Log("💀 Don Öldü! Ölüm animasyonu için 2 saniyelik sinematik bekleme başladı...");
 
         yield return new WaitForSeconds(2f);
@@ -1151,6 +1216,9 @@ public class DonMovement : MonoBehaviour, IDamageable
 
         if (animator != null) animator.SetTrigger("DrinkPotion");
 
+        // --- SES ENTEGRASYONU (İksir içmeye başladığı an) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.drinkPotionSound, transform.position);
+
         yield return new WaitForSeconds(2f);
 
         if (isHealthPotion)
@@ -1206,6 +1274,49 @@ public class DonMovement : MonoBehaviour, IDamageable
     {
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
+
+        // --- SES ENTEGRASYONU ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+
         if (animator != null) animator.SetTrigger("Jump");
+    }
+
+    // ==============================================================================
+    // === SWITCH DURUM RESET MÜHRÜ (TAKILMAYI ENGELLEYEN ASIL KISIM) ===
+    // ==============================================================================
+    public void ResetCharacterStates()
+    {
+        if (isGrounded)
+        {
+            velocity = Vector3.zero;
+        }
+        currentSpeed = speed;
+
+        isDrinking = false;
+        isLatched = false;
+        isThrowing = false;
+        isDashing = false;
+        isDodging = false;
+        isCrawling = false;
+        isCrouchToggled = false;
+        isZiplining = false;
+
+        if (donCombat != null)
+        {
+            donCombat.isAttacking = false;
+            donCombat.isBlocking = false;
+        }
+
+        if (animator != null)
+        {
+            animator.SetBool("isAttacking", false);
+            animator.SetBool("isBlocking", false);
+            animator.SetFloat("Speed", 0f);
+
+            animator.ResetTrigger("Attack1");
+            animator.ResetTrigger("Attack2");
+            animator.ResetTrigger("Damage");
+            animator.ResetTrigger("Throw");
+        }
     }
 }
