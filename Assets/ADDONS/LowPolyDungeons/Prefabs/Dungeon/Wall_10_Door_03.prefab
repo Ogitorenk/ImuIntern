@@ -126,7 +126,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: a8f49de9e261da34aa87d219311cf193, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 16
+      value: 17
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: a8f49de9e261da34aa87d219311cf193, type: 3}
       propertyPath: m_RootOrder
@@ -234,7 +234,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: 1b4d68e44d496b244a718bf039f80ad3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 16
+      value: 17
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 1b4d68e44d496b244a718bf039f80ad3, type: 3}
       propertyPath: m_RootOrder
