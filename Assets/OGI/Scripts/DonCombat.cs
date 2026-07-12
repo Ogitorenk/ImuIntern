@@ -36,6 +36,7 @@ public class DonCombat : MonoBehaviour
     [Header("Kalkan (Blok) Ayarları")]
     public KeyCode blockKey = KeyCode.Mouse2;
     [HideInInspector] public bool isBlocking = false;
+    private bool wasShieldSoundPlayed = false; // Kalkan sesinin üst üste binmesini önleyen kilit kanka
 
     [Header("--- Yakın Dövüş Hasar Ayarları ---")]
     [Tooltip("Don'un önünde duracak ve vuruşun merkez noktasını belirleyecek boş obje")]
@@ -70,6 +71,7 @@ public class DonCombat : MonoBehaviour
             donMovement.isCrouchToggled || donMovement.isLatched)
         {
             isBlocking = false;
+            wasShieldSoundPlayed = false;
             if (animator != null) animator.SetBool("isBlocking", false);
 
             if (shieldModel != null) shieldModel.SetActive(false);
@@ -122,6 +124,9 @@ public class DonCombat : MonoBehaviour
 
             // Staminayı pürüzsüzce harca kanka
             donMovement.UseStamina(requiredStamina);
+
+            // --- SES ENTEGRASYONU (Mızrak Savurma) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donMeleeSound, transform.position);
 
             Debug.Log($"<color=cyan>⚔️ Atak Başarılı (Kombo {comboStep}) -> </color> Harcanan Stamina: {requiredStamina} | <color=green>Kalan Stamina: {Mathf.RoundToInt(donMovement.currentStamina)}</color>");
 
@@ -196,6 +201,13 @@ public class DonCombat : MonoBehaviour
 
         if (Input.GetKey(blockKey) && !isAttacking && !isAiming && donMovement.isGrounded)
         {
+            // --- SES ENTEGRASYONU (Kalkanı kaldırdığı ilk kare) ---
+            if (!isBlocking && !wasShieldSoundPlayed)
+            {
+                wasShieldSoundPlayed = true;
+                if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.shieldBlockSound, transform.position);
+            }
+
             isBlocking = true;
             if (animator != null) animator.SetBool("isBlocking", true);
 
@@ -205,6 +217,7 @@ public class DonCombat : MonoBehaviour
         else
         {
             isBlocking = false;
+            wasShieldSoundPlayed = false; // Tuş bırakılınca ses kilidi kalkar kanka
             if (animator != null) animator.SetBool("isBlocking", false);
 
             if (shieldModel != null) shieldModel.SetActive(false);

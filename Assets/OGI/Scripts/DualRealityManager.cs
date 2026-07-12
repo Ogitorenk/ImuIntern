@@ -32,7 +32,6 @@ public class DualRealityManager : MonoBehaviour
 
     void Start()
     {
-        // UI Image başlangıçta şeffaf olsun
         if (transitionOverlay != null)
         {
             Color c = transitionOverlay.color;
@@ -40,26 +39,19 @@ public class DualRealityManager : MonoBehaviour
             transitionOverlay.color = c;
         }
 
-        // Oyun başlarken Don'u aç, Sancho'yu kapat
         SwitchCharacter(true);
     }
 
     void Update()
     {
-        // TAB tuşuna basıldığında (Efekt oynatılıyorsa yeni geçişi engelle)
         if (Input.GetKeyDown(KeyCode.Tab) && !isTransitioning)
         {
-            // --- YENİ EKLENDİ: ZİPLİNE KONTROLÜ ---
-            // Eğer oyunculardan biri zipline üzerindeyse geçişi engelle!
             if (ZiplinePrefab.isAnyPlayerZiplining)
             {
                 Debug.Log("🚫 Zipline üzerindeyken karakter değiştirilemez!");
                 return;
             }
 
-            // ========================================================
-            // --- GÜNCELLENDİ: EĞİLME / SÜRÜNME KONTROLÜ ---
-            // ========================================================
             bool isActiveCharacterCrouching = false;
 
             if (isDonActive && donQuixote != null)
@@ -82,11 +74,9 @@ public class DualRealityManager : MonoBehaviour
             if (isActiveCharacterCrouching)
             {
                 Debug.Log("🚫 Karakter eğilirken, sürünürken veya ayağa kalkma beklemesindeyken değiştirilemez!");
-                return; // Geçişi direkt iptal et
+                return;
             }
-            // ========================================================
 
-            // --- SANCHO KUTU TUTAÇI MU KONTROLÜ ---
             bool isSanchoHoldingBox = false;
             if (!isDonActive && sancho != null)
             {
@@ -97,31 +87,23 @@ public class DualRealityManager : MonoBehaviour
                 }
             }
 
-            // Kilit açıkken VE Sancho kutu tutmuyorken karakter değiştir
             if (canSwitch && !isSanchoHoldingBox)
             {
-                // --- GÜNCELLENDİ: Doğrudan geçiş yerine Coroutine tetikleniyor ---
                 StartCoroutine(SwitchWithFadeRoutine(!isDonActive));
             }
             else
             {
-                // Kutu iterken veya canSwitch false iken basarsa konsola uyarı atsın
                 Debug.Log("🚫 Şu an karakter değiştirilemez! (Geçiş kilitli veya Sancho kutu tutuyor)");
             }
         }
     }
 
-    // ========================================================
-    // --- YENİ EKLENDİ: GEÇİŞ COROUTINE YAPISI ---
-    // ========================================================
     private IEnumerator SwitchWithFadeRoutine(bool toDon)
     {
         isTransitioning = true;
 
-        // transitionOverlay atanmadıysa hata vermemesi için güvenlik kontrolü
         if (transitionOverlay != null)
         {
-            // 1. Ekran Kararıyor (Fade In)
             float timer = 0f;
             while (timer < fadeDuration)
             {
@@ -131,22 +113,18 @@ public class DualRealityManager : MonoBehaviour
                 transitionOverlay.color = c;
                 yield return null;
             }
-            
-            // Tamamen siyah olduğundan emin olalım
+
             Color finalBlack = transitionOverlay.color;
             finalBlack.a = 1f;
             transitionOverlay.color = finalBlack;
         }
 
-        // 2. Tam ekran kapkarayken orijinal geçiş mantığını çalıştırıyoruz
         SwitchCharacter(toDon);
 
-        // Minik bir göz kırpma/bekleme süresi
         yield return new WaitForSeconds(holdDuration);
 
         if (transitionOverlay != null)
         {
-            // 3. Ekran Açılıyor (Fade Out)
             float timer = 0f;
             while (timer < fadeDuration)
             {
@@ -157,7 +135,6 @@ public class DualRealityManager : MonoBehaviour
                 yield return null;
             }
 
-            // Tamamen şeffaf yapalım
             Color finalClear = transitionOverlay.color;
             finalClear.a = 0f;
             transitionOverlay.color = finalClear;
@@ -173,9 +150,35 @@ public class DualRealityManager : MonoBehaviour
         GameObject activeChar = isDonActive ? donQuixote : sancho;
         GameObject inactiveChar = isDonActive ? sancho : donQuixote;
 
-        // İnaktif karakterin pozisyonunu, aktif karaktere kopyala
-        CharacterController ccActive = activeChar.GetComponent<CharacterController>();
+        // Script referanslarını çekelim kanka
+        DonMovement donScript = donQuixote.GetComponent<DonMovement>();
+        SanchoMovement sanchoScript = sancho.GetComponent<SanchoMovement>();
 
+        // Havada geçiş momentumunu saklamak için değişken
+        Vector3 preservedVelocity = Vector3.zero;
+
+        // 1. ÖNCE ESKİ KARAKTERİN DURUMUNU RESETLE VE HIZINI KOPYALA
+        if (isDonActive) // Sancho'dan Don'a geçiyoruz
+        {
+            if (sanchoScript != null)
+            {
+                preservedVelocity = sanchoScript.CurrentVelocity; // Havada uçuş hızını kaydet kanka
+                sanchoScript.ResetCharacterStates();
+                sanchoScript.isControlled = false;
+            }
+        }
+        else // Don'dan Sancho'ya geçiyoruz
+        {
+            if (donScript != null)
+            {
+                preservedVelocity = donScript.CurrentVelocity;
+                donScript.ResetCharacterStates();
+                donScript.isControlled = false;
+            }
+        }
+
+        // Pozisyon ve rotasyon eşitleme
+        CharacterController ccActive = activeChar.GetComponent<CharacterController>();
         if (ccActive != null) ccActive.enabled = false;
 
         activeChar.transform.position = inactiveChar.transform.position;
@@ -187,7 +190,27 @@ public class DualRealityManager : MonoBehaviour
         activeChar.SetActive(true);
         inactiveChar.SetActive(false);
 
-        // --- GÜNCELLEMELER ÇAĞRILIYOR ---
+        // 2. YENİ KARAKTERİ SIFIRLA VE SAKLANAN HAVADAKİ IVMEYİ YEDİR KANKA
+        if (isDonActive)
+        {
+            if (donScript != null)
+            {
+                donScript.ResetCharacterStates();
+                donScript.CurrentVelocity = preservedVelocity; // Sancho'nun zıplama hızı Don'a geçti!
+                donScript.isControlled = true;
+            }
+        }
+        else
+        {
+            if (sanchoScript != null)
+            {
+                sanchoScript.ResetCharacterStates();
+                sanchoScript.CurrentVelocity = preservedVelocity; // Don'un hızı Sancho'ya geçti!
+                sanchoScript.isControlled = true;
+            }
+        }
+
+        // Çevre algı güncellemeleri
         UpdateAllJumpPads();
         UpdateAllBreakablePlatforms();
         UpdateAllMovingIllusionPlatforms();
@@ -197,11 +220,9 @@ public class DualRealityManager : MonoBehaviour
             HUDManager.Instance.SwitchHUD(isDonActive);
         }
 
-        // --- YENİ EKLENDİ: ARI / EJDERHA GERÇEKLİK DEĞİŞİM TETİKLEYİCİSİ ---
         UpdateAllFlyingEnemiesPerception();
     }
 
-    // --- TÜM EKİBİN CANINI FULLEME (CHECKPOINT/RESPAWN İÇİN) ---
     public void ResetAllHealth()
     {
         DonMovement don = FindObjectOfType<DonMovement>(true);
@@ -219,7 +240,6 @@ public class DualRealityManager : MonoBehaviour
         Debug.Log("<color=green>💚 [SİSTEM] Sahnede gizli olan karakterler zorla bulundu ve canları 100 yapıldı!</color>");
     }
 
-    // --- Sahnede gizli/kapalı olsa bile tüm JumpPad'leri bulur ---
     void UpdateAllJumpPads()
     {
         IllusionJumpPad[] jumpPads = FindObjectsOfType<IllusionJumpPad>(true);
@@ -229,7 +249,6 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // --- Sahnede gizli/kapalı olsa bile tüm Kırılabilir Platformları bulur ---
     void UpdateAllBreakablePlatforms()
     {
         BreakableIllusionPlatform[] platforms = FindObjectsOfType<BreakableIllusionPlatform>(true);
@@ -239,7 +258,6 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // --- Sahnede gizli/kapalı olsa bile tüm İllüzyonlu Hareketli Platformları bulur ---
     void UpdateAllMovingIllusionPlatforms()
     {
         MovingIllusionPlatform[] movingPlatforms = FindObjectsOfType<MovingIllusionPlatform>(true);
@@ -249,9 +267,6 @@ public class DualRealityManager : MonoBehaviour
         }
     }
 
-    // ==============================================================================================
-    // --- GÜNCELLENDİ: ARI VEYA EJDERHA MODELLERİNİN ÜST ÜSTE BİNMESİNİ ÖNLEYEN NET GEÇİŞ ---
-    // ==============================================================================================
     void UpdateAllFlyingEnemiesPerception()
     {
         EnemyFlying[] flyingEnemies = FindObjectsOfType<EnemyFlying>(true);

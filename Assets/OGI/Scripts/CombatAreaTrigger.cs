@@ -4,7 +4,11 @@ using System.Collections.Generic;
 
 public class CombatAreaTrigger : MonoBehaviour
 {
-    // Müfettiş ekranında her bir düşmanın nereye ve hangi prefabla doğacağını seçmek için alt sınıf
+    // ========================================================
+    // --- YENİ EKLENDİ: SAHNEDEKİ TÜM ARENALARI TAKİP EDEN LİSTE ---
+    // ========================================================
+    private static List<CombatAreaTrigger> allArenas = new List<CombatAreaTrigger>();
+
     [System.Serializable]
     public class EnemySpawnData
     {
@@ -36,12 +40,23 @@ public class CombatAreaTrigger : MonoBehaviour
     private List<GameObject> spawnedEnemies = new List<GameObject>();
     private bool arenaActive = false;
 
-    // Duvarların orijinal katmanlarını (Layer) hafızada tutmak için sözlük (Dictionary) kanka
     private Dictionary<GameObject, int> originalWallLayers = new Dictionary<GameObject, int>();
+
+    // ========================================================
+    // --- LİSTEYE KAYIT VE HAFIZA YÖNETİMİ ---
+    // ========================================================
+    void OnEnable()
+    {
+        if (!allArenas.Contains(this)) allArenas.Add(this);
+    }
+
+    void OnDisable()
+    {
+        if (allArenas.Contains(this)) allArenas.Remove(this);
+    }
 
     void Start()
     {
-        // Oyun başında duvarların orijinal katmanlarını kaydet ve ne olur ne olmaz deaktif et kanka
         foreach (GameObject wall in arenaWalls)
         {
             if (wall != null && !originalWallLayers.ContainsKey(wall))
@@ -54,7 +69,6 @@ public class CombatAreaTrigger : MonoBehaviour
 
     void Update()
     {
-        // Eğer dövüş başladıysa her karede doğan düşmanlardan hayatta olan var mı diye denetle
         if (arenaActive)
         {
             CheckEnemyStatus();
@@ -63,7 +77,6 @@ public class CombatAreaTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Alana giren kişi Don veya Sancho (yani Player) ise ve dövüş henüz başlamadıysa tetikle
         if (!hasTriggered && other.CompareTag("Player"))
         {
             StartCombatArena();
@@ -76,13 +89,11 @@ public class CombatAreaTrigger : MonoBehaviour
         arenaActive = true;
         Debug.Log("<color=red>⚔️ DÖVÜŞ ALANINA GİRİLDİ! Arena Başlatılıyor... ⚔️</color>");
 
-        // 1. Duvarları Seçeneğe Göre Kilitle
         if (useWalls)
         {
             ToggleWalls(true);
         }
 
-        // 2. Düşmanları Point'lerinde Doğur ve Efektleri Çak
         SpawnAllEnemies();
     }
 
@@ -92,17 +103,13 @@ public class CombatAreaTrigger : MonoBehaviour
         {
             if (spawnData.enemyPrefab != null && spawnData.spawnPoint != null)
             {
-                // === YENİ EKLENDİ: SPAWN EFEKTİ TETİKLEME ===
                 if (spawnEffectPrefab != null)
                 {
                     GameObject effect = Instantiate(spawnEffectPrefab, spawnData.spawnPoint.position, spawnData.spawnPoint.rotation);
-                    Destroy(effect, effectDestroyDelay); // Sahnede çöp kalmasın kanka
+                    Destroy(effect, effectDestroyDelay);
                 }
 
-                // Düşmanı Point'in koordinatlarında ve rotasyonunda klonla
                 GameObject enemy = Instantiate(spawnData.enemyPrefab, spawnData.spawnPoint.position, spawnData.spawnPoint.rotation);
-
-                // Takip listemize ekle ki ölüp ölmediklerini bilelim
                 spawnedEnemies.Add(enemy);
             }
             else
@@ -114,17 +121,14 @@ public class CombatAreaTrigger : MonoBehaviour
 
     private void CheckEnemyStatus()
     {
-        // Listeyi arkadan öne doğru tarıyoruz ki silerken index kaçmasın
         for (int i = spawnedEnemies.Count - 1; i >= 0; i--)
         {
-            // Eğer düşman script yardımıyla Destroy edildiyse listeden çıkar
             if (spawnedEnemies[i] == null)
             {
                 spawnedEnemies.RemoveAt(i);
             }
         }
 
-        // Eğer listede hiç düşman kalmadıysa dövüş bitmiştir!
         if (spawnedEnemies.Count == 0)
         {
             EndCombatArena();
@@ -135,8 +139,6 @@ public class CombatAreaTrigger : MonoBehaviour
     {
         arenaActive = false;
         Debug.Log("<color=green>✅ DÖVÜŞ BİTTİ! Tüm düşmanlar temizlendi, duvarlar açılıyor!</color>");
-
-        // Duvarları indir, oyuncu ilerleyebilsin
         ToggleWalls(false);
     }
 
@@ -152,13 +154,10 @@ public class CombatAreaTrigger : MonoBehaviour
 
                 if (isActive)
                 {
-                    // === MIZRAK BUGFIX DOKUNUŞU ===
-                    // Duvar aktifken katmanını Ignore Raycast yapıyoruz ki mızrak içinden geçsin, takılmasın kanka!
                     wall.layer = ignoreRaycastLayer;
                 }
                 else
                 {
-                    // Duvar kapanırken orijinal katmanına (Örn: Default) geri döner
                     if (originalWallLayers.ContainsKey(wall))
                     {
                         wall.layer = originalWallLayers[wall];
@@ -168,10 +167,43 @@ public class CombatAreaTrigger : MonoBehaviour
         }
     }
 
-    // --- LEVED DESIGNER DOSTU GIZMOS HİLESİ ---
+    // ==============================================================================
+    // === YENİ EKLENDİ: OYUNCU ÖLDÜĞÜNDE TÜM ARENALARI SIFIRLAYAN SİHRİBBAZ FONKSİYON ===
+    // ==============================================================================
+    public static void ResetAllCombatArenas()
+    {
+        Debug.Log("<color=yellow>🔄 Oyuncu öldü, tüm aktif kapışma arenaları ve düşmanları sıfırlanıyor...</color>");
+
+        foreach (CombatAreaTrigger arena in allArenas)
+        {
+            if (arena != null)
+            {
+                // 1. Eğer kapışma bitmediyse ve aktifse (veya hasTriggered olduysa)
+                if (arena.hasTriggered)
+                {
+                    // Doğmuş olan ve hayatta kalan tüm düşmanları sahneden kazı kanka
+                    for (int i = arena.spawnedEnemies.Count - 1; i >= 0; i--)
+                    {
+                        if (arena.spawnedEnemies[i] != null)
+                        {
+                            Destroy(arena.spawnedEnemies[i]);
+                        }
+                    }
+                    arena.spawnedEnemies.Clear();
+
+                    // 2. Değişkenleri fabrikadan çıkmış haline geri çek kanka
+                    arena.hasTriggered = false;
+                    arena.arenaActive = false;
+
+                    // 3. Kilitli kalan arena duvarlarını oyuncu rahat geçsin diye indir
+                    arena.ToggleWalls(false);
+                }
+            }
+        }
+    }
+
     private void OnDrawGizmos()
     {
-        // Tetikleyici kutunun sınırlarını yeşil göster
         Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
         BoxCollider box = GetComponent<BoxCollider>();
         if (box != null)
@@ -180,7 +212,6 @@ public class CombatAreaTrigger : MonoBehaviour
             Gizmos.DrawWireCube(box.center, box.size);
         }
 
-        // Doğacak düşman noktalarına kırmızı çizgiler çek ve küre koy
         foreach (var spawnData in enemiesToSpawn)
         {
             if (spawnData.spawnPoint != null)

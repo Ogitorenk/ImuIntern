@@ -16,6 +16,9 @@ TagManager:
   - Spear
   - Arrow
   - EnemyArrow
+  - Ground_Dirt
+  - Ground_Stone
+  - Ground_Wood
   layers:
   - Default
   - TransparentFX
