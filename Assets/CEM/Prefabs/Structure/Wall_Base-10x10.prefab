@@ -66,6 +66,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wall_01
       objectReference: {fileID: 0}
+    - target: {fileID: 404998474, guid: f87285e2f00713c4ea55142d0b475c31, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 19
+      objectReference: {fileID: 0}
     - target: {fileID: 5266236734836659980, guid: f87285e2f00713c4ea55142d0b475c31, type: 3}
       propertyPath: m_LocalScale.x
       value: 2.5
