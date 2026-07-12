@@ -225,6 +225,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             HUDManager.Instance.UpdateDonQuixoteHealth(currentHealth, maxHealth);
             HUDManager.Instance.UpdateDonQuixotePotions(healthPotionCount, slowPotionCount);
+            HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
         }
 
         if (normalCamera != null)
@@ -274,6 +275,10 @@ public class DonMovement : MonoBehaviour, IDamageable
         {
             currentStamina += staminaRegenRate * Time.deltaTime;
             currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+            if (HUDManager.Instance != null)
+            {
+            HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
+            }
         }
 
         if (activePlatform != null)
@@ -844,6 +849,10 @@ public class DonMovement : MonoBehaviour, IDamageable
         currentStamina -= amount;
         if (currentStamina < 0f) currentStamina = 0f;
         staminaRegenTimer = staminaRegenDelay;
+        if (HUDManager.Instance != null)
+        {
+        HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
+        }
     }
 
     private System.Collections.IEnumerator ThrowRoutine()
