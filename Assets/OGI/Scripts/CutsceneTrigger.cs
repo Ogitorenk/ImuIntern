@@ -26,8 +26,18 @@ public class CutsceneTrigger : MonoBehaviour
 
         if (cutsceneDirector != null)
         {
-            cutsceneDirector.playOnAwake = false; // Kodla da kapatalım nolur nolmaz
+            cutsceneDirector.playOnAwake = false; // Kendi kendine başlamasın
             cutsceneDirector.stopped += OnCutsceneFinished;
+
+            // ========================================================
+            // --- YENİ DÜZELTME: İLK KARE KİLİTLENMESİNİ ENGELLEME ---
+            // ========================================================
+            if (!hasTriggered && !playAutomaticallyOnStart)
+            {
+                // Timeline'ı 0'a çek, zamanı durdur ve sahnedeki etkisini sıfırla
+                cutsceneDirector.time = 0;
+                cutsceneDirector.Stop(); 
+            }
         }
     }
 
@@ -35,8 +45,7 @@ public class CutsceneTrigger : MonoBehaviour
     {
         if (hasTriggered)
         {
-            // EĞER DAHA ÖNCE OYNANDIYSA:
-            // Sinematiği en son karesine götür ve objeleri o hale getir
+            // Eğer daha önce oynandıysa sahnede kalıcı hasar bırakma, son haline sar
             FastForwardToEnd();
             return;
         }
@@ -55,11 +64,9 @@ public class CutsceneTrigger : MonoBehaviour
     {
         if (cutsceneDirector != null)
         {
-            // Timeline'ı sonuna sar ve sahneyi güncelle
             cutsceneDirector.time = cutsceneDirector.duration;
             cutsceneDirector.Evaluate(); 
             
-            // Kontrolü oyuncuya ver (Sahneye geri döndüğünde kilitli kalmasın)
             FindPlayerInScene();
             SetPlayerControl(true);
             
@@ -93,7 +100,10 @@ public class CutsceneTrigger : MonoBehaviour
     private void StartCutscene()
     {
         SetPlayerControl(false);
-        if (cutsceneDirector != null) cutsceneDirector.Play();
+        if (cutsceneDirector != null) 
+        {
+            cutsceneDirector.Play();
+        }
     }
 
     private void OnCutsceneFinished(PlayableDirector director)
@@ -135,5 +145,21 @@ public class CutsceneTrigger : MonoBehaviour
     {
         PlayerPrefs.DeleteKey(cutsceneID);
         Debug.Log($"Hafıza Silindi: {cutsceneID}.");
+    }
+
+    public void TriggerFromExternalScript()
+    {
+        if (hasTriggered) return;
+
+        hasTriggered = true;
+
+        if (!string.IsNullOrEmpty(cutsceneID))
+        {
+            PlayerPrefs.SetInt(cutsceneID, 1);
+            PlayerPrefs.Save();
+        }
+
+        FindPlayerInScene();
+        StartCutscene();
     }
 }

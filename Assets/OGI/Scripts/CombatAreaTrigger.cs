@@ -36,6 +36,9 @@ public class CombatAreaTrigger : MonoBehaviour
     [Tooltip("Eğer bu trigger'ın duvarları kapatmasını İSTEMİYORSAN bunu kapatabilirsin kanka")]
     public bool useWalls = true;
 
+    [Header("--- SİNEMATİK AYARLARI ---")]
+    [SerializeField] private CutsceneTrigger slimeEscapeCutscene;
+
     private bool hasTriggered = false;
     private List<GameObject> spawnedEnemies = new List<GameObject>();
     private bool arenaActive = false;
@@ -140,6 +143,12 @@ public class CombatAreaTrigger : MonoBehaviour
         arenaActive = false;
         Debug.Log("<color=green>✅ DÖVÜŞ BİTTİ! Tüm düşmanlar temizlendi, duvarlar açılıyor!</color>");
         ToggleWalls(false);
+
+        if (slimeEscapeCutscene != null)
+        {
+        // Scriptimize harici olarak tetiklenmesi için bir fonksiyon çağrısı yapıyoruz
+        slimeEscapeCutscene.TriggerFromExternalScript(); 
+        }
     }
 
     private void ToggleWalls(bool isActive)
