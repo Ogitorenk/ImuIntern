@@ -579,12 +579,22 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
         }
 
-        // === KUTU İTME SES ENTEGRASYONU ===
-        if (isHoldingBox && inputDir.magnitude >= 0.1f && isGrounded)
+        // === KUTU İTME SES ENTEGRASYONU (DÜZELTİLDİ) ===
+        if (isHoldingBox && isGrounded)
         {
-            if (AudioManager.Instance != null && Time.frameCount % 20 == 0) // Sesi her karede spamlamasın diye loop modunda veya aralıklı kanka
+            // Karakterin gerçek yatay hızını milimetrik ölçüyoruz kanka
+            Vector3 horizontalVelocity = new Vector3(controller.velocity.x, 0f, controller.velocity.z);
+
+            if (horizontalVelocity.magnitude > 0.1f)
             {
-                AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.3f);
+                if (AudioManager.Instance != null)
+                {
+                    // Sesi her karede spamlayıp kulağı patlatmasın diye her 25 karede bir tetikliyoruz kanka
+                    if (Time.frameCount % 25 == 0)
+                    {
+                        AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.4f);
+                    }
+                }
             }
         }
 

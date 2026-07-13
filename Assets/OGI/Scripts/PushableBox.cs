@@ -54,7 +54,6 @@ public class PushableBox : MonoBehaviour
         initialRotation = transform.rotation;
 
         rb = GetComponent<Rigidbody>();
-        // GÜNCELLENDİ: Oyuncu yürüyerek çarpıp itemesin diye tank gibi ağır yaptık
         rb.mass = 99999f;
         rb.drag = 0f;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
@@ -98,7 +97,7 @@ public class PushableBox : MonoBehaviour
             Vector3 moveDir = playerTransform.forward * vertical * pushSpeed;
 
             // ========================================================
-            // --- YENİ EKLENDİ: KUTU DUVAR ÇARPIŞMA RADARI (BOXCAST) ---
+            // --- KUTU DUVAR ÇARPIŞMA RADARI (BOXCAST) ---
             // ========================================================
             if (Mathf.Abs(vertical) > 0.01f)
             {
@@ -108,19 +107,16 @@ public class PushableBox : MonoBehaviour
 
                 if (col != null)
                 {
-                    // Yere sürtüp takılmasın diye radarın boyutunu %85'e çektik
                     Vector3 extents = col.bounds.extents * 0.85f;
                     RaycastHit[] hits = Physics.BoxCastAll(col.bounds.center, extents, direction, transform.rotation, distance);
 
                     foreach (var hit in hits)
                     {
-                        // Radar kendine, oyuncuya, triggerlara veya hareketli platformlara takılmasın
                         if (hit.collider.gameObject != gameObject &&
                             hit.collider.transform.root != playerTransform.root &&
                             !hit.collider.isTrigger &&
                             !hit.collider.CompareTag("MovingPlatform"))
                         {
-                            // Aha duvar! İleri gitmeyi anında iptal et.
                             moveDir.x = 0;
                             moveDir.z = 0;
                             break;
@@ -144,6 +140,20 @@ public class PushableBox : MonoBehaviour
 
             moveDir.y = yVel;
             playerCC.Move(moveDir * Time.deltaTime);
+
+            // ========================================================
+            // --- YENİ EKLENDİ: KUTU İTTİRME SES SİHRİ ---
+            // ========================================================
+            // Karakter gerçekten kutuyu ileri/geri hareket ettiriyorsa sesi çal kanka!
+            if (Mathf.Abs(vertical) > 0.01f && AudioManager.Instance != null)
+            {
+                // Sesi kulağı tırmalamasın diye her 25 karede bir tetikliyoruz kanka
+                if (Time.frameCount % 25 == 0)
+                {
+                    AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.4f);
+                }
+            }
+            // ========================================================
 
             if (playerAnimator != null)
             {
@@ -246,12 +256,8 @@ public class PushableBox : MonoBehaviour
         {
             rb.isKinematic = isDon;
 
-            // ========================================================
-            // --- GÜNCELLENDİ: TUTMADAN İTTİRMEYİ KÖKTEN ENGELLEME ---
-            // ========================================================
             if (!isDon)
             {
-                // Sancho modunda kutu düşebilsin ama oyuncu çarparak itemesin diye X ve Z kilitli!
                 rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
             }
             else
@@ -291,7 +297,6 @@ public class PushableBox : MonoBehaviour
 
                     if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", true);
 
-                    // Tutulduğu an kilitleri açıp karakterin hareketine uyumlu hale getiriyoruz
                     rb.constraints = RigidbodyConstraints.FreezeRotation;
                     rb.isKinematic = true;
 
