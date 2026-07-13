@@ -9,6 +9,8 @@ public class CutsceneTrigger : MonoBehaviour
 
     [Header("--- TETİKLEME AYARLARI ---")]
     [SerializeField] private bool playAutomaticallyOnStart = false;
+    [Tooltip("Daha önce izlendiyse oyun açılışında sinematiği son karesine sarsın mı? (Intro için TİK KOY, Slime kaçışı için TİKİ KALDIR kanka)")]
+    [SerializeField] private bool fastForwardIfAlreadyPlayed = true;
 
     [Header("--- KALICI HAFIZA AYARLARI ---")]
     [SerializeField] private string cutsceneID;
@@ -45,9 +47,12 @@ public class CutsceneTrigger : MonoBehaviour
     {
         if (hasTriggered)
         {
-            // Eğer daha önce oynandıysa sahnede kalıcı hasar bırakma, son haline sar
-            FastForwardToEnd();
-            return;
+            // Eğer daha önce oynandıysa ve son karesine sarılması gerekiyorsa (Örn: Intro kapıları açık kalsın diye)
+            if (fastForwardIfAlreadyPlayed)
+            {
+                FastForwardToEnd();
+            }
+            return; // Tik kapalıysa bile dümdüz return atarak sinematiğin ve kamerasının oynamasını engeller
         }
 
         if (playAutomaticallyOnStart)

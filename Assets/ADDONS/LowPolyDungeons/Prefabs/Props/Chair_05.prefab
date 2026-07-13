@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8179582378773131649}
   - component: {fileID: 7707474902387473751}
   - component: {fileID: 1464234506244810676}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Chair_05
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
