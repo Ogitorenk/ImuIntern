@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fa30e73beb2a5341a2e3b7e2b95a7d3, type: 3}
   m_Name: Game_Progress_Data
   m_EditorClassIdentifier: 
-  totalTokens: 1
+  totalTokens: 2
   lastCheckpointPosition: {x: 231.19388, y: 13.386364, z: 126.607834}
   lastSavedSceneName: Left_Section2
   isLeftBossDefeated: 0
