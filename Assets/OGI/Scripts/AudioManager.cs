@@ -13,6 +13,10 @@ public class AudioManager : MonoBehaviour
     public AudioClip boxPushSound;
     public AudioClip leverSound;
 
+    // === YENÝ EKLENDÝ: EZÝCÝ TUZAK SESÝ KLÝBÝ ===
+    [Tooltip("Ezici tuzak aþaðý küt diye inerken çalacak smash sesi kanka")]
+    public AudioClip crusherSound;
+
     [Header("--- AKSÝYON SESLERÝ ---")]
     public AudioClip donDamageSound;
     public AudioClip sanchoDamageSound;
@@ -26,8 +30,16 @@ public class AudioManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance == null)
+        {
+            Instance = this;
+            // Level designer sahneleri arasýnda geçiþ yaparken ses sisteminin zýnk diye kopmasýný engelliyoruz kanka
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     // 2D veya 3D ses çalma fonksiyonu (Konum verilirse 3D, verilmezse 2D çalar kanka)
@@ -38,11 +50,14 @@ public class AudioManager : MonoBehaviour
         if (position == default)
         {
             // Arayüz veya genel sesler için 2D çal kanka
-            AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position, volume);
+            if (Camera.main != null)
+            {
+                AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position, volume);
+            }
         }
         else
         {
-            // Karakter sesleri için tam çarptýðý/durduðu konumda 3D çal
+            // Karakter sesleri ve akýllý 3D menzilli tuzaklar için tam koordinatýnda belirlenen volume ile çal kanka
             AudioSource.PlayClipAtPoint(clip, position, volume);
         }
     }
@@ -62,7 +77,7 @@ public class AudioManager : MonoBehaviour
         if (targetArray != null && targetArray.Length > 0)
         {
             AudioClip randomClip = targetArray[Random.Range(0, targetArray.Length)];
-            PlaySound(randomClip, position, 0.4f); // Yürüme sesi kafayý ütülemesin diye volume çýtýr kýsýk
+            PlaySound(randomClip, position, 0.4f); // Yürüme sesi kafayý ütülemesin diye volume çýtýr kýsýk kanka
         }
     }
 }

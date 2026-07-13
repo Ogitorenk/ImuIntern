@@ -35,16 +35,21 @@ public class UniversalLever : MonoBehaviour
 
     void Update()
     {
-        // Oyuncu menzildeyse, F'ye bastıysa ve animasyon oynamıyorsa
-        if (playerInRange && Input.GetKeyDown(interactionKey) && !isAnimating)
+        // === KESİN ÇÖZÜM: ÖNCE F TUŞUNU SORGULA ===
+        // Oyuncu F tuşuna basmadıysa alt satırlara hiç bakma, sesi ve mantığı tamamen engelle kanka!
+        if (Input.GetKeyDown(interactionKey))
         {
-            if (!isPulled)
+            // F'ye basıldıktan sonra oyuncu menzildeyse ve animasyon kilitli değilse çalıştır kanka:
+            if (playerInRange && !isAnimating)
             {
-                Pull(); // Çekili değilse ÇEK
-            }
-            else if (!autoReset)
-            {
-                PushBack(); // Çekiliyse ve otomatik kapanma yoksa MANUEL KAPAT
+                if (!isPulled)
+                {
+                    Pull(); // Çekili değilse ÇEK
+                }
+                else if (!autoReset)
+                {
+                    PushBack(); // Çekiliyse ve otomatik kapanma yoksa MANUEL KAPAT
+                }
             }
         }
     }
@@ -56,6 +61,12 @@ public class UniversalLever : MonoBehaviour
         if (leverHandle != null)
         {
             leverHandle.localRotation = Quaternion.Euler(pulledRotation);
+        }
+
+        // --- SES ENTEGRASYONU (Şalter Çekilme Sesi) ---
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySound(AudioManager.Instance.leverSound, transform.position);
         }
 
         if (onActivate != null) onActivate.Invoke();
@@ -71,10 +82,16 @@ public class UniversalLever : MonoBehaviour
         }
     }
 
-    // --- YENİ EKLENDİ: MANUEL KAPATMA FONKSİYONU ---
+    // --- MANUEL KAPATMA FONKSİYONU ---
     private void PushBack()
     {
         isPulled = false;
+
+        // --- SES ENTEGRASYONU (Manuel Kapatma Sesi) ---
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySound(AudioManager.Instance.leverSound, transform.position);
+        }
 
         if (onDeactivate != null) onDeactivate.Invoke();
 
@@ -87,6 +104,12 @@ public class UniversalLever : MonoBehaviour
     private IEnumerator ResetRoutine()
     {
         yield return new WaitForSeconds(resetTime);
+
+        // --- SES ENTEGRASYONU (Otomatik Süre Bitip Kapanma Sesi) ---
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySound(AudioManager.Instance.leverSound, transform.position);
+        }
 
         if (onDeactivate != null) onDeactivate.Invoke();
 
@@ -122,11 +145,17 @@ public class UniversalLever : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player")) playerInRange = true;
+        if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
+        {
+            playerInRange = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player")) playerInRange = false;
+        if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
+        {
+            playerInRange = false;
+        }
     }
 }
