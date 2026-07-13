@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3908049083157086792}
   - component: {fileID: 8680040843168422678}
   - component: {fileID: 2588324252220725702}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: DeathZone 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -61,8 +61,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 11.149969, y: 84.72124, z: 4.4318438}
+  m_Center: {x: 2.4669886, y: -41.86061, z: -0.25030568}
 --- !u!114 &2588324252220725702
 MonoBehaviour:
   m_ObjectHideFlags: 0
