@@ -17,7 +17,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     private float iFrames = 0f;
 
     // ========================================================
-    // --- YENİ EKLENDİ: SANCHO STAMINA SİSTEMİ ---
+    // --- GÜNCELLENDİ: SANCHO STAMINA SİSTEMİ ---
     // ========================================================
     [Header("Kondisyon (Stamina) Sistemi")]
     public float maxStamina = 100f;
@@ -168,7 +168,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         currentSpeed = speed;
         if (HUDManager.Instance != null)
         {
-        HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
+            HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
         }
 
         controller.height = normalHeight;
@@ -205,7 +205,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         if (Time.timeScale == 0f) return;
 
         // === BUGFIX 1: SANCHO KİLİT ŞALTERİ ===
-        // Eğer karakter öldüyse, Update içindeki hiçbir hareket ve parametre güncellemesi çalışmamalı kanka!
         if (currentHealth <= 0) return;
 
         // === STAMINA DOLMA MEKANİZMASI ===
@@ -219,7 +218,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
             if (HUDManager.Instance != null)
             {
-            HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
+                HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
             }
         }
 
@@ -314,8 +313,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount = 1;
 
-            // --- SES ENTEGRASYONU ---
-            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+            // --- SES ENTEGRASYONU (SANCHO ZIPLAMA SESİNE BAĞLANDI) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.sanchoJumpSound, transform.position);
 
             if (animator != null) animator.SetTrigger("Jump");
         }
@@ -474,9 +473,12 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         }
         else
         {
+            // ==============================================================================
+            // === GÜNCELLENDİ: RAMPA VE MERDİVENLERDEN AŞAĞI İNERKEN YAPIŞMA SİHRİ ===
+            // ==============================================================================
             if (isGrounded && velocity.y < 0)
             {
-                velocity.y = -2f;
+                velocity.y = -8f; // Merdivenlerden aşağı akarken havada asılı kalıp zıplama hakkı ölmesin kanka!
                 velocity.x = 0f;
                 velocity.z = 0f;
                 jumpCount = 0;
@@ -579,17 +581,15 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
         }
 
-        // === KUTU İTME SES ENTEGRASYONU (DÜZELTİLDİ) ===
+        // === KUTU İTME SES ENTEGRASYONU ===
         if (isHoldingBox && isGrounded)
         {
-            // Karakterin gerçek yatay hızını milimetrik ölçüyoruz kanka
             Vector3 horizontalVelocity = new Vector3(controller.velocity.x, 0f, controller.velocity.z);
 
             if (horizontalVelocity.magnitude > 0.1f)
             {
                 if (AudioManager.Instance != null)
                 {
-                    // Sesi her karede spamlayıp kulağı patlatmasın diye her 25 karede bir tetikliyoruz kanka
                     if (Time.frameCount % 25 == 0)
                     {
                         AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.4f);
@@ -626,8 +626,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
 
-            // --- SES ENTEGRASYONU ---
-            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+            // --- SES ENTEGRASYONU (SANCHO OK ZIPLAMA SESİNE BAĞLANDI) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.sanchoJumpSound, transform.position);
 
             if (animator != null) animator.SetTrigger("Jump");
         }
@@ -657,12 +657,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
 
-    // ==============================================================================
-    // === YENİ EKLENDİ: ANIMASYONDAN GELECEK ADIM SESİ RADARI (3 ZEMİN AYIRTMALI) ===
-    // ==============================================================================
     public void PlayFootstepSound()
     {
-        // --- KLAVYEDEN GİRDİ KONTROLÜ ---
         float inputX = Input.GetAxisRaw("Horizontal");
         float inputZ = Input.GetAxisRaw("Vertical");
         bool isMovingInput = (Mathf.Abs(inputX) > 0.05f || Mathf.Abs(inputZ) > 0.05f);
@@ -705,8 +701,8 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
 
-        // --- SES ENTEGRASYONU ---
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+        // --- SES ENTEGRASYONU (SANCHO ZIPLAMA SESİNE BAĞLANDI) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.sanchoJumpSound, transform.position);
 
         if (animator != null) animator.SetTrigger("Jump");
     }
@@ -730,8 +726,11 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.y = 5f;
         isGrounded = false;
 
-        // --- SES ENTEGRASYONU (Hasar Alma) ---
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.sanchoDamageSound, transform.position);
+        // --- GÜNCELLENDİ: AKILLI HASAR VE ÖLÜM SES SİSTEMİ BAĞLANTISI ---
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayCharacterDamageOrDeath("Sancho", currentHealth, transform.position);
+        }
 
         if (animator != null && currentHealth > 0) animator.SetTrigger("Damage");
 
@@ -871,7 +870,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
         if (animator != null) animator.SetTrigger("DrinkPotion");
 
-        // --- SES ENTEGRASYONU ---
         if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.drinkPotionSound, transform.position);
 
         yield return new WaitForSeconds(2f);
@@ -934,7 +932,6 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         velocity.x = 0f;
         velocity.z = 0f;
 
-        // --- SES ENTEGRASYONU (Tamir / Lever Sesi) ---
         if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.leverSound, transform.position);
 
         if (animator != null)
@@ -967,7 +964,7 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         staminaRegenTimer = staminaRegenDelay;
         if (HUDManager.Instance != null)
         {
-        HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
+            HUDManager.Instance.UpdateSanchoStamina(currentStamina, maxStamina);
         }
     }
 

@@ -331,20 +331,24 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 0a9bc93ec91e3de4a935477ab3fd7c0f, type: 3}
   - {fileID: 8300000, guid: ae0cbe327ebfde2449db86fc7d54b8a5, type: 3}
   footstepWood: []
-  jumpSound: {fileID: 8300000, guid: f9ea4bb26fce5ed4d94453ec30852f5a, type: 3}
+  donJumpSound: {fileID: 8300000, guid: df942b3dfecd998458c05984b275da60, type: 3}
+  sanchoJumpSound: {fileID: 8300000, guid: 639a23d83b15b1c4b8185597e94b2a6f, type: 3}
   landSound: {fileID: 8300000, guid: adf5485571bce2e419724cbdb2c6c252, type: 3}
-  boxPushSound: {fileID: 8300000, guid: 1d1b7f717ba31a846b55e85d853c97d5, type: 3}
+  boxPushSound: {fileID: 8300000, guid: e883e29b243228844bc1c3fae8e1fb9e, type: 3}
   leverSound: {fileID: 8300000, guid: a22905c9e78f50642851309a6c9e0519, type: 3}
   crusherSound: {fileID: 8300000, guid: a22905c9e78f50642851309a6c9e0519, type: 3}
   donDamageSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
-  sanchoDamageSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
+  sanchoDamageSound: {fileID: 8300000, guid: aceba810b28e74f4aabcdd62c73e4073, type: 3}
   shieldBlockSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
   dodgeSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
   donMeleeSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
-  sanchoMeleeSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
+  sanchoMeleeSound: {fileID: 8300000, guid: 520886456e5874a48a664368d0700b4e, type: 3}
   lanceThrowSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
   arrowShootSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
-  drinkPotionSound: {fileID: 8300000, guid: e97150a44f85a254a9a33e257475aedd, type: 3}
+  drinkPotionSound: {fileID: 8300000, guid: 292cb9ed6199ccb42b078b10d486703b, type: 3}
+  donDeathSound: {fileID: 0}
+  sanchoDeathSound: {fileID: 8300000, guid: e2f76feb7505b514abf291e068a369ff, type: 3}
+  globalSpamCooldown: 0.15
 --- !u!4 &37468411
 Transform:
   m_ObjectHideFlags: 0
@@ -10516,7 +10520,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4088574316278520752, guid: 3c269c1ecde79e94781b35c258fbf578, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7258847994585763958, guid: 3c269c1ecde79e94781b35c258fbf578, type: 3}
       propertyPath: maxAudioDistance

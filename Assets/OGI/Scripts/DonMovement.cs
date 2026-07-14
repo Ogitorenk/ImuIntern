@@ -277,7 +277,7 @@ public class DonMovement : MonoBehaviour, IDamageable
             currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
             if (HUDManager.Instance != null)
             {
-            HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
+                HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
             }
         }
 
@@ -385,8 +385,8 @@ public class DonMovement : MonoBehaviour, IDamageable
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount = 1;
 
-            // --- SES ENTEGRASYONU ---
-            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+            // --- SES ENTEGRASYONU (DON ZIPLAMA SESİNE BAĞLANDI) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donJumpSound, transform.position);
 
             if (animator != null) animator.SetTrigger("Jump");
         }
@@ -791,8 +791,8 @@ public class DonMovement : MonoBehaviour, IDamageable
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
 
-            // --- SES ENTEGRASYONU ---
-            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+            // --- SES ENTEGRASYONU (DON ZIPLAMA SESİNE BAĞLANDI) ---
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donJumpSound, transform.position);
 
             if (animator != null) animator.SetTrigger("Jump");
         }
@@ -852,7 +852,7 @@ public class DonMovement : MonoBehaviour, IDamageable
         staminaRegenTimer = staminaRegenDelay;
         if (HUDManager.Instance != null)
         {
-        HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
+            HUDManager.Instance.UpdateDonQuixoteStamina(currentStamina, maxStamina);
         }
     }
 
@@ -979,6 +979,9 @@ public class DonMovement : MonoBehaviour, IDamageable
         jumpCount = 0;
         controller.enabled = false;
 
+        // --- SES ENTEGRASYONU ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.landSound, transform.position);
+
         Vector3 pushAwayDir = -lance.forward;
         LanceObj lanceScript = lance.GetComponent<LanceObj>();
 
@@ -1001,8 +1004,6 @@ public class DonMovement : MonoBehaviour, IDamageable
         }
 
         transform.position = lance.position + (Vector3.up * lanceHangOffset) + (pushAwayDir * lanceWallOffset) + (transform.forward * lanceForwardOffset);
-
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.landSound, transform.position);
 
         if (animator != null) animator.SetTrigger("LanceCatch");
     }
@@ -1028,7 +1029,8 @@ public class DonMovement : MonoBehaviour, IDamageable
         velocity = jumpDir.normalized * Mathf.Sqrt(jumpHeight * -2f * gravity) * lanceJumpMultiplier;
         jumpCount = 1;
 
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+        // --- SES ENTEGRASYONU (DON ZIPLAMA SESİNE BAĞLANDI) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donJumpSound, transform.position);
 
         if (animator != null) animator.SetTrigger("Jump");
     }
@@ -1077,7 +1079,11 @@ public class DonMovement : MonoBehaviour, IDamageable
         velocity.y = 5f;
         isGrounded = false;
 
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donDamageSound, transform.position);
+        // --- GÜNCELLENDİ: AKILLI HASAR VE ÖLÜM SES SİSTEMİ BAĞLANTISI ---
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayCharacterDamageOrDeath("Don", currentHealth, transform.position);
+        }
 
         if (animator != null && currentHealth > 0) animator.SetTrigger("Damage");
 
@@ -1278,7 +1284,8 @@ public class DonMovement : MonoBehaviour, IDamageable
         velocity.y = Mathf.Sqrt(bounceHeight * -2f * gravity);
         jumpCount = 1;
 
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.jumpSound, transform.position);
+        // --- SES ENTEGRASYONU (DON ZIPLAMA SESİNE BAĞLANDI) ---
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySound(AudioManager.Instance.donJumpSound, transform.position);
 
         if (animator != null) animator.SetTrigger("Jump");
     }
