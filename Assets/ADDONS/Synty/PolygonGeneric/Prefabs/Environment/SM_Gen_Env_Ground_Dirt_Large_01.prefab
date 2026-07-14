@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6792243088194342779}
   - component: {fileID: 8765713876609006513}
   - component: {fileID: 1215605164758577080}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SM_Gen_Env_Ground_Dirt_Large_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}

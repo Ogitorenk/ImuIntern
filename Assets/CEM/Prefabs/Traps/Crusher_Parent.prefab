@@ -18,7 +18,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7807223940998280760
 Transform:
   m_ObjectHideFlags: 0
@@ -156,7 +156,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.9900818, y: 0.18539667, z: 2.968628}
+  m_Size: {x: 3.672731, y: 0.22409499, z: 3.5882778}
   m_Center: {x: 0.0077209473, y: -0.49693847, z: -0.0032043457}
 --- !u!1 &2295561355499895026
 GameObject:
@@ -212,6 +212,7 @@ MonoBehaviour:
   upWaitTime: 2
   dropDistance: 6
   startDelay: 0
+  maxAudioDistance: 15
 --- !u!54 &184071084226096834
 Rigidbody:
   m_ObjectHideFlags: 0

@@ -15,6 +15,9 @@ public class CutsceneTrigger : MonoBehaviour
     [Header("--- KALICI HAFIZA AYARLARI ---")]
     [SerializeField] private string cutsceneID;
 
+    [Header("--- SİNEMATİK SONRASI TEMİZLİK ---")]
+    [SerializeField] private GameObject bossObjectToDestroy;
+
     private bool hasTriggered = false;
     private MonoBehaviour currentPlayerScript = null;
 
@@ -116,6 +119,10 @@ public class CutsceneTrigger : MonoBehaviour
         if (director == cutsceneDirector)
         {
             SetPlayerControl(true);
+            if (bossObjectToDestroy != null)
+            {
+            Destroy(bossObjectToDestroy);
+            }
         }
     }
 
