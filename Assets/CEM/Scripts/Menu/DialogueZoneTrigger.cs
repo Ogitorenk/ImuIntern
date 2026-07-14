@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Eğer eski scriptinde enum ve struct duruyorsa kalabilir, yoksa buraya ekle:
-public enum CharacterType { DonQuixote, SanchoPanza }
+//public enum CharacterType { DonQuixote, SanchoPanza }
 
-[System.Serializable]
-public struct DialogueLine
-{
-    public CharacterType speaker;
-    [TextArea(3, 5)] public string text;
-}
+//[System.Serializable]
+//public struct DialogueLine
+//{
+  //  public CharacterType speaker;
+  //  [TextArea(3, 5)] public string text;
+//}
 
 public class DialogueZoneTrigger : MonoBehaviour
 {

@@ -182,6 +182,10 @@ public class CombatAreaTrigger : MonoBehaviour
     public static void ResetAllCombatArenas()
     {
         Debug.Log("<color=yellow>🔄 Oyuncu öldü, tüm aktif kapışma arenaları ve düşmanları sıfırlanıyor...</color>");
+        if (HUDManager.Instance != null)
+        {
+        HUDManager.Instance.ToggleBossUI(false);
+        }
 
         foreach (CombatAreaTrigger arena in allArenas)
         {

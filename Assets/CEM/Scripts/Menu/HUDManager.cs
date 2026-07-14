@@ -53,6 +53,12 @@ public class HUDManager : MonoBehaviour
     [Header("--- CONFIGURATION ---")]
     [SerializeField] private HUDSettings hudSettings = new HUDSettings { snapToHearts = true, totalBoxes = 13f };
 
+    [Header("--- BOSS UI ELEMENTS ---")]
+    [SerializeField] private GameObject bossHUDGroup; // Boss can barının içinde bulunduğu UI Paneli (aktif/pasif yapmak için)
+    [SerializeField] private Image bossHealthBarImage; // Boss'un 10 karelik can barı (Filled Image)
+    [SerializeField] private Text bossNameText; // İstersen boss'un adını yazdıracağın Text bileşeni
+    [SerializeField] private float bossTotalBoxes = 10f; // Can barının kaç bölmeli/kareli olduğu (Seninki 10 kare)
+
     void Awake()
     {
         if (Instance == null) Instance = this;
@@ -132,4 +138,27 @@ public class HUDManager : MonoBehaviour
 
         barImage.fillAmount = ratio;
     }
+
+    public void ToggleBossUI(bool isActive, string bossName = "Dev Slime / Fare")
+{
+    if (bossHUDGroup != null) bossHUDGroup.SetActive(isActive);
+    if (bossNameText != null) bossNameText.text = bossName;
+}
+
+// Boss Canını Güncelle (Tıpkı karakterlerdeki gibi adımlı/snap)
+public void UpdateBossHealth(float currentHealth, float maxHealth)
+{
+    if (bossHealthBarImage == null || maxHealth <= 0) return;
+    
+    // Can oranını hesapla
+    float ratio = Mathf.Clamp01(currentHealth / maxHealth);
+    
+    // 10 kareye snaple kanka (Örn: 0.82 ise 0.8'e yuvarlar, tam kareler silinir)
+    if (bossTotalBoxes > 0)
+    {
+        ratio = Mathf.Round(ratio * bossTotalBoxes) / bossTotalBoxes;
+    }
+    
+    bossHealthBarImage.fillAmount = ratio;
+}
 }

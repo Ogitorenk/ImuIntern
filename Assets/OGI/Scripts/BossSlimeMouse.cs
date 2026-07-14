@@ -89,6 +89,12 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         if (!isClone)
         {
             transform.localScale = new Vector3(4f, 4f, 4f);
+
+            if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.ToggleBossUI(true, isDonActive ? "Dev Slime" : "Kral Fare");
+            HUDManager.Instance.UpdateBossHealth(currentHealth, maxHealth);
+        }
         }
 
         FindActivePlayer();
@@ -430,6 +436,11 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
         currentHealth -= damageAmount;
         Debug.Log(gameObject.name + " Canı: " + currentHealth + " / " + maxHealth);
 
+        if (!isClone && HUDManager.Instance != null)
+        {
+        HUDManager.Instance.UpdateBossHealth(currentHealth, maxHealth);
+        }
+
         if (currentHealth <= 0) Die();
         else StartCoroutine(DamageRoutine());
     }
@@ -464,6 +475,10 @@ public class BossSlimeMouse : MonoBehaviour, IDamageable
 
         if (!isClone)
         {
+            if (HUDManager.Instance != null)
+            {
+            HUDManager.Instance.ToggleBossUI(false);
+            }
             SplitBossIntoClones();
         }
 

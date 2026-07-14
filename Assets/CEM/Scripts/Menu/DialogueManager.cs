@@ -3,9 +3,17 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
+public enum CharacterType { DonQuixote, SanchoPanza, NPC }
+
+[System.Serializable]
+public struct DialogueLine
+{
+    public CharacterType speaker;
+    [TextArea(3, 5)] public string text;
+}
+
 public class DialogueManager : MonoBehaviour
 {
-    // Singleton Tanımı (Her yerden kolayca erişmek için)
     public static DialogueManager Instance { get; private set; }
 
     [Header("Don Quixote UI Elemanları")]
@@ -16,57 +24,76 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private GameObject sanchoPanel;
     [SerializeField] private TextMeshProUGUI sanchoText;
 
+    [Header("NPC UI Elemanları")]
+    [SerializeField] private GameObject npcPanel;
+    [SerializeField] private TextMeshProUGUI npcText;
+
+    [Header("Karakter Etiketleri (Hareketi Durdurmak İçin)")]
+    [SerializeField] private string donTag = "PlayerDon";
+    [SerializeField] private string sanchoTag = "PlayerSancho";
+
     private Coroutine currentDialogueCoroutine;
+    
+    private bool isInteractiveDialogueActive = false;
+    private bool isTyping = false;
+    private bool skipTyping = false;
+    private bool continueToNextLine = false;
 
     private void Awake()
     {
-        // Singleton kurulumu
-        if (Instance == null)
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
+
+    private void Update()
+    {
+        if (isInteractiveDialogueActive)
         {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
+            {
+                if (isTyping)
+                {
+                    skipTyping = true;
+                }
+                else
+                {
+                    continueToNextLine = true;
+                }
+            }
         }
     }
 
-    // Yeni bir diyalog tetiklendiğinde çağrılacak ana fonksiyon
+    // ESKİ SİSTEM: Otomatik diyaloglar
     public void StartDialogueSequence(List<DialogueLine> dialogueSequence, float typingSpeed, float delayBetweenLines)
     {
-        // EĞER HALİHAZIRDA ÇALIŞAN BİR DİYALOG VARSA ANINDA DURDUR (Sorunu çözen kısım!)
-        if (currentDialogueCoroutine != null)
-        {
-            StopCoroutine(currentDialogueCoroutine);
-        }
+        if (currentDialogueCoroutine != null) StopCoroutine(currentDialogueCoroutine);
 
-        // Panelleri temizle ve yeni seriyi başlat
-        donPanel.SetActive(false);
-        sanchoPanel.SetActive(false);
-        
+        HideAllPanels();
         currentDialogueCoroutine = StartCoroutine(PlayDialogueSequence(dialogueSequence, typingSpeed, delayBetweenLines));
+    }
+
+    // YENİ SİSTEM: Etkileşimli diyaloglar (Burada hareketleri kapatıyoruz)
+    public void StartInteractiveDialogue(List<DialogueLine> dialogueSequence, float typingSpeed)
+    {
+        if (currentDialogueCoroutine != null) StopCoroutine(currentDialogueCoroutine);
+
+        HideAllPanels();
+
+        // HAREKETLERİ DURDUR
+        SetCharactersMovementState(false);
+
+        isInteractiveDialogueActive = true;
+        currentDialogueCoroutine = StartCoroutine(PlayInteractiveSequence(dialogueSequence, typingSpeed));
     }
 
     private IEnumerator PlayDialogueSequence(List<DialogueLine> dialogueSequence, float typingSpeed, float delayBetweenLines)
     {
         foreach (DialogueLine line in dialogueSequence)
         {
-            GameObject activePanel;
-            TextMeshProUGUI activeText;
+            GameObject activePanel = GetPanelForCharacter(line.speaker);
+            TextMeshProUGUI activeText = GetTextForCharacter(line.speaker);
 
-            if (line.speaker == CharacterType.DonQuixote)
-            {
-                activePanel = donPanel;
-                activeText = donText;
-                sanchoPanel.SetActive(false); 
-            }
-            else
-            {
-                activePanel = sanchoPanel;
-                activeText = sanchoText;
-                donPanel.SetActive(false); 
-            }
-
+            HideAllPanels();
             activeText.text = "";
             activePanel.SetActive(true);
 
@@ -79,8 +106,99 @@ public class DialogueManager : MonoBehaviour
             yield return new WaitForSeconds(delayBetweenLines);
         }
 
+        HideAllPanels();
+        currentDialogueCoroutine = null;
+    }
+
+    private IEnumerator PlayInteractiveSequence(List<DialogueLine> dialogueSequence, float typingSpeed)
+    {
+        foreach (DialogueLine line in dialogueSequence)
+        {
+            GameObject activePanel = GetPanelForCharacter(line.speaker);
+            TextMeshProUGUI activeText = GetTextForCharacter(line.speaker);
+
+            HideAllPanels();
+            activeText.text = "";
+            activePanel.SetActive(true);
+
+            isTyping = true;
+            skipTyping = false;
+            continueToNextLine = false;
+
+            foreach (char letter in line.text.ToCharArray())
+            {
+                if (skipTyping)
+                {
+                    activeText.text = line.text;
+                    break;
+                }
+                activeText.text += letter;
+                // Artık oyun durmadığı için normal WaitForSeconds kullanabiliriz
+                yield return new WaitForSeconds(typingSpeed); 
+            }
+
+            isTyping = false;
+            skipTyping = false;
+
+            yield return new WaitUntil(() => continueToNextLine);
+        }
+
+        HideAllPanels();
+        
+        // HAREKETLERİ TEKRAR AÇ
+        SetCharactersMovementState(true);
+
+        isInteractiveDialogueActive = false;
+        currentDialogueCoroutine = null;
+    }
+
+    // --- Karakter Hareketlerini Kapatıp Açan Fonksiyon ---
+    private void SetCharactersMovementState(bool state)
+{
+    // Sahnedeki "Player" etiketine sahip TÜM objeleri bulur (Don ve Sancho'yu)
+    GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+
+    foreach (GameObject player in players)
+    {
+        if (player != null)
+        {
+            // Don'un hareket scriptini kapatmayı dene
+            var donMove = player.GetComponent("DonMovement") as MonoBehaviour;
+            if (donMove != null) donMove.enabled = state;
+
+            // Sancho'un hareket scriptini kapatmayı dene
+            var sanchoMove = player.GetComponent("SanchoMovement") as MonoBehaviour;
+            if (sanchoMove != null) sanchoMove.enabled = state;
+
+            // Fiziksel hareketleri sıfırla
+            var rb = player.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+        }
+    }
+}
+
+    private GameObject GetPanelForCharacter(CharacterType type)
+    {
+        if (type == CharacterType.DonQuixote) return donPanel;
+        if (type == CharacterType.SanchoPanza) return sanchoPanel;
+        return npcPanel;
+    }
+
+    private TextMeshProUGUI GetTextForCharacter(CharacterType type)
+    {
+        if (type == CharacterType.DonQuixote) return donText;
+        if (type == CharacterType.SanchoPanza) return sanchoText;
+        return npcText;
+    }
+
+    private void HideAllPanels()
+    {
         donPanel.SetActive(false);
         sanchoPanel.SetActive(false);
-        currentDialogueCoroutine = null;
+        if (npcPanel) npcPanel.SetActive(false);
     }
 }
