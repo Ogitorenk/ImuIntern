@@ -120,7 +120,7 @@ public class HonorGate : MonoBehaviour
         if (promptText != null)
         {
             promptText.text = textSpam;
-            promptText.color = Color.red;
+            // RENKLENDİRME KALDIRILDI (Eski satır: promptText.color = Color.red;)
         }
 
         // Mini oyun başlarken ikonun varsayılan (basılmamış) halini ayarla
@@ -140,7 +140,7 @@ public class HonorGate : MonoBehaviour
         if (promptText != null)
         {
             promptText.text = textSuccess;
-            promptText.color = Color.green;
+            // RENKLENDİRME KALDIRILDI (Eski satır: promptText.color = Color.green;)
         }
 
         // Başarılı olduğunda basılmamış sprite'a geri döndür (takılı kalmasın)

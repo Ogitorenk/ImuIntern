@@ -94,7 +94,7 @@ public class LeverFixing : MonoBehaviour
         promptText.gameObject.SetActive(true);
 
         promptText.text = textStart;
-        promptText.color = Color.yellow;
+        // RENKLENDİRME KALDIRILDI (Eski satır: promptText.color = Color.yellow;)
         yield return new WaitForSeconds(1.5f);
 
         while (currentSuccesses < requiredSuccesses)
@@ -147,7 +147,7 @@ public class LeverFixing : MonoBehaviour
                 promptText.gameObject.SetActive(true);
                 
                 promptText.text = textGood;
-                promptText.color = Color.green;
+                // RENKLENDİRME KALDIRILDI (Eski satır: promptText.color = Color.green;)
                 isWaitingForKey = false;
             }
             else if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) ||
@@ -167,7 +167,7 @@ public class LeverFixing : MonoBehaviour
         promptText.gameObject.SetActive(true);
 
         promptText.text = reason + "\n" + textRestart;
-        promptText.color = Color.red;
+        // RENKLENDİRME KALDIRILDI (Eski satır: promptText.color = Color.red;)
 
         if (sanchoPlayer != null)
         {
@@ -187,7 +187,7 @@ public class LeverFixing : MonoBehaviour
         promptText.gameObject.SetActive(true);
 
         promptText.text = textFixed;
-        promptText.color = Color.green;
+        // RENKLENDİRME KALDIRILDI (Eski satır: promptText.color = Color.green;)
 
         if (smokeParticles != null)
         {
