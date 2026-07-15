@@ -29,11 +29,11 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI npcText;
 
     [Header("Karakter Etiketleri (Hareketi Durdurmak İçin)")]
-    [SerializeField] private string donTag = "PlayerDon";
-    [SerializeField] private string sanchoTag = "PlayerSancho";
+    [SerializeField] private string donTag = "Player";
+    [SerializeField] private string sanchoTag = "Player";
 
     private Coroutine currentDialogueCoroutine;
-    
+    public bool IsInteractiveDialogueActive => isInteractiveDialogueActive;
     private bool isInteractiveDialogueActive = false;
     private bool isTyping = false;
     private bool skipTyping = false;
@@ -81,6 +81,10 @@ public class DialogueManager : MonoBehaviour
 
         // HAREKETLERİ DURDUR
         SetCharactersMovementState(false);
+        if (DualRealityManager.Instance != null)
+        {
+            DualRealityManager.Instance.canSwitch = false;
+        }
 
         isInteractiveDialogueActive = true;
         currentDialogueCoroutine = StartCoroutine(PlayInteractiveSequence(dialogueSequence, typingSpeed));
@@ -147,6 +151,10 @@ public class DialogueManager : MonoBehaviour
         
         // HAREKETLERİ TEKRAR AÇ
         SetCharactersMovementState(true);
+        if (DualRealityManager.Instance != null)
+        {
+            DualRealityManager.Instance.canSwitch = true;
+        }
 
         isInteractiveDialogueActive = false;
         currentDialogueCoroutine = null;
