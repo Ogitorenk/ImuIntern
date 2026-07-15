@@ -5519,6 +5519,7 @@ Transform:
   - {fileID: 695503252}
   - {fileID: 1582948266}
   - {fileID: 1342588614}
+  - {fileID: 856963782}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &84022864
@@ -18621,11 +18622,6 @@ PrefabInstance:
 --- !u!4 &323298808 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1829049932966304848, guid: 1d9d88d924bc1184d80b2a4f2b2af43b, type: 3}
-  m_PrefabInstance: {fileID: 323298807}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &323298809 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1308796612450502378, guid: 1d9d88d924bc1184d80b2a4f2b2af43b, type: 3}
   m_PrefabInstance: {fileID: 323298807}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &323844400
@@ -34006,15 +34002,15 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 612503073}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bf1372f2fe6e87c4a8cecb769a34e56c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   progressionData: {fileID: 11400000, guid: 59f069aef283d5847a610d434dd6e4c2, type: 2}
-  closedGatePrefab: {fileID: 1051125066}
-  openGatePrefab: {fileID: 323298809}
+  firstIronGate: {fileID: 0}
   rightSectionWoodenGate: {fileID: 744107721}
+  secondIronGate: {fileID: 0}
 --- !u!1 &613845239
 GameObject:
   m_ObjectHideFlags: 0
@@ -55333,6 +55329,54 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: de73df6eee0702347b88bb41f345a52a, type: 3}
+--- !u!1 &856963781
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 856963782}
+  - component: {fileID: 856963783}
+  m_Layer: 0
+  m_Name: CastleGateController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &856963782
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856963781}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 83819837}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &856963783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856963781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf1372f2fe6e87c4a8cecb769a34e56c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  progressionData: {fileID: 11400000, guid: 59f069aef283d5847a610d434dd6e4c2, type: 2}
+  firstIronGate: {fileID: 1051125066}
+  rightSectionWoodenGate: {fileID: 744107721}
+  secondIronGate: {fileID: 1149387367}
 --- !u!1001 &857344872
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -80346,6 +80390,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1149387368}
+  - component: {fileID: 1149387369}
   m_Layer: 0
   m_Name: CastleSwitch (2)
   m_TagString: Untagged
@@ -80370,6 +80415,22 @@ Transform:
   - {fileID: 297217109}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1149387369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1149387367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf1372f2fe6e87c4a8cecb769a34e56c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  progressionData: {fileID: 0}
+  firstIronGate: {fileID: 0}
+  rightSectionWoodenGate: {fileID: 0}
+  secondIronGate: {fileID: 0}
 --- !u!4 &1149929623 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2702515456319062483, guid: e9381fac46ce32344b0832b3ad30e484, type: 3}
@@ -171442,11 +171503,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5700514991133385286, guid: 880d11450f7f8be4e84a47d9b20805aa, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 23.86774
+      value: 23.216
       objectReference: {fileID: 0}
     - target: {fileID: 5700514991133385286, guid: 880d11450f7f8be4e84a47d9b20805aa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.7522554
+      value: 1.516
       objectReference: {fileID: 0}
     - target: {fileID: 5700514991133385286, guid: 880d11450f7f8be4e84a47d9b20805aa, type: 3}
       propertyPath: m_LocalPosition.z
@@ -171478,6 +171539,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5700514991133385286, guid: 880d11450f7f8be4e84a47d9b20805aa, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6870066349735188777, guid: 880d11450f7f8be4e84a47d9b20805aa, type: 3}
+      propertyPath: m_CastShadows
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -174197,6 +174262,7 @@ SceneRoots:
   - {fileID: 1620429644}
   - {fileID: 1877206076}
   - {fileID: 293980123}
+  - {fileID: 744107720}
   - {fileID: 1563729979}
   - {fileID: 1662790574}
   - {fileID: 475859177}
@@ -174269,7 +174335,6 @@ SceneRoots:
   - {fileID: 934048041}
   - {fileID: 1006436342}
   - {fileID: 849733895}
-  - {fileID: 744107720}
   - {fileID: 272031729}
   - {fileID: 618223114}
   - {fileID: 913620045}

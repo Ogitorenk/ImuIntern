@@ -129,12 +129,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 50
-  flySpeed: 2
-  chaseRange: 20
+  flySpeed: 5
+  chaseRange: 40
   hoverHeight: 1
   rotationSpeed: 5
   attackRange: 2.5
-  attackDamage: 10
+  attackDamage: 20
   attackCooldown: 3
   attackHitDelay: 0.4
   dragonModel: {fileID: 7290052902467807752}

@@ -7,20 +7,12 @@ public class ProgressionTrigger : MonoBehaviour
     [SerializeField] private GameProgressData progressionData;
 
     [Header("Cinemachine Ayarları (Kamera Sallama)")]
-    [Tooltip("Oyuncuyu takip eden aktif kameranı (Main_NormalCamera) buraya sürükle")]
-    [SerializeField] private GameObject activePlayerCamera; // Artık GameObject alıyoruz, böylece her şeyi sürükleyebilirsin!
-    
-    [Tooltip("Sallantı ne kadar sürecek?")]
+    [SerializeField] private GameObject activePlayerCamera; 
     [SerializeField] private float shakeDuration = 1.0f;
-    
-    [Tooltip("Sallantının şiddeti (Büyüklüğü)")]
     [SerializeField] private float shakeAmplitude = 3.0f; 
-    
-    [Tooltip("Sallantının hızı (Titreşim sıklığı)")]
     [SerializeField] private float shakeFrequency = 2.0f; 
 
     [Header("İşitsel Feedback (Ses Efekti)")]
-    [Tooltip("Kapının uzaktan açılma/deprem ses efekti")]
     [SerializeField] private AudioClip gateOpenSound;
     [SerializeField] private AudioSource audioSource;
 
@@ -30,7 +22,6 @@ public class ProgressionTrigger : MonoBehaviour
     {
         if (activePlayerCamera != null)
         {
-            // Önce bu bir normal Virtual Camera mı diye bakıyoruz
             var vCam = activePlayerCamera.GetComponent<CinemachineVirtualCamera>();
             if (vCam != null)
             {
@@ -38,11 +29,9 @@ public class ProgressionTrigger : MonoBehaviour
             }
             else
             {
-                // Değilse, bu bir FreeLook kamerası mıdır diye bakıyoruz
                 var freeLook = activePlayerCamera.GetComponent<CinemachineFreeLook>();
                 if (freeLook != null)
                 {
-                    // FreeLook kameralarda kamera 3 çembere ayrılır. Titreşim genelde orta yörüngeye (Rig 1) eklenir.
                     cvcNoise = freeLook.GetRig(1).GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
                 }
             }
@@ -58,28 +47,85 @@ public class ProgressionTrigger : MonoBehaviour
         }
     }
 
+    // --- SOL BÖLÜM (Eski Şalter Fonksiyonun) ---
     public void SetFirstGateOpen()
     {
         if (progressionData != null)
         {
             progressionData.isFirstIronGateOpen = true;
             progressionData.SaveToDisk(); 
-            
-            Debug.Log("<color=green>💾 İlerleme Kaydedildi: İlk Demir Kapı Açık!</color>");
-            
-            if (audioSource != null && gateOpenSound != null)
-            {
-                audioSource.PlayOneShot(gateOpenSound);
-            }
+            TriggerFeedback();
+        }
+    }
 
-            if (cvcNoise != null)
-            {
-                StartCoroutine(ShakeCameraRoutine());
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ Kamerada 'Noise' modülü bulunamadı! Ayarları kontrol et.");
-            }
+    // --- SAĞ BÖLÜM ŞALTERLERİ ---
+
+    // 1. Up Forest Şalteri Tetiklendiğinde Çalışacak
+    public void PullUpForestLever()
+    {
+        if (progressionData != null && !progressionData.isUpForestLeverPulled)
+        {
+            progressionData.isUpForestLeverPulled = true;
+            progressionData.SaveToDisk();
+            Debug.Log("<color=yellow>🌲 Up Forest Şalteri İndirildi!</color>");
+            CheckRightSectionLevers();
+        }
+    }
+
+    // 2. Maze Şalteri Tetiklendiğinde Çalışacak
+    public void PullMazeLever()
+    {
+        if (progressionData != null && !progressionData.isMazeLeverPulled)
+        {
+            progressionData.isMazeLeverPulled = true;
+            progressionData.SaveToDisk();
+            Debug.Log("<color=yellow>🌀 Maze Şalteri İndirildi!</color>");
+            CheckRightSectionLevers();
+        }
+    }
+
+    // 3. Pit Şalteri Tetiklendiğinde Çalışacak
+    public void PullPitLever()
+    {
+        if (progressionData != null && !progressionData.isPitLeverPulled)
+        {
+            progressionData.isPitLeverPulled = true;
+            progressionData.SaveToDisk();
+            Debug.Log("<color=yellow>🕳️ Pit Şalteri İndirildi!</color>");
+            CheckRightSectionLevers();
+        }
+    }
+
+    // Ortak Kontrol Mekanizması
+    private void CheckRightSectionLevers()
+    {
+        // Eğer üç şalter de indirildiyse ve ikinci kapı henüz açılmadıysa
+        if (progressionData.isUpForestLeverPulled && 
+            progressionData.isMazeLeverPulled && 
+            progressionData.isPitLeverPulled && 
+            !progressionData.isSecondIronGateOpen)
+        {
+            progressionData.isSecondIronGateOpen = true;
+            progressionData.SaveToDisk();
+            
+            Debug.Log("<color=green>🔑 MÜKEMMEL! Sağ bölümdeki tüm şalterler indirildi. İkinci Demir Kapı Açıldı!</color>");
+            
+            // Büyük kapının açılma feedback'ini (ses ve sarsıntı) tetikle
+            TriggerFeedback();
+        }
+    }
+
+    // Geri bildirimleri tek çatı altında topladık
+    private void TriggerFeedback()
+    {
+        if (audioSource != null && gateOpenSound != null)
+        {
+            audioSource.PlayOneShot(gateOpenSound);
+        }
+
+        if (cvcNoise != null)
+        {
+            StartCoroutine(ShakeCameraRoutine());
         }
     }
 
