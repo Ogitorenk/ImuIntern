@@ -63,25 +63,39 @@ public class DonCombat : MonoBehaviour
     }
 
     void Update()
+{
+    if (Time.timeScale == 0f) return;
+
+    // --- YENİ EKLENEN KISIM: Diyalog Aktifse Blok ve Atak Durumlarını Sıfırla ve Çık ---
+    if (DialogueManager.Instance != null && DialogueManager.Instance.IsInteractiveDialogueActive)
     {
-        if (Time.timeScale == 0f) return;
+        isBlocking = false;
+        wasShieldSoundPlayed = false;
+        if (animator != null) animator.SetBool("isBlocking", false);
 
-        if (!donMovement.isControlled || donMovement.currentHealth <= 0 || donMovement.isDrinking ||
-            donMovement.isZiplining || donMovement.isDodging || donMovement.isCrawling ||
-            donMovement.isCrouchToggled || donMovement.isLatched)
-        {
-            isBlocking = false;
-            wasShieldSoundPlayed = false;
-            if (animator != null) animator.SetBool("isBlocking", false);
-
-            if (shieldModel != null) shieldModel.SetActive(false);
-            if (shieldScript != null) shieldScript.SetShieldStatus(false);
-            return;
-        }
-
-        HandleBlocking();
-        HandleMeleeAttack();
+        if (shieldModel != null) shieldModel.SetActive(false);
+        if (shieldScript != null) shieldScript.SetShieldStatus(false);
+        
+        return; // Atak ve Blok fonksiyonlarının çalışmasını engelle
     }
+    // -------------------------------------------------------------------------------------
+
+    if (!donMovement.isControlled || donMovement.currentHealth <= 0 || donMovement.isDrinking ||
+        donMovement.isZiplining || donMovement.isDodging || donMovement.isCrawling ||
+        donMovement.isCrouchToggled || donMovement.isLatched)
+    {
+        isBlocking = false;
+        wasShieldSoundPlayed = false;
+        if (animator != null) animator.SetBool("isBlocking", false);
+
+        if (shieldModel != null) shieldModel.SetActive(false);
+        if (shieldScript != null) shieldScript.SetShieldStatus(false);
+        return;
+    }
+
+    HandleBlocking();
+    HandleMeleeAttack();
+}
 
     void HandleMeleeAttack()
     {

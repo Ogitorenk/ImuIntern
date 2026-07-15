@@ -122,26 +122,39 @@ public class SanchoCombat : MonoBehaviour
     }
 
     void Update()
+{
+    if (Time.timeScale == 0f) return;
+
+    // --- YENİ EKLENEN KISIM: Diyalog Aktifse Tüm Atak ve Nişan Durumlarını Sıfırla ve Çık ---
+    if (DialogueManager.Instance != null && DialogueManager.Instance.IsInteractiveDialogueActive)
     {
-        if (Time.timeScale == 0f) return;
+        isAiming = false;
+        if (animator != null) animator.SetBool("isAiming", false);
+        if (bowPivot != null) bowPivot.SetActive(false);
+        if (sanchoMovement.crosshairUI != null) sanchoMovement.crosshairUI.SetActive(false);
 
-        if (!sanchoMovement.isControlled || sanchoMovement.currentHealth <= 0 || sanchoMovement.isDrinking ||
-            sanchoMovement.isRepairing || sanchoMovement.isZiplining || sanchoMovement.isDodging ||
-            sanchoMovement.isCrawling || sanchoMovement.isCrouchToggled || sanchoMovement.isHoldingBox)
-        {
-            isAiming = false;
-            if (animator != null) animator.SetBool("isAiming", false);
-            if (bowPivot != null) bowPivot.SetActive(false);
-            if (sanchoMovement.crosshairUI != null) sanchoMovement.crosshairUI.SetActive(false);
-
-            HandleCameraZoomAndOffset(); // Güvenlik: Kamera merkeze dönsün
-            return;
-        }
-
-        HandleAiming();
-        HandleMeleeAttack();
-        HandleCameraZoomAndOffset(); // Her karede kameranın zoom'unu/kaymasını denetle
+        HandleCameraZoomAndOffset(); // Kamera merkeze dönsün, yakın kalmasın
+        return; // Atak ve Nişan fonksiyonlarının çalışmasını engelle
     }
+    // -------------------------------------------------------------------------------------
+
+    if (!sanchoMovement.isControlled || sanchoMovement.currentHealth <= 0 || sanchoMovement.isDrinking ||
+        sanchoMovement.isRepairing || sanchoMovement.isZiplining || sanchoMovement.isDodging ||
+        sanchoMovement.isCrawling || sanchoMovement.isCrouchToggled || sanchoMovement.isHoldingBox)
+    {
+        isAiming = false;
+        if (animator != null) animator.SetBool("isAiming", false);
+        if (bowPivot != null) bowPivot.SetActive(false);
+        if (sanchoMovement.crosshairUI != null) sanchoMovement.crosshairUI.SetActive(false);
+
+        HandleCameraZoomAndOffset(); // Güvenlik: Kamera merkeze dönsün
+        return;
+    }
+
+    HandleAiming();
+    HandleMeleeAttack();
+    HandleCameraZoomAndOffset(); // Her karede kameranın zoom'unu/kaymasını denetle
+}
 
     void HandleAiming()
     {
