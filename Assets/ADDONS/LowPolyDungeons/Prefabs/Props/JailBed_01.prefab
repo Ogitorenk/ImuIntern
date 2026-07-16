@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5177968366354206671}
   - component: {fileID: 5831645167910365680}
   - component: {fileID: 1774218795215950003}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: JailBed_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}

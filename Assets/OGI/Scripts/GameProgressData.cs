@@ -19,6 +19,9 @@ public class GameProgressData : ScriptableObject
     public bool isMazeLeverPulled = false;
     public bool isPitLeverPulled = false;
 
+    [Header("--- SAĞ BÖLÜM NPC DURUMU ---")]
+    public bool isRightSectionNpcTalked = false;
+
     public void ResetToDefault()
     {
         totalTokens = 0;
@@ -34,6 +37,9 @@ public class GameProgressData : ScriptableObject
         isUpForestLeverPulled = false;
         isMazeLeverPulled = false;
         isPitLeverPulled = false;
+
+        // NPC sıfırlama
+        isRightSectionNpcTalked = false;
     }
 
     public void LoadFromDisk()
@@ -57,6 +63,8 @@ public class GameProgressData : ScriptableObject
             isUpForestLeverPulled = PlayerPrefs.GetInt("SO_UpForestLever", 0) == 1;
             isMazeLeverPulled = PlayerPrefs.GetInt("SO_MazeLever", 0) == 1;
             isPitLeverPulled = PlayerPrefs.GetInt("SO_PitLever", 0) == 1;
+
+            isRightSectionNpcTalked = PlayerPrefs.GetInt("SO_RightNpcTalked", 0) == 1;
         }
         else
         {
@@ -83,6 +91,8 @@ public class GameProgressData : ScriptableObject
         PlayerPrefs.SetInt("SO_UpForestLever", isUpForestLeverPulled ? 1 : 0);
         PlayerPrefs.SetInt("SO_MazeLever", isMazeLeverPulled ? 1 : 0);
         PlayerPrefs.SetInt("SO_PitLever", isPitLeverPulled ? 1 : 0);
+
+        PlayerPrefs.SetInt("SO_RightNpcTalked", isRightSectionNpcTalked ? 1 : 0);
         
         PlayerPrefs.Save();
     }
