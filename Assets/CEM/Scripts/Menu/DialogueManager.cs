@@ -29,8 +29,7 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI npcText;
 
     [Header("Karakter Etiketleri (Hareketi Durdurmak İçin)")]
-    [SerializeField] private string donTag = "Player";
-    [SerializeField] private string sanchoTag = "Player";
+   
 
     private Coroutine currentDialogueCoroutine;
     public bool IsInteractiveDialogueActive => isInteractiveDialogueActive;

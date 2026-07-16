@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fa30e73beb2a5341a2e3b7e2b95a7d3, type: 3}
   m_Name: Game_Progress_Data
   m_EditorClassIdentifier: 
-  totalTokens: 2
-  lastCheckpointPosition: {x: 231.19388, y: 13.386364, z: 126.607834}
-  lastSavedSceneName: Left_Section2
+  totalTokens: 0
+  lastCheckpointPosition: {x: 134.21196, y: 1.975, z: 130.01398}
+  lastSavedSceneName: Right_Section
   isLeftBossDefeated: 0
   isFirstIronGateOpen: 0
   isRightBossDefeated: 0
   isSecondIronGateOpen: 0
+  isUpForestLeverPulled: 0
+  isMazeLeverPulled: 0
+  isPitLeverPulled: 0
+  isRightSectionNpcTalked: 0
