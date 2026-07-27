@@ -34,12 +34,8 @@ public class CutsceneTrigger : MonoBehaviour
             cutsceneDirector.playOnAwake = false; // Kendi kendine başlamasın
             cutsceneDirector.stopped += OnCutsceneFinished;
 
-            // ========================================================
-            // --- YENİ DÜZELTME: İLK KARE KİLİTLENMESİNİ ENGELLEME ---
-            // ========================================================
             if (!hasTriggered && !playAutomaticallyOnStart)
             {
-                // Timeline'ı 0'a çek, zamanı durdur ve sahnedeki etkisini sıfırla
                 cutsceneDirector.time = 0;
                 cutsceneDirector.Stop(); 
             }
@@ -50,12 +46,11 @@ public class CutsceneTrigger : MonoBehaviour
     {
         if (hasTriggered)
         {
-            // Eğer daha önce oynandıysa ve son karesine sarılması gerekiyorsa (Örn: Intro kapıları açık kalsın diye)
             if (fastForwardIfAlreadyPlayed)
             {
                 FastForwardToEnd();
             }
-            return; // Tik kapalıysa bile dümdüz return atarak sinematiğin ve kamerasının oynamasını engeller
+            return;
         }
 
         if (playAutomaticallyOnStart)
@@ -77,6 +72,12 @@ public class CutsceneTrigger : MonoBehaviour
             
             FindPlayerInScene();
             SetPlayerControl(true);
+            
+            // --- YENİ EKLENDİ: Karakter değişim kilidini aç ---
+            if (DualRealityManager.Instance != null)
+            {
+                DualRealityManager.Instance.canSwitch = true;
+            }
             
             Debug.Log($"<color=green>✔ {cutsceneID} atlandı ve sahne son haline getirildi.</color>");
         }
@@ -107,6 +108,12 @@ public class CutsceneTrigger : MonoBehaviour
 
     private void StartCutscene()
     {
+        // --- YENİ EKLENDİ: Sinematik boyunca TAB ile karakter değiştirmeyi kilitle ---
+        if (DualRealityManager.Instance != null)
+        {
+            DualRealityManager.Instance.canSwitch = false;
+        }
+
         SetPlayerControl(false);
         if (cutsceneDirector != null) 
         {
@@ -119,9 +126,16 @@ public class CutsceneTrigger : MonoBehaviour
         if (director == cutsceneDirector)
         {
             SetPlayerControl(true);
+
+            // --- YENİ EKLENDİ: Sinematik bitti, TAB ile karakter değişimini tekrar aç ---
+            if (DualRealityManager.Instance != null)
+            {
+                DualRealityManager.Instance.canSwitch = true;
+            }
+
             if (bossObjectToDestroy != null)
             {
-            Destroy(bossObjectToDestroy);
+                Destroy(bossObjectToDestroy);
             }
         }
     }
@@ -139,7 +153,9 @@ public class CutsceneTrigger : MonoBehaviour
 
     private void SetPlayerControl(bool canControl)
     {
+        if (currentPlayerScript == null) FindPlayerInScene();
         if (currentPlayerScript == null) return;
+
         try
         {
             System.Type type = currentPlayerScript.GetType();
