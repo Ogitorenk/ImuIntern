@@ -37,7 +37,7 @@ RenderSettings:
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
-  m_Sun: {fileID: 1248405113}
+  m_Sun: {fileID: 1883854808}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -91293,11 +91293,6 @@ Transform:
   - {fileID: 773786765}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!108 &1248405113 stripped
-Light:
-  m_CorrespondingSourceObject: {fileID: 7869321756015741863, guid: ed7dabaee6ec7d4439033dabd5b29d29, type: 3}
-  m_PrefabInstance: {fileID: 974926962}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1250230681
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -131960,6 +131955,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ed7dabaee6ec7d4439033dabd5b29d29, type: 3}
+--- !u!108 &1883854808 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 7869321756015741863, guid: ed7dabaee6ec7d4439033dabd5b29d29, type: 3}
+  m_PrefabInstance: {fileID: 1883854807}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1884533438
 PrefabInstance:
   m_ObjectHideFlags: 0
