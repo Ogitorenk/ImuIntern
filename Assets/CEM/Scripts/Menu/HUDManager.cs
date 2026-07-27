@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
+using TMPro; // --- TextMeshPro kütüphanesi eklendi kanka ---
 
 public class HUDManager : MonoBehaviour
 {
@@ -11,7 +13,7 @@ public class HUDManager : MonoBehaviour
         [Tooltip("Aktif can kutuları (Filled Image)")]
         public Image activeHealthImage;
         
-        // --- YENİ EKLENDİ: STAMINA UI ---
+        // --- STAMINA UI ---
         [Tooltip("Aktif üstteki dolu stamina barı (Filled Image)")]
         public Image activeStaminaImage;
 
@@ -20,9 +22,9 @@ public class HUDManager : MonoBehaviour
 
         // --- İKSİR UI ELEMENTLERİ ---
         [Tooltip("Can İksiri sayısını gösterecek Text component'i")]
-        public Text healthPotionText;
+        public TextMeshProUGUI healthPotionText; // TextMeshProUGUI yapıldı
         [Tooltip("Zaman İksiri sayısını gösterecek Text component'i")]
-        public Text slowPotionText;
+        public TextMeshProUGUI slowPotionText; // TextMeshProUGUI yapıldı
     }
 
     [System.Serializable]
@@ -56,13 +58,21 @@ public class HUDManager : MonoBehaviour
     [Header("--- BOSS UI ELEMENTS ---")]
     [SerializeField] private GameObject bossHUDGroup; // Boss can barının içinde bulunduğu UI Paneli (aktif/pasif yapmak için)
     [SerializeField] private Image bossHealthBarImage; // Boss'un 10 karelik can barı (Filled Image)
-    [SerializeField] private Text bossNameText; // İstersen boss'un adını yazdıracağın Text bileşeni
+    [SerializeField] private TextMeshProUGUI bossNameText; // TextMeshProUGUI yapıldı
     [SerializeField] private float bossTotalBoxes = 10f; // Can barının kaç bölmeli/kareli olduğu (Seninki 10 kare)
+
+    [Header("--- NOTIFICATION / WARNING UI ---")]
+    [SerializeField] private GameObject warningPanel; // Ekrana gelecek küçük uyarı kutusu/paneli
+    [SerializeField] private TextMeshProUGUI warningText; // TextMeshProUGUI yapıldı kanka (artık sürükleyebilirsin!)
+    [SerializeField] private float displayDuration = 2.0f; // Ekranda kaç saniye kalacağı
+    private Coroutine warningCoroutine;
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+        
+        if (warningPanel != null) warningPanel.SetActive(false);
     }
 
     // --- KARAKTER GÜÇ/HUD YÖNETİMİ ---
@@ -80,10 +90,8 @@ public class HUDManager : MonoBehaviour
         UpdateBar(donQuixoteUI.activeHealthImage, currentHealth, maxHealth, hudSettings.snapToHearts);
     }
 
-    // --- YENİ: DON KİŞOT STAMINA GÜNCELLEME ---
     public void UpdateDonQuixoteStamina(float currentStamina, float maxStamina)
     {
-        // Staminada kalpli snap özelliğine gerek olmadığı için false gönderiyoruz kanka
         UpdateBar(donQuixoteUI.activeStaminaImage, currentStamina, maxStamina, false);
     }
 
@@ -109,7 +117,6 @@ public class HUDManager : MonoBehaviour
         UpdateBar(sanchoUI.activeHealthImage, currentHealth, maxHealth, hudSettings.snapToHearts);
     }
 
-    // --- YENİ: SANCHO STAMINA GÜNCELLEME ---
     public void UpdateSanchoStamina(float currentStamina, float maxStamina)
     {
         UpdateBar(sanchoUI.activeStaminaImage, currentStamina, maxStamina, false);
@@ -124,7 +131,7 @@ public class HUDManager : MonoBehaviour
             sanchoUI.slowPotionText.text = slowCount.ToString();
     }
 
-    // --- ORTAK YARDIMCI METOT (İsim can barından daha genel bir isme çevrildi kanka) ---
+    // --- ORTAK YARDIMCI METOT ---
 
     private void UpdateBar(Image barImage, float current, float max, bool useSnap)
     {
@@ -140,25 +147,47 @@ public class HUDManager : MonoBehaviour
     }
 
     public void ToggleBossUI(bool isActive, string bossName = "Dev Slime / Fare")
-{
-    if (bossHUDGroup != null) bossHUDGroup.SetActive(isActive);
-    if (bossNameText != null) bossNameText.text = bossName;
-}
-
-// Boss Canını Güncelle (Tıpkı karakterlerdeki gibi adımlı/snap)
-public void UpdateBossHealth(float currentHealth, float maxHealth)
-{
-    if (bossHealthBarImage == null || maxHealth <= 0) return;
-    
-    // Can oranını hesapla
-    float ratio = Mathf.Clamp01(currentHealth / maxHealth);
-    
-    // 10 kareye snaple kanka (Örn: 0.82 ise 0.8'e yuvarlar, tam kareler silinir)
-    if (bossTotalBoxes > 0)
     {
-        ratio = Mathf.Round(ratio * bossTotalBoxes) / bossTotalBoxes;
+        if (bossHUDGroup != null) bossHUDGroup.SetActive(isActive);
+        if (bossNameText != null) bossNameText.text = bossName;
     }
-    
-    bossHealthBarImage.fillAmount = ratio;
-}
+
+    public void UpdateBossHealth(float currentHealth, float maxHealth)
+    {
+        if (bossHealthBarImage == null || maxHealth <= 0) return;
+        
+        float ratio = Mathf.Clamp01(currentHealth / maxHealth);
+        
+        if (bossTotalBoxes > 0)
+        {
+            ratio = Mathf.Round(ratio * bossTotalBoxes) / bossTotalBoxes;
+        }
+        
+        bossHealthBarImage.fillAmount = ratio;
+    }
+
+    // --- NOTIFICATION / WARNING SYSTEM ---
+
+    public void ShowWarning(string message)
+    {
+        if (warningPanel == null || warningText == null) return;
+
+        if (warningCoroutine != null)
+        {
+            StopCoroutine(warningCoroutine);
+        }
+
+        warningCoroutine = StartCoroutine(ShowWarningRoutine(message));
+    }
+
+    private IEnumerator ShowWarningRoutine(string message)
+    {
+        warningText.text = message;
+        warningPanel.SetActive(true);
+
+        yield return new WaitForSeconds(displayDuration);
+
+        warningPanel.SetActive(false);
+        warningCoroutine = null;
+    }
 }

@@ -1186,19 +1186,25 @@ public class DonMovement : MonoBehaviour, IDamageable
     {
         if (!isGrounded || isDrinking || isZiplining || isDashing || isLatched) return;
 
-        if (healthPotionCount > 0 && currentHealth < maxHealth)
+       if (healthPotionCount > 0 && currentHealth < maxHealth)
+    {
+        StartCoroutine(DrinkPotionRoutine(true));
+    }
+    else if (currentHealth >= maxHealth)
+    {
+        if (HUDManager.Instance != null)
         {
-            StartCoroutine(DrinkPotionRoutine(true));
-        }
-        else if (currentHealth >= maxHealth)
-        {
-            Debug.Log("Canın zaten full kanka, israf etme!");
-        }
-        else
-        {
-            Debug.Log("Hiç can iksirin kalmamış!");
+            HUDManager.Instance.ShowWarning("Health Already Full");
         }
     }
+    else
+    {
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.ShowWarning("No Health Potion");
+        }
+    }
+}
 
     public void UseSlowPotion()
     {

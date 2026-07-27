@@ -826,22 +826,30 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     }
 
     public void UseHealthPotion()
-    {
-        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing || isDodging) return;
+{
+    if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing || isDodging) return;
 
-        if (healthPotionCount > 0 && currentHealth < maxHealth)
+    if (healthPotionCount > 0 && currentHealth < maxHealth)
+    {
+        StartCoroutine(DrinkPotionRoutine(true));
+    }
+    else if (currentHealth >= maxHealth)
+    {
+        // UI Bildirimi Çağrılıyor
+        if (HUDManager.Instance != null)
         {
-            StartCoroutine(DrinkPotionRoutine(true));
-        }
-        else if (currentHealth >= maxHealth)
-        {
-            Debug.Log("Canın zaten full kanka, israf etme!");
-        }
-        else
-        {
-            Debug.Log("Hiç can iksirin kalmamış!");
+            HUDManager.Instance.ShowWarning("Health Already Full");
         }
     }
+    else
+    {
+        // İksir bittiğinde de uyarı vermek istersen:
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.ShowWarning("No Health Potion");
+        }
+    }
+}
 
     public void UseSlowPotion()
     {
