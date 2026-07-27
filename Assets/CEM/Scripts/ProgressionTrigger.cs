@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using Cinemachine;
+using UnityEngine.SceneManagement; // Sahne geçişi için eklendi
 
 public class ProgressionTrigger : MonoBehaviour
 {
@@ -16,7 +17,21 @@ public class ProgressionTrigger : MonoBehaviour
     [SerializeField] private AudioClip gateOpenSound;
     [SerializeField] private AudioSource audioSource;
 
+    [Header("--- OTOMATİK IŞINLANMA AYARLARI ---")]
+    [Tooltip("Bu sahnedeki şalter çekilince otomatik ışınlanma yapılsın mı?")]
+    [SerializeField] private bool autoTeleportAfterLever = false;
+    [Tooltip("Geri dönülecek sahnenin adı")]
+    [SerializeField] private string targetSceneName = "Right_Section";
+    [Tooltip("Şalter çekildikten kaç saniye sonra ışınlanma gerçekleşsin? (Efektlerin bitmesi için)")]
+    [SerializeField] private float teleportDelay = 2.0f;
+
+    [Header("Spesifik Doğma Ayarı (Opsiyonel)")]
+    [SerializeField] private bool ozelKoordinataIsinla = false;
+    [Tooltip("Hedef sahnede doğulacak X, Y, Z koordinatları.")]
+    [SerializeField] private Vector3 hedefKoordinat;
+
     private CinemachineBasicMultiChannelPerlin cvcNoise;
+    private bool isTeleporting = false;
 
     void Start()
     {
@@ -47,7 +62,7 @@ public class ProgressionTrigger : MonoBehaviour
         }
     }
 
-    // --- SOL BÖLÜM (Eski Şalter Fonksiyonun) ---
+    // --- SOL BÖLÜM ---
     public void SetFirstGateOpen()
     {
         if (progressionData != null)
@@ -55,12 +70,13 @@ public class ProgressionTrigger : MonoBehaviour
             progressionData.isFirstIronGateOpen = true;
             progressionData.SaveToDisk(); 
             TriggerFeedback();
+            TryAutoTeleport();
         }
     }
 
     // --- SAĞ BÖLÜM ŞALTERLERİ ---
 
-    // 1. Up Forest Şalteri Tetiklendiğinde Çalışacak
+    // 1. Up Forest Şalteri
     public void PullUpForestLever()
     {
         if (progressionData != null && !progressionData.isUpForestLeverPulled)
@@ -68,11 +84,14 @@ public class ProgressionTrigger : MonoBehaviour
             progressionData.isUpForestLeverPulled = true;
             progressionData.SaveToDisk();
             Debug.Log("<color=yellow>🌲 Up Forest Şalteri İndirildi!</color>");
+            
+            TriggerFeedback();
             CheckRightSectionLevers();
+            TryAutoTeleport();
         }
     }
 
-    // 2. Maze Şalteri Tetiklendiğinde Çalışacak
+    // 2. Maze Şalteri
     public void PullMazeLever()
     {
         if (progressionData != null && !progressionData.isMazeLeverPulled)
@@ -80,11 +99,14 @@ public class ProgressionTrigger : MonoBehaviour
             progressionData.isMazeLeverPulled = true;
             progressionData.SaveToDisk();
             Debug.Log("<color=yellow>🌀 Maze Şalteri İndirildi!</color>");
+            
+            TriggerFeedback();
             CheckRightSectionLevers();
+            TryAutoTeleport();
         }
     }
 
-    // 3. Pit Şalteri Tetiklendiğinde Çalışacak
+    // 3. Pit Şalteri
     public void PullPitLever()
     {
         if (progressionData != null && !progressionData.isPitLeverPulled)
@@ -92,14 +114,16 @@ public class ProgressionTrigger : MonoBehaviour
             progressionData.isPitLeverPulled = true;
             progressionData.SaveToDisk();
             Debug.Log("<color=yellow>🕳️ Pit Şalteri İndirildi!</color>");
+            
+            TriggerFeedback();
             CheckRightSectionLevers();
+            TryAutoTeleport();
         }
     }
 
     // Ortak Kontrol Mekanizması
     private void CheckRightSectionLevers()
     {
-        // Eğer üç şalter de indirildiyse ve ikinci kapı henüz açılmadıysa
         if (progressionData.isUpForestLeverPulled && 
             progressionData.isMazeLeverPulled && 
             progressionData.isPitLeverPulled && 
@@ -109,13 +133,10 @@ public class ProgressionTrigger : MonoBehaviour
             progressionData.SaveToDisk();
             
             Debug.Log("<color=green>🔑 MÜKEMMEL! Sağ bölümdeki tüm şalterler indirildi. İkinci Demir Kapı Açıldı!</color>");
-            
-            // Büyük kapının açılma feedback'ini (ses ve sarsıntı) tetikle
-            TriggerFeedback();
         }
     }
 
-    // Geri bildirimleri tek çatı altında topladık
+    // Geri bildirimler (Ses + Sarsıntı)
     private void TriggerFeedback()
     {
         if (audioSource != null && gateOpenSound != null)
@@ -138,5 +159,41 @@ public class ProgressionTrigger : MonoBehaviour
 
         cvcNoise.m_AmplitudeGain = 0f;
         cvcNoise.m_FrequencyGain = 0f;
+    }
+
+    // --- OTOMATİK IŞINLANMA KONTROLÜ VE ZAMANLAYICI ---
+    private void TryAutoTeleport()
+    {
+        if (autoTeleportAfterLever && !isTeleporting)
+        {
+            StartCoroutine(AutoTeleportRoutine());
+        }
+    }
+
+    private IEnumerator AutoTeleportRoutine()
+    {
+        isTeleporting = true;
+        
+        Debug.Log($"<color=cyan>⏳ Şalter çekildi. {teleportDelay} saniye sonra {targetSceneName} sahnesine ışınlanılıyor...</color>");
+
+        // Belirlenen süre kadar bekle (Ekran sarsıntısı ve ses efekti oynarken oyuncu hissiyatı alsın)
+        yield return new WaitForSeconds(teleportDelay);
+
+        // Eğer SceneChanger'daki gibi özel doğma koordinatı kullanılıyorsa statik hafızaya aktar
+        if (ozelKoordinataIsinla)
+        {
+            SceneChanger.ozelIsinlanmaAktif = true;
+            SceneChanger.transferKoordinat = hedefKoordinat;
+        }
+
+        // LoadingManager var ise onunla, yoksa doğrudan sahne geçişi yap
+        if (LoadingManager.Instance != null)
+        {
+            LoadingManager.Instance.LoadScene(targetSceneName);
+        }
+        else
+        {
+            SceneManager.LoadScene(targetSceneName);
+        }
     }
 }

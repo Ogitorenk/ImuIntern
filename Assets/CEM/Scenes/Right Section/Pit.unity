@@ -22598,6 +22598,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LeverProgress (Test)
       objectReference: {fileID: 0}
+    - target: {fileID: 9155990895366227541, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -47283,7 +47287,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &1430720460
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -69650,9 +69654,29 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: hedefKoordinat.x
+      value: 130
+      objectReference: {fileID: 0}
+    - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: hedefKoordinat.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: hedefKoordinat.z
+      value: 130
+      objectReference: {fileID: 0}
+    - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: activePlayerCamera
       value: 
       objectReference: {fileID: 1128994832}
+    - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: ozelKoordinataIsinla
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: autoTeleportAfterLever
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 9155990895366227541, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: m_Name
       value: LeverProgress

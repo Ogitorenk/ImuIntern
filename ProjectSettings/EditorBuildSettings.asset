@@ -14,7 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/CEM/Scenes/Castle_Entrance.unity
     guid: 426b49cbc75953c42862d81d7d09b466
-  - enabled: 1
+  - enabled: 0
     path: Assets/CEM/Scenes/Others/Castle_EntryOLD.unity
     guid: 487417dcef52f9f4f856610c27cf94cc
   - enabled: 1
@@ -41,4 +41,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/CEM/Scenes/Throne_Room.unity
     guid: 68d3736abd6e40f479d0fd572117f57d
+  - enabled: 1
+    path: Assets/CEM/Scenes/Menus/EndingScene.unity
+    guid: ae56b96627d612044a97e0e9ced5d289
+  - enabled: 1
+    path: Assets/CEM/Scenes/Menus/Credits_Scene.unity
+    guid: 0f02f66bc107fc649b0881b461a701aa
   m_configObjects: {}
