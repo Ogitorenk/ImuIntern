@@ -69,7 +69,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tokenUniqueID: 1
   collectSound: {fileID: 0}
-  collectParticlePrefab: {fileID: 0}
+  collectParticlePrefab: {fileID: 6954874385560561046, guid: 385c107e6fff4914fbaf254f73c1ad1c, type: 3}
   rotate: 1
   rotationSpeed: 100
   floatMovement: 1

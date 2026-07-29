@@ -33231,7 +33231,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9031208762655722718, guid: 6d5e99f1212cda44f96e7244171aa5f9, type: 3}
       propertyPath: dialogueSequence.Array.data[2].text
-      value: Forgive me, master... But all I see is rubble and broken stones.
+      value: Forgive me, mister... But all I see is rubble and broken stones.
       objectReference: {fileID: 0}
     - target: {fileID: 9031208762655722718, guid: 6d5e99f1212cda44f96e7244171aa5f9, type: 3}
       propertyPath: dialogueSequence.Array.data[2].speaker
@@ -148815,7 +148815,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6847402786881251710, guid: 03a382364099f7c4d87283509b6b8805, type: 3}
       propertyPath: dialogueSequence.Array.data[5].speaker
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6847402786881251710, guid: 03a382364099f7c4d87283509b6b8805, type: 3}
       propertyPath: dialogueSequence.Array.data[6].speaker
@@ -175352,7 +175352,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6847402786881251710, guid: 03a382364099f7c4d87283509b6b8805, type: 3}
       propertyPath: dialogueSequence.Array.data[2].text
-      value: Lady? Master, what are you doing? That is just a wooden training dummy...
+      value: Lady? Mister, what are you doing? That is just a wooden training dummy...
       objectReference: {fileID: 0}
     - target: {fileID: 6847402786881251710, guid: 03a382364099f7c4d87283509b6b8805, type: 3}
       propertyPath: dialogueSequence.Array.data[3].text
@@ -175373,7 +175373,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6847402786881251710, guid: 03a382364099f7c4d87283509b6b8805, type: 3}
       propertyPath: dialogueSequence.Array.data[7].text
-      value: Delicate flower?! Master, you are talking to a log with a painted smile!
+      value: Delicate flower?! Mister, you are talking to a log with a painted smile!
       objectReference: {fileID: 0}
     - target: {fileID: 6847402786881251710, guid: 03a382364099f7c4d87283509b6b8805, type: 3}
       propertyPath: dialogueSequence.Array.data[8].text
