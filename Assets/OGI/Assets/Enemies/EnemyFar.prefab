@@ -85,7 +85,7 @@ MonoBehaviour:
   visualBow: {fileID: 0}
   projectilePrefab: {fileID: 2814224581646524321, guid: 3714611654879814ba0368ae04962713, type: 3}
   shootSpawnPoint: {fileID: 3725770201353226158}
-  projectileSpeed: 15
+  projectileSpeed: 20
 --- !u!114 &7251950701774728432
 MonoBehaviour:
   m_ObjectHideFlags: 0
