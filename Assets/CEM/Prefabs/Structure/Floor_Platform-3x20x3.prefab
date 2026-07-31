@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 6725759541627832855}
   m_Layer: 3
   m_Name: Floor_Platform-3x20x3
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 19

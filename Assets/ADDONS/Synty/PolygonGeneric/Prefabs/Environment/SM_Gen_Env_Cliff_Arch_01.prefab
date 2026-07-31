@@ -45,6 +45,10 @@ PrefabInstance:
       value: SM_Gen_Env_Cliff_Arch_01
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 7dd872f3350a21f44815831e33aaa23d, type: 3}
+      propertyPath: m_TagString
+      value: Ground_Stone
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 7dd872f3350a21f44815831e33aaa23d, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 16
       objectReference: {fileID: 0}

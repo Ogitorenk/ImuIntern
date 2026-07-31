@@ -32,6 +32,8 @@ public class DualRealityManager : MonoBehaviour
 
     void Start()
     {
+        DynamicGI.UpdateEnvironment();
+        
         if (transitionOverlay != null)
         {
             Color c = transitionOverlay.color;
