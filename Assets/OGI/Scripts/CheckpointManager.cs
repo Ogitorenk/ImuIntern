@@ -15,9 +15,11 @@ public class CheckpointManager : MonoBehaviour
     [SerializeField] private GameProgressData progressData;
 
     public bool useInitialPositionAsCheckpoint = true;
-
-    // Şuan sahnede aktif olan checkpoint scriptini burada tutacağız kanka
     private Checkpoint activeCheckpointScript;
+
+    // --- KAPIDAN GELEN GEÇİCİ IŞINLANMA EMRI (STATİK) ---
+    private static bool manualSpawnOverrideActive = false;
+    private static Vector3 manualSpawnPosition;
 
     public int totalTokens { get { return progressData.totalTokens; } set { progressData.totalTokens = value; } }
 
@@ -35,11 +37,11 @@ public class CheckpointManager : MonoBehaviour
         }
     }
 
-    IEnumerator Start()
+    // SceneChanger veya ProgressionTrigger'ın çağıracağı statik emir metodu
+    public static void OverrideNextSpawn(Vector3 targetPos)
     {
-        yield return new WaitForEndOfFrame();
-        if (editorTestModu) yield break;
-        ApplyDataToSceneObjects();
+        manualSpawnOverrideActive = true;
+        manualSpawnPosition = targetPos;
     }
 
     private void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
@@ -47,10 +49,8 @@ public class CheckpointManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == "MainMenu") return; 
-        if (editorTestModu) return;
+        if (scene.name == "MainMenu" || editorTestModu) return;
 
-        // Sahne değiştiğinde eski referans çöp olacağı için temizliyoruz
         activeCheckpointScript = null;
 
         LoadDataFromDisk();
@@ -61,53 +61,110 @@ public class CheckpointManager : MonoBehaviour
     {
         if (editorTestModu) return;
 
+        // Sahnedeki diğer objelerin Start() metodlarının bitmesini beklemek için coroutine başlatıyoruz
+        StartCoroutine(ApplyDataRoutine());
+    }
+
+    private IEnumerator ApplyDataRoutine()
+    {
+        // Karakterlerin Start() kodlarının çalışıp bitmesini ve pozisyonu ezmesini engellemek için 1 frame bekle
+        yield return new WaitForEndOfFrame();
+
+        string currentSceneName = SceneManager.GetActiveScene().name;
+
         DonMovement don = FindObjectOfType<DonMovement>();
+        SanchoMovement sancho = FindObjectOfType<SanchoMovement>();
+
+        // -------------------------------------------------------------
+        // 1. ÖNCELİK: KAPIDAN GELDİK VE ÖZEL KOORDİNAT İSTENDİ
+        // -------------------------------------------------------------
+        if (manualSpawnOverrideActive)
+        {
+            Vector3 targetPos = manualSpawnPosition;
+
+            if (don != null) TeleportObject(don.gameObject, targetPos);
+            if (sancho != null) TeleportObject(sancho.gameObject, targetPos + new Vector3(1f, 0f, 0f));
+
+            Debug.Log($"<color=green>⚡ [CheckpointManager] KESİN EMİR: Kapı özel koordinatında spawn yapıldı: {targetPos}</color>");
+
+            // Emri kullandık, bayrağı indiriyoruz
+            manualSpawnOverrideActive = false;
+        }
+        // -------------------------------------------------------------
+        // 2. ÖNCELİK: KAPI EMRİ YOK, BU SAHNEYE AİT CHECKPOINT VAR
+        // -------------------------------------------------------------
+        else if (progressData.lastCheckpointPosition != Vector3.zero && progressData.lastSavedSceneName == currentSceneName)
+        {
+            Vector3 checkPos = progressData.lastCheckpointPosition;
+
+            if (don != null) TeleportObject(don.gameObject, checkPos);
+            if (sancho != null) TeleportObject(sancho.gameObject, checkPos + new Vector3(1f, 0f, 0f));
+
+            Debug.Log($"<color=cyan>🚩 [CheckpointManager] Sahne Checkpoint'inde Spawn Yapıldı: {checkPos}</color>");
+        }
+        // -------------------------------------------------------------
+        // 3. ÖNCELİK: NE KAPI EMRİ VAR NE CHECKPOINT (İLK DEFA GİRİLİYOR)
+        // -------------------------------------------------------------
+        else
+        {
+            Debug.Log($"<color=yellow>🏠 [CheckpointManager] Var olan checkpoint bu sahneye ait değil. Varsayılan konuma dokunulmadı.</color>");
+        }
+
+        // --- CAN VE POT YÜKLEMESİ ---
         if (don != null && donData != null)
         {
             don.currentHealth = donData.currentHealth;
             don.healthPotionCount = donData.healthPotionCount;
             don.slowPotionCount = donData.slowPotionCount;
-
-            if (progressData.lastCheckpointPosition != Vector3.zero)
-            {
-                don.transform.position = progressData.lastCheckpointPosition;
-            }
         }
 
-        SanchoMovement sancho = FindObjectOfType<SanchoMovement>();
         if (sancho != null && sanchoData != null)
         {
             sancho.currentHealth = sanchoData.currentHealth;
             sancho.healthPotionCount = sanchoData.healthPotionCount;
             sancho.slowPotionCount = sanchoData.slowPotionCount;
-
-            if (progressData.lastCheckpointPosition != Vector3.zero)
-            {
-                sancho.transform.position = progressData.lastCheckpointPosition + new Vector3(1f, 0f, 0f);
-            }
         }
 
         UpdateAllUI();
     }
 
-    // KODUNA EKLEDİĞİMİZ YENİ OVERLOAD METOD (Eski kodların patlamasın diye parametresiz halini de koruduk)
+    private void TeleportObject(GameObject obj, Vector3 targetPos)
+    {
+        // CharacterController varsa fiziği geçici kilitliyoruz
+        CharacterController cc = obj.GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+
+        // NavMeshAgent varsa durduruyoruz
+        UnityEngine.AI.NavMeshAgent agent = obj.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (agent != null) agent.enabled = false;
+
+        // Pozisyonu zorla çakıyoruz
+        obj.transform.position = targetPos;
+        Physics.SyncTransforms();
+
+        // Component'leri geri açıyoruz
+        if (cc != null) cc.enabled = true;
+        if (agent != null) 
+        {
+            agent.enabled = true;
+            agent.Warp(targetPos);
+        }
+    }
+
     public void UpdateCheckpoint(Vector3 newPos)
     {
         UpdateCheckpoint(newPos, null);
     }
 
-    // Asıl işi yapan yeni fonksiyonumuz
     public void UpdateCheckpoint(Vector3 newPos, Checkpoint newCheckpointScript)
     {
         if (progressData == null || donData == null || sanchoData == null) return;
 
-        // --- ESKİ BAYRAĞI İNDİRME MANTIĞI ---
         if (activeCheckpointScript != null && activeCheckpointScript != newCheckpointScript)
         {
             activeCheckpointScript.DeactivateCheckpoint();
         }
 
-        // Yeni checkpoint scriptini hafızaya alıyoruz
         activeCheckpointScript = newCheckpointScript;
 
         progressData.lastCheckpointPosition = newPos;
@@ -130,27 +187,20 @@ public class CheckpointManager : MonoBehaviour
         }
 
         SaveDataToDisk();
-        Debug.Log($"<color=cyan>🚩 [Checkpoint] {progressData.lastSavedSceneName} sahnesi, konum {newPos} kalıcı kaydedildi ve bayrak güncellendi!</color>");
+        Debug.Log($"<color=cyan>🚩 [Checkpoint] {progressData.lastSavedSceneName} sahnesi, konum {newPos} kalıcı kaydedildi!</color>");
     }
 
     public void RespawnResetStats()
     {
         if (donData == null || sanchoData == null) return;
 
-        // 1. Önce diskteki envanter, token ve son checkpoint pozisyonu verilerini geri yüklüyoruz.
         LoadDataFromDisk();
 
-        // 2. Diskten gelen eski/ölü can verisini zorla ezip karakterlerin canını maximuma çekiyoruz.
         donData.currentHealth = donData.maxHealth;
         sanchoData.currentHealth = sanchoData.maxHealth;
 
-        // 3. Bu temiz ve fullenmiş canları hemen diske geri kaydediyoruz ki bir sonraki sahne açılışında 0 gelmesin.
         SaveDataToDisk();
-
-        // 4. Şimdi sahnede canlı kanlı karakterlerin pozisyonunu ve canını verip UI'ı tazeleyebiliriz.
         ApplyDataToSceneObjects();
-
-        Debug.Log("<color=red>💀 [Respawn] Oyuncu öldü! Canlar zorla fullendi, envanter son checkpoint haline geri çekildi ve kaydedildi.</color>");
     }
 
     public void SaveDataToDisk()
@@ -182,7 +232,6 @@ public class CheckpointManager : MonoBehaviour
             );
             progressData.lastSavedSceneName = PlayerPrefs.GetString("SO_LastScene", "Level_1");
             
-            // 🎯 Eğer diskte daha önce kaydedilmiş bir can verisi bulunamazsa, 0 yerine direkt karakterlerin maksimum canını veriyoruz.
             donData.currentHealth = PlayerPrefs.GetFloat("SO_DonH", donData != null ? donData.maxHealth : 100f);
             donData.healthPotionCount = PlayerPrefs.GetInt("SO_DonHP", 0);
             donData.slowPotionCount = PlayerPrefs.GetInt("SO_DonSP", 0);
@@ -196,7 +245,6 @@ public class CheckpointManager : MonoBehaviour
         }
         else
         {
-            // Eğer ilk defa sahne yükleniyorsa ve kayıt hiç yoksa canları maksimumda başlatıyoruz.
             if (donData != null) donData.currentHealth = donData.maxHealth;
             if (sanchoData != null) sanchoData.currentHealth = sanchoData.maxHealth;
         }

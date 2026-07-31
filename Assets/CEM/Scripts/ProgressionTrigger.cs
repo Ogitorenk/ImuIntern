@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using Cinemachine;
-using UnityEngine.SceneManagement; // Sahne geçişi için eklendi
+using UnityEngine.SceneManagement;
 
 public class ProgressionTrigger : MonoBehaviour
 {
@@ -179,11 +179,11 @@ public class ProgressionTrigger : MonoBehaviour
         // Belirlenen süre kadar bekle (Ekran sarsıntısı ve ses efekti oynarken oyuncu hissiyatı alsın)
         yield return new WaitForSeconds(teleportDelay);
 
-        // Eğer SceneChanger'daki gibi özel doğma koordinatı kullanılıyorsa statik hafızaya aktar
+        // Özel doğma koordinatı işaretlendiyse emri statik olarak iletiyoruz
         if (ozelKoordinataIsinla)
         {
-            SceneChanger.ozelIsinlanmaAktif = true;
-            SceneChanger.transferKoordinat = hedefKoordinat;
+            CheckpointManager.OverrideNextSpawn(hedefKoordinat);
+            Debug.Log($"<color=orange>🚀 [ProgressionTrigger] Otomatik geçiş için özel doğma emri kilitlendi: {hedefKoordinat}</color>");
         }
 
         // LoadingManager var ise onunla, yoksa doğrudan sahne geçişi yap
