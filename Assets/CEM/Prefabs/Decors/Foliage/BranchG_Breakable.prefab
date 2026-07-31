@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6485768574244641689}
   m_Layer: 0
   m_Name: BranchG_Breakable
-  m_TagString: Untagged
+  m_TagString: Ground_Wood
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -254,6 +254,10 @@ PrefabInstance:
     - target: {fileID: 998138123944085420, guid: 965e2949488a33f4081ac464f5035e28, type: 3}
       propertyPath: m_Name
       value: BranchG
+      objectReference: {fileID: 0}
+    - target: {fileID: 998138123944085420, guid: 965e2949488a33f4081ac464f5035e28, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
       objectReference: {fileID: 0}
     - target: {fileID: 998138123944085420, guid: 965e2949488a33f4081ac464f5035e28, type: 3}
       propertyPath: m_StaticEditorFlags

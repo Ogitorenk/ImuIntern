@@ -53,7 +53,7 @@ public class MainMenuManager : MonoBehaviour
 
     public void OnAreYouSureYes()
     {
-        ClearAllSaveData(); // Eski tüm verileri diskten ve RAM'den tamamen kazıyoruz
+        ClearAllSaveData(); // Eski tüm verileri diskten tamamen kazıyoruz
         StartNewGame();
     }
 
@@ -91,26 +91,12 @@ public class MainMenuManager : MonoBehaviour
 
     private void ClearAllSaveData()
     {
-        // 1. Tüm anahtarları tamamen siliyoruz ki çakışma yaşanmasın kanka
-        PlayerPrefs.DeleteKey("HasSaveData");
-        PlayerPrefs.DeleteKey("SO_LastScene");
-        PlayerPrefs.DeleteKey("SO_CheckX");
-        PlayerPrefs.DeleteKey("SO_CheckY");
-        PlayerPrefs.DeleteKey("SO_CheckZ");
-        PlayerPrefs.DeleteKey("SO_Tokens");
-        
-        PlayerPrefs.DeleteKey("SO_DonH");
-        PlayerPrefs.DeleteKey("SO_DonHP");
-        PlayerPrefs.DeleteKey("SO_DonSP");
-        PlayerPrefs.DeleteKey("SO_SanH");
-        PlayerPrefs.DeleteKey("SO_SanHP");
-        PlayerPrefs.DeleteKey("SO_SanSP");
-        PlayerPrefs.DeleteKey("SO_SanArrows");
-        
+        // 1. TÜM PLAYERPREFS VERİLERİNİ (Sinematikler, Tokenlar, Kayıtlar) TAMAMEN SİLİYORUZ
+        PlayerPrefs.DeleteAll();
         PlayerPrefs.Save();
 
-        // 2. 🎯 [RAM TEMİZLİĞİ VE GARANTİ CAN AYARI] 
-        // Editördeki veya ScriptableObject'teki hatalı 0 değerlerini ezmek için 100f değerini sertçe yazıyoruz.
+        // 2. 🎯 [GARANTİ CAN VE ENVANTER AYARI] 
+        // Editördeki veya ScriptableObject'teki verileri başlangıç değerlerine çekiyoruz.
         if (donData != null)
         {
             donData.maxHealth = 100f;
@@ -129,7 +115,7 @@ public class MainMenuManager : MonoBehaviour
             sanchoData.arrowCount = 30;    // Yeni oyundaki mevcut ok sayısı
         }
 
-        Debug.Log("<color=green>✨ [New Game] Disk sıfırlandı. Don ve Sancho 100 can ile pürüzsüzce hazırlandı!</color>");
+        Debug.Log("<color=green>✨ [New Game] PlayerPrefs tamamen sıfırlandı! Sinematikler ve tokenlar yeniden aktif.</color>");
     }
 
     private void LoadTargetScene(string sceneName)
