@@ -160,7 +160,6 @@ MonoBehaviour:
   itemsToDrop:
   - {fileID: 5688574476231832260, guid: 1bd1bd49047570248bdbe7d7745b1eb8, type: 3}
   - {fileID: 1742416177655237625, guid: 8e4cdc62cd27d4c4f83bc4c75db866c3, type: 3}
-  - {fileID: 8640468975343200398, guid: d196e6c661580ca488b3b790c214d07b, type: 3}
   dropChance: 80
   respawnable: 0
   respawnTime: 3

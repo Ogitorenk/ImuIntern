@@ -4,33 +4,30 @@ using UnityEngine.SceneManagement;
 public class SceneChanger : MonoBehaviour
 {
     [Header("Sahne Ayarları")]
-    [Tooltip("Geçiş yapılacak sahnenin tam adını buraya yazın.")]
     public string targetSceneName;
 
-    [Header("Spesifik Doğma Ayarı (Opsiyonel)")]
+    [Header("Spesifik Doğma Ayarı")]
     public bool ozelKoordinataIsinla = false;
-    [Tooltip("Oyuncunun hedef sahnede doğmasını istediğin X, Y, Z koordinatları.")]
     public Vector3 hedefKoordinat;
 
-    // Diğer scriptlerin okuyabilmesi için statik (sabit) değişkenler
-    public static bool ozelIsinlanmaAktif = false;
-    public static Vector3 transferKoordinat;
+    private bool isTransitioning = false;
 
     private void OnTriggerEnter(Collider other)
     {
+        if (isTransitioning) return;
+
         if (other.CompareTag("Player"))
         {
             if (!string.IsNullOrEmpty(targetSceneName))
             {
-                // Eğer özel koordinat kutucuğunu işaretlediysen, bilgileri statik hafızaya alıyoruz
+                isTransitioning = true;
+
+                // Özel koordinat kutusu işaretliyse doğrudan CheckpointManager'a emri çakıyoruz
                 if (ozelKoordinataIsinla)
                 {
-                    ozelIsinlanmaAktif = true;
-                    transferKoordinat = hedefKoordinat;
-                    Debug.Log($"<color=orange>🚀 [Işınlanma Hazır] Hedef sahneye şu koordinat gönderildi: {hedefKoordinat}</color>");
+                    CheckpointManager.OverrideNextSpawn(hedefKoordinat);
+                    Debug.Log($"<color=orange>🚀 [SceneChanger] Geçici doğma konumu set edildi: {hedefKoordinat}</color>");
                 }
-
-                Debug.Log(targetSceneName + " sahnesine LoadingManager ile pürüzsüz geçiş yapılıyor...");
 
                 if (LoadingManager.Instance != null)
                 {
@@ -41,10 +38,11 @@ public class SceneChanger : MonoBehaviour
                     SceneManager.LoadScene(targetSceneName);
                 }
             }
-            else
-            {
-                Debug.LogWarning("Hedef sahne adı boş bırakılmış!");
-            }
         }
+    }
+
+    private void OnDisable()
+    {
+        isTransitioning = false;
     }
 }

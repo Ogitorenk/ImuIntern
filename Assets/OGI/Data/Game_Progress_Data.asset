@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Game_Progress_Data
   m_EditorClassIdentifier: 
   totalTokens: 0
-  lastCheckpointPosition: {x: 134.21196, y: 1.975, z: 130.01398}
-  lastSavedSceneName: Right_Section
+  lastCheckpointPosition: {x: 0, y: 0, z: 0}
+  lastSavedSceneName: IntroScene
   isLeftBossDefeated: 0
   isFirstIronGateOpen: 0
   isRightBossDefeated: 0
