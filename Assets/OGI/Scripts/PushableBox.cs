@@ -17,6 +17,11 @@ public class PushableBox : MonoBehaviour
     public float stepHeight = 0.5f;
     public float stepSmooth = 5f;
 
+    [Header("--- Ses Ayarları ---")]
+    [Tooltip("Kutu itilirken sesin kaç saniyede bir tekrar çalacağını ayarlar kanka.")]
+    public float soundRepeatInterval = 3.5f;
+    private float soundTimer = 0f;
+
     private bool isGrabbed = false;
     private Transform playerTransform;
     private CharacterController playerCC;
@@ -38,6 +43,9 @@ public class PushableBox : MonoBehaviour
     private Quaternion initialRotation;
     public static List<PushableBox> allBoxes = new List<PushableBox>();
 
+    // === KUTU İTME SESİ İÇİN ÖZEL SES CİHAZI ===
+    private AudioSource boxAudioSource;
+
     void Awake()
     {
         if (!allBoxes.Contains(this)) allBoxes.Add(this);
@@ -57,6 +65,12 @@ public class PushableBox : MonoBehaviour
         rb.mass = 99999f;
         rb.drag = 0f;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
+
+        // Kutu itme ses cihazını kuruyoruz kanka
+        boxAudioSource = gameObject.AddComponent<AudioSource>();
+        boxAudioSource.loop = false; // Sürekli loop yapmasın, zamanlayıcı ile çalacağız kanka!
+        boxAudioSource.playOnAwake = false;
+        boxAudioSource.spatialBlend = 0.5f;
 
         if (DualRealityManager.Instance != null)
         {
@@ -142,15 +156,35 @@ public class PushableBox : MonoBehaviour
             playerCC.Move(moveDir * Time.deltaTime);
 
             // ========================================================
-            // --- YENİ EKLENDİ: KUTU İTTİRME SES SİHRİ ---
+            // --- GÜNCELLENDİ: 3-4 SANİYEDE BİR RİTMİK ÇALAN SES SİSTEMİ ---
             // ========================================================
-            // Karakter gerçekten kutuyu ileri/geri hareket ettiriyorsa sesi çal kanka!
-            if (Mathf.Abs(vertical) > 0.01f && AudioManager.Instance != null)
+            if (Mathf.Abs(vertical) > 0.01f && AudioManager.Instance != null && AudioManager.Instance.boxPushSound != null)
             {
-                // Sesi kulağı tırmalamasın diye her 25 karede bir tetikliyoruz kanka
-                if (Time.frameCount % 25 == 0)
+                soundTimer -= Time.deltaTime;
+
+                // Zamanlayıcı dolduysa veya henüz ilk harekete başladıysak sesi çal kanka!
+                if (soundTimer <= 0f)
                 {
-                    AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.4f);
+                    if (boxAudioSource.clip != AudioManager.Instance.boxPushSound)
+                    {
+                        boxAudioSource.clip = AudioManager.Instance.boxPushSound;
+                    }
+
+                    boxAudioSource.volume = AudioManager.Instance.boxPushVolume;
+                    boxAudioSource.Play();
+
+                    // Zamanlayıcıyı 3.5 saniyeye kuruyoruz kanka
+                    soundTimer = soundRepeatInterval;
+                }
+            }
+            else
+            {
+                // Tuşu bıraktığı an zamanlayıcıyı sıfırla ki tekrar basınca beklemeden hemen çalsın kanka
+                soundTimer = 0f;
+
+                if (boxAudioSource != null && boxAudioSource.isPlaying)
+                {
+                    boxAudioSource.Stop();
                 }
             }
             // ========================================================
@@ -161,6 +195,14 @@ public class PushableBox : MonoBehaviour
             }
 
             UpdateGrabbedPlatformMemory();
+        }
+        else
+        {
+            soundTimer = 0f;
+            if (boxAudioSource != null && boxAudioSource.isPlaying)
+            {
+                boxAudioSource.Stop();
+            }
         }
     }
 
@@ -314,6 +356,12 @@ public class PushableBox : MonoBehaviour
         isGrabbed = false;
         grabbedPlatform = null;
 
+        soundTimer = 0f;
+        if (boxAudioSource != null && boxAudioSource.isPlaying)
+        {
+            boxAudioSource.Stop();
+        }
+
         if (DualRealityManager.Instance != null) DualRealityManager.Instance.canSwitch = true;
 
         if (playerAnimator != null) playerAnimator.SetBool("isHoldingBox", false);
@@ -390,6 +438,12 @@ public class PushableBox : MonoBehaviour
         if (isGrabbed)
         {
             ReleaseBox();
+        }
+
+        soundTimer = 0f;
+        if (boxAudioSource != null && boxAudioSource.isPlaying)
+        {
+            boxAudioSource.Stop();
         }
 
         transform.position = initialPosition;

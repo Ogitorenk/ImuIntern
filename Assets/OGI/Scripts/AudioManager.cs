@@ -9,39 +9,77 @@ public class AudioManager : MonoBehaviour
     public AudioClip[] footstepDirt;
     public AudioClip[] footstepStone;
     public AudioClip[] footstepWood;
+    [Range(0f, 1f)] public float footstepVolume = 0.4f;
 
     public AudioClip donJumpSound;
+    [Range(0f, 1f)] public float donJumpVolume = 1f;
+
     public AudioClip sanchoJumpSound;
+    [Range(0f, 1f)] public float sanchoJumpVolume = 1f;
+
     public AudioClip landSound;
+    [Range(0f, 1f)] public float landVolume = 0.8f;
+
     public AudioClip boxPushSound;
+    [Range(0f, 1f)] public float boxPushVolume = 0.5f;
+
     public AudioClip leverSound;
+    [Range(0f, 1f)] public float leverVolume = 1f;
 
     [Tooltip("Ezici tuzak aþaðý küt diye inerken çalacak smash sesi kanka")]
     public AudioClip crusherSound;
+    [Range(0f, 1f)] public float crusherVolume = 1f;
+
+    [Tooltip("Duvar pistonu fýrlarken çalacak push sesi kanka")]
+    public AudioClip pusherSound;
+    [Range(0f, 1f)] public float pusherVolume = 1f;
 
     [Header("--- AKSÝYON SESLERÝ ---")]
     public AudioClip donDamageSound;
+    [Range(0f, 1f)] public float donDamageVolume = 1f;
+
     public AudioClip sanchoDamageSound;
+    [Range(0f, 1f)] public float sanchoDamageVolume = 1f;
+
     public AudioClip shieldBlockSound;
+    [Range(0f, 1f)] public float shieldBlockVolume = 1f;
+
     public AudioClip dodgeSound;
+    [Range(0f, 1f)] public float dodgeVolume = 0.8f;
+
     public AudioClip donMeleeSound;
+    [Range(0f, 1f)] public float donMeleeVolume = 1f;
+
     public AudioClip sanchoMeleeSound;
+    [Range(0f, 1f)] public float sanchoMeleeVolume = 1f;
+
     public AudioClip lanceThrowSound;
+    [Range(0f, 1f)] public float lanceThrowVolume = 1f;
+
     public AudioClip arrowShootSound;
+    [Range(0f, 1f)] public float arrowShootVolume = 1f;
+
     public AudioClip drinkPotionSound;
+    [Range(0f, 1f)] public float drinkPotionVolume = 1f;
 
     [Header("--- ÖLÜM SESLERÝ ---")]
     [Tooltip("Don Kiþot öldüðünde çalacak ses kanka")]
     public AudioClip donDeathSound;
+    [Range(0f, 1f)] public float donDeathVolume = 1f;
+
     [Tooltip("Sancho öldüðünde çalacak ses kanka")]
     public AudioClip sanchoDeathSound;
+    [Range(0f, 1f)] public float sanchoDeathVolume = 1f;
 
-    // === SPAM ENGELLEME SÝHRÝ: Her sesin son oynatýlma zamanýný tutan liste ===
+    // === SPAM ENGELLEME SÝHRÝ ===
     private Dictionary<AudioClip, float> soundCooldowns = new Dictionary<AudioClip, float>();
 
     [Header("Spam Hassasiyet Ayarý")]
     [Tooltip("Ayný ses klibinin tekrar çalabilmesi için aradan geçmesi gereken minimum saniye kanka.")]
     public float globalSpamCooldown = 0.15f;
+
+    private AudioSource loopAudioSource;
+    private AudioSource footstepAudioSource; // === YENÝ: ADIMLAR ÝÇÝN ÖZEL SABÝT KANAL ===
 
     private void Awake()
     {
@@ -49,6 +87,15 @@ public class AudioManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            loopAudioSource = gameObject.AddComponent<AudioSource>();
+            loopAudioSource.loop = true;
+            loopAudioSource.playOnAwake = false;
+
+            // Adým seslerinin arkada asýlý kalmasýný önleyen sabit kanal kanka
+            footstepAudioSource = gameObject.AddComponent<AudioSource>();
+            footstepAudioSource.loop = false;
+            footstepAudioSource.playOnAwake = false;
         }
         else
         {
@@ -56,70 +103,96 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // === AKILLI HASAR VE ÖLÜM SES SÝSTEMÝ ===
-    // Karakter hasar aldýðýnda kendi can scriptinden bu fonksiyonu çaðýr kanka.
-    // Örnek kullaným: AudioManager.Instance.PlayCharacterDamageOrDeath("Don", currentHealth, position);
-    public void PlayCharacterDamageOrDeath(string characterName, float currentHealth, Vector3 position = default, float volume = 1f)
+    public void PlayBoxPushSound(Vector3 position)
     {
-        if (characterName == "Don")
+        if (boxPushSound == null) return;
+
+        float customBoxCooldown = 1.0f;
+
+        if (soundCooldowns.TryGetValue(boxPushSound, out float lastPlayedTime))
         {
-            if (currentHealth <= 0)
+            if (Time.time - lastPlayedTime < customBoxCooldown)
             {
-                // Caný sýfýra veya altýna düþtüyse sadece ölüm sesini çal
-                PlaySound(donDeathSound, position, volume);
-            }
-            else
-            {
-                // Hala yaþýyorsa normal hasar sesini çal
-                PlaySound(donDamageSound, position, volume);
+                return;
             }
         }
-        else if (characterName == "Sancho")
+
+        soundCooldowns[boxPushSound] = Time.time;
+
+        if (Camera.main != null)
         {
-            if (currentHealth <= 0)
-            {
-                PlaySound(sanchoDeathSound, position, volume);
-            }
-            else
-            {
-                PlaySound(sanchoDamageSound, position, volume);
-            }
+            AudioSource.PlayClipAtPoint(boxPushSound, position, boxPushVolume);
         }
     }
 
-    // 2D veya 3D ses çalma fonksiyonu (Konum verilirse 3D, verilmezse 2D çalar kanka)
-    public void PlaySound(AudioClip clip, Vector3 position = default, float volume = 1f)
+    public void PlayLoopingSound(AudioClip clip, float volume = -1f)
     {
         if (clip == null) return;
 
-        // === SPAM KORUMASI KONTROLÜ KANKA ===
+        if (loopAudioSource.isPlaying && loopAudioSource.clip == clip)
+        {
+            return;
+        }
+
+        float finalVolume = (volume < 0f) ? GetVolumeForClip(clip) : volume;
+
+        loopAudioSource.clip = clip;
+        loopAudioSource.volume = finalVolume;
+        loopAudioSource.Play();
+    }
+
+    public void StopLoopingSound()
+    {
+        if (loopAudioSource != null && loopAudioSource.isPlaying)
+        {
+            loopAudioSource.Stop();
+            loopAudioSource.clip = null;
+        }
+    }
+
+    public void PlayCharacterDamageOrDeath(string characterName, float currentHealth, Vector3 position = default)
+    {
+        if (characterName == "Don")
+        {
+            if (currentHealth <= 0) PlaySound(donDeathSound, position, donDeathVolume);
+            else PlaySound(donDamageSound, position, donDamageVolume);
+        }
+        else if (characterName == "Sancho")
+        {
+            if (currentHealth <= 0) PlaySound(sanchoDeathSound, position, sanchoDeathVolume);
+            else PlaySound(sanchoDamageSound, position, sanchoDamageVolume);
+        }
+    }
+
+    public void PlaySound(AudioClip clip, Vector3 position = default, float volume = -1f)
+    {
+        if (clip == null) return;
+
         if (soundCooldowns.TryGetValue(clip, out float lastPlayedTime))
         {
-            // Eðer sesten hemen sonra geçen süre belirlediðimiz cooldown'dan küçükse sesi çalma, engelle kanka!
             if (Time.time - lastPlayedTime < globalSpamCooldown)
             {
                 return;
             }
         }
 
-        // Zamaný güncelle veya yoksa listeye ekle
         soundCooldowns[clip] = Time.time;
 
-        // Oynatma mantýðý canavar gibi devam ediyor kanka:
+        float finalVolume = (volume < 0f) ? GetVolumeForClip(clip) : volume;
+
         if (position == default)
         {
             if (Camera.main != null)
             {
-                AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position, volume);
+                AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position, finalVolume);
             }
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, position, volume);
+            AudioSource.PlayClipAtPoint(clip, position, finalVolume);
         }
     }
 
-    // Yürüme sesleri tek düze olmasýn diye diziden rastgele ses seçen özel fonksiyon
     public void PlayFootstep(string groundTag, Vector3 position)
     {
         AudioClip[] targetArray = null;
@@ -133,14 +206,47 @@ public class AudioManager : MonoBehaviour
 
         if (targetArray != null && targetArray.Length > 0)
         {
-            ClipAndPlayRandom(targetArray, position);
+            AudioClip randomClip = targetArray[Random.Range(0, targetArray.Length)];
+            if (randomClip != null)
+            {
+                footstepAudioSource.transform.position = position;
+                footstepAudioSource.volume = footstepVolume;
+                footstepAudioSource.PlayOneShot(randomClip); // Sabit kanal üzerinden çal
+            }
         }
     }
 
-    private void ClipAndPlayRandom(AudioClip[] targetArray, Vector3 position)
+    // === ADIM SESÝNÝ ANINDA KESEN SABÝT KANAL METODU ===
+    public void StopFootsteps()
     {
-        AudioClip randomClip = targetArray[Random.Range(0, targetArray.Length)];
-        // Yürüme sesleri PlaySound üzerinden geçeceði için burasý da otomatik spam filtreli kanka!
-        PlaySound(randomClip, position, 0.4f);
+        if (footstepAudioSource != null && footstepAudioSource.isPlaying)
+        {
+            footstepAudioSource.Stop(); // Durduðun an adýmlarý býçak gibi keser kanka!
+        }
+        soundCooldowns.Clear();
+    }
+
+    private float GetVolumeForClip(AudioClip clip)
+    {
+        if (clip == donJumpSound) return donJumpVolume;
+        if (clip == sanchoJumpSound) return sanchoJumpVolume;
+        if (clip == landSound) return landVolume;
+        if (clip == boxPushSound) return boxPushVolume;
+        if (clip == leverSound) return leverVolume;
+        if (clip == crusherSound) return crusherVolume;
+        if (clip == pusherSound) return pusherVolume;
+        if (clip == donDamageSound) return donDamageVolume;
+        if (clip == sanchoDamageSound) return sanchoDamageVolume;
+        if (clip == shieldBlockSound) return shieldBlockVolume;
+        if (clip == dodgeSound) return dodgeVolume;
+        if (clip == donMeleeSound) return donMeleeVolume;
+        if (clip == sanchoMeleeSound) return sanchoMeleeVolume;
+        if (clip == lanceThrowSound) return lanceThrowVolume;
+        if (clip == arrowShootSound) return arrowShootVolume;
+        if (clip == drinkPotionSound) return drinkPotionVolume;
+        if (clip == donDeathSound) return donDeathVolume;
+        if (clip == sanchoDeathSound) return sanchoDeathVolume;
+
+        return 1f;
     }
 }

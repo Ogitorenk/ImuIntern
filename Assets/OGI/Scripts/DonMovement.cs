@@ -786,6 +786,17 @@ public class DonMovement : MonoBehaviour, IDamageable
             }
         }
 
+        // === IDLE / DURMA KONTROLÜ (TUŞLAR BIRAKILDIĞINDA ADIM SESİNİ SIFIRLAR KANKA) ===
+        float rawH = Input.GetAxisRaw("Horizontal");
+        float rawV = Input.GetAxisRaw("Vertical");
+        if (Mathf.Abs(rawH) < 0.05f && Mathf.Abs(rawV) < 0.05f)
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopFootsteps();
+            }
+        }
+
         if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && !isDashing && !isDodging && landStunTimer <= 0 && !isZiplining && !isDrinking && !isCrouchToggled && !isAttacking && !isBlocking && currentHealth > 0)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -823,15 +834,28 @@ public class DonMovement : MonoBehaviour, IDamageable
     }
 
     // ==============================================================================
-    // === ANIMASYONDAN GELECEK ADIM SESİ RADARI (3 ZEMİN AYIRTMALI) ===
+    // === EN NET VE KARARLI ADIM SESİ RADARI ===
     // ==============================================================================
     public void PlayFootstepSound()
     {
+        // 1. Klavye Tuş Kontrolü (W, A, S, D basılıyor mu?)
         float inputX = Input.GetAxisRaw("Horizontal");
         float inputZ = Input.GetAxisRaw("Vertical");
         bool isMovingInput = (Mathf.Abs(inputX) > 0.05f || Mathf.Abs(inputZ) > 0.05f);
 
-        if (!isGrounded || !isMovingInput) return;
+        // 2. Karakterin Gerçek Fiziksel Hızı (W'dan elini çektiğin an hız 0.0f olur)
+        bool isPhysicallyMoving = controller != null && controller.velocity.magnitude > 0.1f;
+
+        // EĞER HAVADA DEĞİLSEK VE (TUŞA BASILIYORSA VEYA KARAKTER HAREKET EDİYORSA) SES ÇAL!
+        // W'dan elini çektiğin an isMovingInput false olur, velocity de 0'a düşer ve ses ANINDA KESİLİR.
+        if (!isGrounded || (!isMovingInput && !isPhysicallyMoving))
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopFootsteps();
+            }
+            return;
+        }
 
         RaycastHit hit;
         if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, 1f, groundMask, QueryTriggerInteraction.Ignore))

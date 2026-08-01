@@ -14,75 +14,47 @@ public class CrusherTrap : MonoBehaviour
     [Tooltip("Oyun başladığında kaç saniye bekleyip harekete geçsin? (Sıralı dizim için)")]
     public float startDelay = 0f;
 
-    [Header("Oyuncu Tabanlı Kodsal Ses Ayarları (Yeni)")]
+    [Header("Ses Menzil Ayarları (Büyütüldü)")]
     [Tooltip("Sesin duyulmaya başlayacağı maksimum mesafe kanka.")]
-    public float maxAudioDistance = 15f;
+    public float maxAudioDistance = 35f; // Menzil 35 metreye çıkarıldı!
 
     private Vector3 startPos;
     private Vector3 targetPos;
-    private AudioSource myAudioSource;
-    private Transform playerTransform; // Sahnede aktif olan oyuncunun transformu kanka
+    private Transform playerTransform;
 
     void Start()
     {
         startPos = transform.position;
         targetPos = startPos + (Vector3.down * dropDistance);
 
-        // Ses cihazını tuzağın üzerine kuruyoruz kanka
-        SetupAudioSource();
-
-        // Coroutine ile döngüyü başlatıyoruz
         StartCoroutine(CrusherRoutine());
-    }
-
-    private void SetupAudioSource()
-    {
-        myAudioSource = GetComponent<AudioSource>();
-        if (myAudioSource == null)
-        {
-            myAudioSource = gameObject.AddComponent<AudioSource>();
-        }
-
-        if (AudioManager.Instance != null && AudioManager.Instance.crusherSound != null)
-        {
-            myAudioSource.clip = AudioManager.Instance.crusherSound;
-        }
-
-        // Kanka madem sesi tamamen kodla yöneteceğiz, Unity'nin kendi iç sönümlemesini 
-        // devre dışı bırakmak için spatialBlend'i 0.5f yapıyoruz. %50 yön hissi kalırken ses asla kesilmez!
-        myAudioSource.spatialBlend = 0.5f;
-        myAudioSource.playOnAwake = false;
-        myAudioSource.loop = false;
     }
 
     void Update()
     {
-        // === TAM İSTEDİĞİN DINAMIK MESAFE FORMÜLÜ KANKA ===
-        // Eğer sahnede oyuncu transformu henüz bulunmadıysa veya karakter değiştiyse Player tag'li objeyi bul kanka
+        // Sahnede aktif olan oyuncuyu canlı tespit etme
         if (playerTransform == null || !playerTransform.gameObject.activeInHierarchy)
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
+            DonMovement don = FindObjectOfType<DonMovement>();
+            if (don != null && don.gameObject.activeInHierarchy)
             {
-                playerTransform = playerObj.transform;
-            }
-        }
-
-        // Oyuncu sahnede aktifse tuzağa olan mesafesine göre sesi anlık güncelle kanka küt diye çözülsün
-        if (playerTransform != null && myAudioSource != null)
-        {
-            float distance = Vector3.Distance(transform.position, playerTransform.position);
-
-            if (distance <= maxAudioDistance)
-            {
-                // İstediğin o matematiksel formül kanka: Mesafe 0'a yaklaştıkça volume 1'e yaklaşır!
-                float customVolume = 1f - (distance / maxAudioDistance);
-                myAudioSource.volume = Mathf.Clamp(customVolume, 0f, 1f);
+                playerTransform = don.transform;
             }
             else
             {
-                // Menzilin dışındaysa ses şiddetini zınk diye sıfırla, haritanın ucuna taşmasın kanka
-                myAudioSource.volume = 0f;
+                SanchoMovement sancho = FindObjectOfType<SanchoMovement>();
+                if (sancho != null && sancho.gameObject.activeInHierarchy)
+                {
+                    playerTransform = sancho.transform;
+                }
+                else
+                {
+                    GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+                    if (playerObj != null && playerObj.activeInHierarchy)
+                    {
+                        playerTransform = playerObj.transform;
+                    }
+                }
             }
         }
     }
@@ -93,38 +65,64 @@ public class CrusherTrap : MonoBehaviour
 
         while (true)
         {
-            // === SES TETİKLENME NOKTASI ===
-            // Update fonksiyonu volume değerini o salisede milimetrik ayarladığı için burası sadece Play diyecek kanka
-            if (myAudioSource != null && myAudioSource.clip != null && myAudioSource.volume > 0.05f)
-            {
-                myAudioSource.Play();
-            }
+            // === KÜT DİYE İNME ANI: SIFIR HATA İLE SES ÇALDIRMA ===
+            PlayCrusherSoundByPlayerDistance();
 
-            // 2. İNİŞ (SMASH)
+            // 1. İNİŞ (SMASH)
             while (Vector3.Distance(transform.position, targetPos) > 0.05f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPos, dropSpeed * Time.deltaTime);
                 yield return null;
             }
 
-            // 3. YERDE BEKLEME
+            // 2. YERDE BEKLEME
             yield return new WaitForSeconds(downWaitTime);
 
-            // 4. KALKIŞ (RESET)
+            // 3. KALKIŞ (RESET)
             while (Vector3.Distance(transform.position, startPos) > 0.05f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, startPos, riseSpeed * Time.deltaTime);
                 yield return null;
             }
 
-            // 5. TAVANDA BEKLEME
+            // 4. TAVANDA BEKLEME
             yield return new WaitForSeconds(upWaitTime);
         }
     }
 
+    private void PlayCrusherSoundByPlayerDistance()
+    {
+        if (AudioManager.Instance == null || AudioManager.Instance.crusherSound == null) return;
+
+        if (playerTransform != null && playerTransform.gameObject.activeInHierarchy)
+        {
+            float distance = Vector3.Distance(transform.position, playerTransform.position);
+
+            // Eğer oyuncu belirlenen menzildeyse sesi mesafeye göre pürüzsüzce ayarla
+            if (distance <= maxAudioDistance)
+            {
+                float baseVolume = AudioManager.Instance.crusherVolume;
+
+                // DOYGUN SES EĞRİSİ: Yakındayken ses hemen %100 olur, uzaklaşınca yavaşça düşer kanka!
+                float linearProximity = 1f - (distance / maxAudioDistance);
+                float boostedProximity = Mathf.Sqrt(linearProximity); // Yakınlarda ses artık çok daha gür!
+
+                float finalVolume = Mathf.Clamp01(boostedProximity * baseVolume);
+
+                if (finalVolume > 0.001f)
+                {
+                    AudioManager.Instance.PlaySound(AudioManager.Instance.crusherSound, transform.position, finalVolume);
+                }
+            }
+        }
+    }
+
+    // ==============================================================================
+    // === ÖLÜM KONTROLÜ (SADECE TUZAĞIN BİZZAT ALTINDAKİ FİZİKSEL TEMAS) ===
+    // ==============================================================================
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
         {
             if (other.TryGetComponent(out DonMovement don)) don.TakeDamage(999f);
             else if (other.TryGetComponent(out SanchoMovement sancho)) sancho.TakeDamage(999f);

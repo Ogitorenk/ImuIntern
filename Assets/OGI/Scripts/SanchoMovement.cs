@@ -581,20 +581,19 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
         }
 
-        // === KUTU İTME SES ENTEGRASYONU ===
-        if (isHoldingBox && isGrounded)
-        {
-            Vector3 horizontalVelocity = new Vector3(controller.velocity.x, 0f, controller.velocity.z);
+        // ==============================================================================
+        // === KUTU İTME SES ENTEGRASYONU (GÜNCELLENDİ: 1s MÜHÜRLÜ RİTMİK SES) ===
+        // ==============================================================================
+        float boxInputX = Input.GetAxisRaw("Horizontal");
+        float boxInputZ = Input.GetAxisRaw("Vertical");
+        bool isMovingInputForBox = (Mathf.Abs(boxInputX) > 0.1f || Mathf.Abs(boxInputZ) > 0.1f);
 
-            if (horizontalVelocity.magnitude > 0.1f)
+        if (isHoldingBox && isGrounded && isMovingInputForBox)
+        {
+            if (AudioManager.Instance != null)
             {
-                if (AudioManager.Instance != null)
-                {
-                    if (Time.frameCount % 25 == 0)
-                    {
-                        AudioManager.Instance.PlaySound(AudioManager.Instance.boxPushSound, transform.position, 0.4f);
-                    }
-                }
+                // AudioManager kendi içindeki 1.0s saniyelik mühürle sesi pürüzsüz ritmle çalacak kanka!
+                AudioManager.Instance.PlayBoxPushSound(transform.position);
             }
         }
 
@@ -619,6 +618,17 @@ public class SanchoMovement : MonoBehaviour, IDamageable
             }
 
             animator.SetBool("isRepairing", isRepairing);
+        }
+
+        // === IDLE / DURMA KONTROLÜ (SANCHO DURDUĞUNDA ADIM SESİNİ SIFIRLAR) ===
+        float rawH = Input.GetAxisRaw("Horizontal");
+        float rawV = Input.GetAxisRaw("Vertical");
+        if (Mathf.Abs(rawH) < 0.05f && Mathf.Abs(rawV) < 0.05f)
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopFootsteps();
+            }
         }
 
         if (isControlled && Input.GetButtonDown("Jump") && jumpCount < maxJumps && landStunTimer <= 0 && !isZiplining && !isHoldingBox && !isDrinking && !isRepairing && !isCrouchToggled && !isDodging && !isAttacking && !isAiming)
@@ -657,13 +667,29 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         if (controller.enabled) controller.Move(velocity * Time.deltaTime);
     }
 
+    // ==============================================================================
+    // === EN NET VE KARARLI ADIM SESİ RADARI ===
+    // ==============================================================================
     public void PlayFootstepSound()
     {
+        // 1. Klavye Tuş Kontrolü (W, A, S, D basılıyor mu?)
         float inputX = Input.GetAxisRaw("Horizontal");
         float inputZ = Input.GetAxisRaw("Vertical");
         bool isMovingInput = (Mathf.Abs(inputX) > 0.05f || Mathf.Abs(inputZ) > 0.05f);
 
-        if (!isGrounded || !isMovingInput) return;
+        // 2. Karakterin Gerçek Fiziksel Hızı (W'dan elini çektiğin an hız 0.0f olur)
+        bool isPhysicallyMoving = controller != null && controller.velocity.magnitude > 0.1f;
+
+        // EĞER HAVADA DEĞİLSEK VE (TUŞA BASILIYORSA VEYA KARAKTER HAREKET EDİYORSA) SES ÇAL!
+        // W'dan elini çektiğin an isMovingInput false olur, velocity de 0'a düşer ve ses ANINDA KESİLİR.
+        if (!isGrounded || (!isMovingInput && !isPhysicallyMoving))
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopFootsteps();
+            }
+            return;
+        }
 
         RaycastHit hit;
         if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, 1f, groundMask, QueryTriggerInteraction.Ignore))
@@ -694,6 +720,11 @@ public class SanchoMovement : MonoBehaviour, IDamageable
 
     void OnDisable()
     {
+        // Karakter devre dışı kaldığında döngüsel ses devam etmesin kanka
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopLoopingSound();
+        }
     }
 
     public void ExternalJump(float bounceHeight)
@@ -826,30 +857,30 @@ public class SanchoMovement : MonoBehaviour, IDamageable
     }
 
     public void UseHealthPotion()
-{
-    if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing || isDodging) return;
+    {
+        if (!isGrounded || isDrinking || isZiplining || isHoldingBox || isRepairing || isDodging) return;
 
-    if (healthPotionCount > 0 && currentHealth < maxHealth)
-    {
-        StartCoroutine(DrinkPotionRoutine(true));
-    }
-    else if (currentHealth >= maxHealth)
-    {
-        // UI Bildirimi Çağrılıyor
-        if (HUDManager.Instance != null)
+        if (healthPotionCount > 0 && currentHealth < maxHealth)
         {
-            HUDManager.Instance.ShowWarning("Health Already Full");
+            StartCoroutine(DrinkPotionRoutine(true));
+        }
+        else if (currentHealth >= maxHealth)
+        {
+            // UI Bildirimi Çağrılıyor
+            if (HUDManager.Instance != null)
+            {
+                HUDManager.Instance.ShowWarning("Health Already Full");
+            }
+        }
+        else
+        {
+            // İksir bittiğinde de uyarı vermek istersen:
+            if (HUDManager.Instance != null)
+            {
+                HUDManager.Instance.ShowWarning("No Health Potion");
+            }
         }
     }
-    else
-    {
-        // İksir bittiğinde de uyarı vermek istersen:
-        if (HUDManager.Instance != null)
-        {
-            HUDManager.Instance.ShowWarning("No Health Potion");
-        }
-    }
-}
 
     public void UseSlowPotion()
     {
@@ -991,6 +1022,11 @@ public class SanchoMovement : MonoBehaviour, IDamageable
         isCrawling = false;
         isCrouchToggled = false;
         isZiplining = false;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopLoopingSound();
+        }
 
         if (sanchoCombat != null)
         {
