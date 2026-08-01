@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 356084754325082123}
   m_Layer: 3
   m_Name: StairsPart_06
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 3002222047026912025}
   m_Layer: 10
   m_Name: UcanPlatformA
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

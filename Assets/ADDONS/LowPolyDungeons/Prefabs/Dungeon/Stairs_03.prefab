@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 874280140}
   m_Layer: 3
   m_Name: Stairs_03
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 19

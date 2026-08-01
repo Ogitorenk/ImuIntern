@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3158678417917542809}
   m_Layer: 3
   m_Name: Balcony-Floor
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

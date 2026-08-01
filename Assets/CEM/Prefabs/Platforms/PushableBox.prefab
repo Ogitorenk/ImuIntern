@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 327412797873483165}
   m_Layer: 3
   m_Name: SanchoBox
-  m_TagString: Untagged
+  m_TagString: Ground_Wood
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -212,6 +212,7 @@ MonoBehaviour:
   turnSpeed: 60
   stepHeight: 0.5
   stepSmooth: 5
+  soundRepeatInterval: 3.5
 --- !u!54 &9213899091950248924
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -273,7 +274,7 @@ GameObject:
   - component: {fileID: 8440694284287550061}
   m_Layer: 3
   m_Name: DonBox
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
