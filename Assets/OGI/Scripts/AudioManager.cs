@@ -1,9 +1,19 @@
 using UnityEngine;
+using UnityEngine.Audio; // Mixer desteði için eklendi kanka
 using System.Collections.Generic;
 
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
+
+    // ========================================================
+    // --- YENÝ EKLENDÝ: SETTINGS (MENÜ) MÝXER BAÐLANTILARI ---
+    // ========================================================
+    [Header("--- AUDIO MIXER KANALLARI (MENÜ ÝÇÝN) ---")]
+    [Tooltip("MainMixer üzerindeki Master grubu kanka")]
+    public AudioMixerGroup masterGroup;
+    [Tooltip("MainMixer üzerindeki SFX grubu kanka")]
+    public AudioMixerGroup sfxGroup;
 
     [Header("--- ÇEVRE SESLERÝ ---")]
     public AudioClip[] footstepDirt;
@@ -79,7 +89,7 @@ public class AudioManager : MonoBehaviour
     public float globalSpamCooldown = 0.15f;
 
     private AudioSource loopAudioSource;
-    private AudioSource footstepAudioSource; // === YENÝ: ADIMLAR ÝÇÝN ÖZEL SABÝT KANAL ===
+    private AudioSource footstepAudioSource;
 
     private void Awake()
     {
@@ -92,7 +102,6 @@ public class AudioManager : MonoBehaviour
             loopAudioSource.loop = true;
             loopAudioSource.playOnAwake = false;
 
-            // Adým seslerinin arkada asýlý kalmasýný önleyen sabit kanal kanka
             footstepAudioSource = gameObject.AddComponent<AudioSource>();
             footstepAudioSource.loop = false;
             footstepAudioSource.playOnAwake = false;
@@ -101,6 +110,13 @@ public class AudioManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    private void Start()
+    {
+        // === MÝXER KANALLARINI BÝLEÞENLERE ÝÐNELEME ===
+        if (loopAudioSource != null && sfxGroup != null) loopAudioSource.outputAudioMixerGroup = sfxGroup;
+        if (footstepAudioSource != null && sfxGroup != null) footstepAudioSource.outputAudioMixerGroup = sfxGroup;
     }
 
     public void PlayBoxPushSound(Vector3 position)
@@ -119,10 +135,7 @@ public class AudioManager : MonoBehaviour
 
         soundCooldowns[boxPushSound] = Time.time;
 
-        if (Camera.main != null)
-        {
-            AudioSource.PlayClipAtPoint(boxPushSound, position, boxPushVolume);
-        }
+        PlaySoundWithGroup(boxPushSound, position, boxPushVolume);
     }
 
     public void PlayLoopingSound(AudioClip clip, float volume = -1f)
@@ -180,17 +193,24 @@ public class AudioManager : MonoBehaviour
 
         float finalVolume = (volume < 0f) ? GetVolumeForClip(clip) : volume;
 
-        if (position == default)
-        {
-            if (Camera.main != null)
-            {
-                AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position, finalVolume);
-            }
-        }
-        else
-        {
-            AudioSource.PlayClipAtPoint(clip, position, finalVolume);
-        }
+        PlaySoundWithGroup(clip, position, finalVolume);
+    }
+
+    // === MÝXER DESTEKLÝ DÝNAMÝK SES ÇALICI (ÇIKISI SFX KANALINA YÖNLENDÝRÝR) ===
+    private void PlaySoundWithGroup(AudioClip clip, Vector3 position, float volume)
+    {
+        Vector3 targetPos = (position == default && Camera.main != null) ? Camera.main.transform.position : position;
+
+        GameObject tempGO = new GameObject("TempAudioSource_" + clip.name);
+        tempGO.transform.position = targetPos;
+
+        AudioSource audioSource = tempGO.AddComponent<AudioSource>();
+        audioSource.clip = clip;
+        audioSource.volume = volume;
+        if (sfxGroup != null) audioSource.outputAudioMixerGroup = sfxGroup; // Mixer'ýn SFX kanalýna baðlar!
+
+        audioSource.Play();
+        Destroy(tempGO, clip.length);
     }
 
     public void PlayFootstep(string groundTag, Vector3 position)
@@ -211,17 +231,16 @@ public class AudioManager : MonoBehaviour
             {
                 footstepAudioSource.transform.position = position;
                 footstepAudioSource.volume = footstepVolume;
-                footstepAudioSource.PlayOneShot(randomClip); // Sabit kanal üzerinden çal
+                footstepAudioSource.PlayOneShot(randomClip);
             }
         }
     }
 
-    // === ADIM SESÝNÝ ANINDA KESEN SABÝT KANAL METODU ===
     public void StopFootsteps()
     {
         if (footstepAudioSource != null && footstepAudioSource.isPlaying)
         {
-            footstepAudioSource.Stop(); // Durduðun an adýmlarý býçak gibi keser kanka!
+            footstepAudioSource.Stop();
         }
         soundCooldowns.Clear();
     }

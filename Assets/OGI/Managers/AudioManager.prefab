@@ -44,27 +44,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd40f1519512ead4c96448cafe5eabb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  masterGroup: {fileID: 24300002, guid: 3af1aa59dec1b894792ffff6677721bb, type: 2}
+  sfxGroup: {fileID: 4475958968998563925, guid: 3af1aa59dec1b894792ffff6677721bb, type: 2}
   footstepDirt:
   - {fileID: 8300000, guid: ce36184ad5984d048a64bd86141d18a3, type: 3}
   - {fileID: 8300000, guid: 52d0fa8040584be49a76610628063107, type: 3}
   - {fileID: 8300000, guid: cacbe5f337a94a14aa86948d9891e001, type: 3}
   footstepStone:
-  - {fileID: 8300000, guid: 3f994c952c3ee444b8a84605ab102333, type: 3}
-  - {fileID: 8300000, guid: 125217c463af5de499b03c8af7cb233e, type: 3}
-  - {fileID: 8300000, guid: 712f9d8947819bd499d036f97a295200, type: 3}
-  - {fileID: 8300000, guid: 1850ba10814c52b43945e8b3c56df9d9, type: 3}
+  - {fileID: 8300000, guid: 868ddc0e1a9d16d48a8cab42873dd5cf, type: 3}
+  - {fileID: 8300000, guid: 58e9a0b8abd325d419104f948490a3df, type: 3}
+  - {fileID: 8300000, guid: ae0cbe327ebfde2449db86fc7d54b8a5, type: 3}
+  - {fileID: 8300000, guid: 46b34e0e15b3f06479e983506be6f234, type: 3}
   footstepWood:
   - {fileID: 8300000, guid: 51ed387d4e20056438d9f9382e29abc6, type: 3}
   - {fileID: 8300000, guid: 46d3141cf03c1d5449c0bb596612b19d, type: 3}
   - {fileID: 8300000, guid: 09f4de9b05a464e4da47784579e1f566, type: 3}
   - {fileID: 8300000, guid: f289877efe2f55f4599f5235e775ebde, type: 3}
-  footstepVolume: 1
+  footstepVolume: 0.3
   donJumpSound: {fileID: 8300000, guid: 4047b228bf49b374d82f8a0ec7542b38, type: 3}
-  donJumpVolume: 0
+  donJumpVolume: 0.05
   sanchoJumpSound: {fileID: 8300000, guid: 58a7fbfac18b15e4bbee03c32b78ad96, type: 3}
-  sanchoJumpVolume: 0
+  sanchoJumpVolume: 0.05
   landSound: {fileID: 8300000, guid: becce2ac58acf934d9b4bfdf53e4ac7c, type: 3}
-  landVolume: 0
+  landVolume: 0.65
   boxPushSound: {fileID: 8300000, guid: a4ec9f4145a54ea4b86b261d3b4d1643, type: 3}
   boxPushVolume: 0.06
   leverSound: {fileID: 8300000, guid: b38d71afcbd1a614c9070ae080c7c403, type: 3}
@@ -74,7 +76,7 @@ MonoBehaviour:
   pusherSound: {fileID: 8300000, guid: 1e185b03a24c74f4ab285dc4e915e55b, type: 3}
   pusherVolume: 1
   donDamageSound: {fileID: 8300000, guid: 1312fff58733fde4687998c6b86882cd, type: 3}
-  donDamageVolume: 1
+  donDamageVolume: 0.3
   sanchoDamageSound: {fileID: 8300000, guid: 7791ed07c9418db438334c20432702b8, type: 3}
   sanchoDamageVolume: 1
   shieldBlockSound: {fileID: 8300000, guid: 98b94813a4e24fe42a8654927c358432, type: 3}
