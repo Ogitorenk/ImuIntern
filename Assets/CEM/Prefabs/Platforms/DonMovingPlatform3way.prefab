@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3720074644484160891}
   m_Layer: 0
   m_Name: SanchoPlat
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 6873083192263629620}
   m_Layer: 0
   m_Name: DonPlat
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -234,7 +234,7 @@ GameObject:
   - component: {fileID: 4277676368544443216}
   m_Layer: 0
   m_Name: DonMovingPlatform3way
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

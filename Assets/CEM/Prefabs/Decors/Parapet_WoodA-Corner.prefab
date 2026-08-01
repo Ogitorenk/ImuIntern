@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5515259320916231312}
   m_Layer: 3
   m_Name: Parapet_WoodA-Corner
-  m_TagString: Untagged
+  m_TagString: Ground_Wood
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 16

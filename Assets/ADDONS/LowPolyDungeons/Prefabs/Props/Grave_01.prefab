@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4763615836865480389}
   m_Layer: 3
   m_Name: Grave_01
-  m_TagString: Untagged
+  m_TagString: Ground_Stone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

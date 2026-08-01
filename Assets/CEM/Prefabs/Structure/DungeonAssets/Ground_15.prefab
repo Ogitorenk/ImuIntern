@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 4158686540333201558}
   m_Layer: 0
   m_Name: Ground_15
-  m_TagString: Untagged
+  m_TagString: Ground_Wood
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

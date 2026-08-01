@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1104444240822166169}
   m_Layer: 6
   m_Name: LibraryWithBooks_04
-  m_TagString: Untagged
+  m_TagString: Ground_Wood
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

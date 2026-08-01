@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 6699057443677350324}
   m_Layer: 3
   m_Name: WallPart_03
-  m_TagString: Untagged
+  m_TagString: Ground_Wood
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
