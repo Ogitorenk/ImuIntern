@@ -22564,7 +22564,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1689988931332818002, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 14.468265
+      value: 11.468265
       objectReference: {fileID: 0}
     - target: {fileID: 1689988931332818002, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: m_LocalPosition.y
@@ -22572,7 +22572,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1689988931332818002, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -56.03038
+      value: -64.28038
       objectReference: {fileID: 0}
     - target: {fileID: 1689988931332818002, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: m_LocalRotation.w
@@ -22602,6 +22602,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3556234337499168519, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
+      propertyPath: activePlayerCamera
+      value: 
+      objectReference: {fileID: 1128994832}
     - target: {fileID: 4198812383474160319, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
       propertyPath: activePlayerCamera
       value: 
@@ -22617,10 +22621,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 9155990895366227541, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1353439236}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
 --- !u!1 &640574902
 GameObject:
@@ -44521,35 +44522,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1351866801}
   m_CullTransparentMesh: 1
---- !u!1 &1353439235 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 9155990895366227541, guid: f3421936fb841c5438f8fb8250576f57, type: 3}
-  m_PrefabInstance: {fileID: 640389806}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1353439236
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1353439235}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 178200726abf65b4d88955af8888c52a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  progressionData: {fileID: 11400000, guid: 59f069aef283d5847a610d434dd6e4c2, type: 2}
-  activePlayerCamera: {fileID: 1128994832}
-  shakeDuration: 1
-  shakeAmplitude: 3
-  shakeFrequency: 2
-  gateOpenSound: {fileID: 0}
-  audioSource: {fileID: 0}
-  autoTeleportAfterLever: 1
-  targetSceneName: Right_Section
-  teleportDelay: 2
-  ozelKoordinataIsinla: 1
-  hedefKoordinat: {x: 0, y: 0, z: 0}
 --- !u!1001 &1353520883
 PrefabInstance:
   m_ObjectHideFlags: 0

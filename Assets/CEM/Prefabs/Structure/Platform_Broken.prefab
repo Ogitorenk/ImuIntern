@@ -69,6 +69,10 @@ PrefabInstance:
       value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: bde2e7d4175119c42a0f5a1f57575093, type: 3}
+      propertyPath: m_TagString
+      value: Ground_Stone
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: bde2e7d4175119c42a0f5a1f57575093, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 19
       objectReference: {fileID: 0}
